@@ -9,6 +9,7 @@ interface Task {
   date: string
   completionLevel: 'low' | 'medium' | 'high' | null
   points: number
+  description: string  // 添加描述字段
 }
 
 // 定义积分记录类型
@@ -71,21 +72,29 @@ function logout() {
 }
 
   // 初始化今日任务
-  function initializeTodayTasks() {
-    const today = new Date().toISOString().slice(0, 10)
+function initializeTodayTasks() {
+  const today = new Date().toISOString().slice(0, 10)
 
-    // 检查是否已经初始化了今日任务
-    if (tasks.value.some((task) => task.date === today)) {
-      return
-    }
-
-    // 添加今日的三个学科任务
-    tasks.value.push(
-      { id: `chinese-${today}`, subject: 'chinese', subjectName: '语文', date: today, completionLevel: null, points: 0 },
-      { id: `math-${today}`, subject: 'math', subjectName: '数学', date: today, completionLevel: null, points: 0 },
-      { id: `english-${today}`, subject: 'english', subjectName: '英语', date: today, completionLevel: null, points: 0 }
-    )
+  // 检查是否已经初始化了今日任务
+  if (tasks.value.some((task) => task.date === today)) {
+    return
   }
+
+  // 添加今日的三个学科任务，包含默认描述
+  tasks.value.push(
+    { id: `chinese-${today}`, subject: 'chinese', subjectName: '语文', date: today, completionLevel: null, points: 0, description: '今日语文任务' },
+    { id: `math-${today}`, subject: 'math', subjectName: '数学', date: today, completionLevel: null, points: 0, description: '今日数学任务' },
+    { id: `english-${today}`, subject: 'english', subjectName: '英语', date: today, completionLevel: null, points: 0, description: '今日英语任务' }
+  )
+}
+
+// 修改任务描述
+function updateTaskDescription(taskId: string, description: string) {
+  const task = tasks.value.find((t) => t.id === taskId)
+  if (task) {
+    task.description = description
+  }
+}
 
   // 更新任务完成度
   function updateTaskCompletion(taskId: string, level: 'low' | 'medium' | 'high') {
@@ -233,6 +242,7 @@ function logout() {
     updateExchangeItem,
     addExchangeItem,
     removeExchangeItem,
+    updateTaskDescription
   }
 }, {
   // 配置持久化

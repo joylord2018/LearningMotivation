@@ -101,6 +101,13 @@ function getTaskNameBySubject(subject: string): string {
 
 // 获取任务描述
 function getTaskDescriptionBySubject(subject: string): string {
+    // 首先尝试从今日任务中获取实际的描述
+    const todayTask = store.todayTasks.find(task => task.subject === subject);
+    if (todayTask && todayTask.description) {
+        return todayTask.description;
+    }
+    
+    // 如果没有从store获取到，使用默认描述
     const descriptions: { [key: string]: string } = {
         'chinese': '阅读一篇文章并理解内容',
         'math': '完成几道数学练习题',
