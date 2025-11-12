@@ -35,7 +35,7 @@
                     <div class="task-info">
                         <h3>{{ task.subjectName }} - {{ getTaskNameBySubject(task.subject) }}</h3>
                         <p>{{ getTaskDescriptionBySubject(task.subject) }}</p>
-                        <div class="task-points">{{ task.completionLevel ? '已获得 ' + task.points + ' 积分' : '完成可得 1-3 积分'
+                        <div class="task-points">{{ task.completionLevel ? '已获得 ' + task.points + ' 积分' : '完成可得 1-3 积分' 
                             }}</div>
                     </div>
                     <div class="task-status">
@@ -47,6 +47,15 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- 自定义弹窗组件 -->
+        <div v-if="showPopup" class="custom-popup-overlay" @click="closePopup">
+            <div class="custom-popup-content" @click.stop>
+                <div class="popup-icon">{{ popupIcon }}</div>
+                <div class="popup-message">{{ popupMessage }}</div>
+                <button class="popup-btn" @click="closePopup">太棒了！</button>
             </div>
         </div>
     </div>
@@ -69,6 +78,11 @@ const currentDate = computed(() => {
     const day = String(now.getDate()).padStart(2, '0')
     return `${year}年${month}月${day}日`
 })
+
+// 弹窗状态
+const showPopup = ref(false)
+const popupMessage = ref('')
+const popupIcon = ref('🎉')
 
 // 导航到其他页面
 function navigateTo(route: string) {
@@ -101,20 +115,27 @@ function completeTask(taskId: string, difficulty: 'low' | 'medium' | 'high') {
     if (task && !task.completionLevel) {
         store.updateTaskCompletion(taskId, difficulty)
         // 根据难度显示不同的提示信息
-        let message = ''
         switch (difficulty) {
             case 'low':
-                message = '🎉 任务轻松完成！'
+                popupMessage.value = '🎉 任务轻松完成！'
+                popupIcon.value = '😊'
                 break
             case 'medium':
-                message = '👍 任务完成得不错！'
+                popupMessage.value = '👍 任务完成得不错！'
+                popupIcon.value = '😃'
                 break
             case 'high':
-                message = '💪 任务完成得很出色！'
+                popupMessage.value = '💪 任务完成得很出色！'
+                popupIcon.value = '🤩'
                 break
         }
-        alert(message)
+        showPopup.value = true
     }
+}
+
+// 关闭弹窗
+function closePopup() {
+    showPopup.value = false
 }
 
 // 处理登出
@@ -460,6 +481,126 @@ onMounted(() => {
 
     .today-points {
         font-size: 1.1rem;
+    }
+}
+
+/* 自定义弹窗样式 */
+.custom-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 138, 171, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.custom-popup-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(255, 107, 139, 0.3);
+    text-align: center;
+    max-width: 350px;
+    width: 90%;
+    border: 3px solid #ffedf2;
+    animation: slideIn 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 弹窗内部装饰 */
+.custom-popup-content::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    width: 80px;
+    height: 80px;
+    background-color: rgba(255, 203, 219, 0.2);
+    border-radius: 50%;
+}
+
+.custom-popup-content::after {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    left: -15px;
+    width: 60px;
+    height: 60px;
+    background-color: rgba(255, 203, 219, 0.2);
+    border-radius: 50%;
+}
+
+.popup-icon {
+    font-size: 4rem;
+    margin-bottom: 15px;
+    animation: bounce 0.6s ease-in-out infinite;
+}
+
+.popup-message {
+    font-size: 1.2rem;
+    color: #ff6b8b;
+    margin-bottom: 20px;
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+}
+
+.popup-btn {
+    padding: 12px 25px;
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-size: 1rem;
+    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.3);
+    position: relative;
+    z-index: 1;
+}
+
+.popup-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 139, 0.4);
+}
+
+.popup-btn:active {
+    transform: translateY(0);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-30px) scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
     }
 }
 </style>

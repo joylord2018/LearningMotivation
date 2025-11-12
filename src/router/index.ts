@@ -6,30 +6,23 @@ const router = createRouter({
     {
       path: '/',
       name: 'login',
-      // @ts-ignore: suppress missing .vue module type error; add a shims-vue.d.ts in src for a permanent fix
       component: () => import('../views/LoginView.vue'),
     },
     {
       path: '/tasks',
       name: 'tasks',
-      // @ts-ignore: suppress missing .vue module type error; add a shims-vue.d.ts in src for a permanent fix
-
       component: () => import('../views/TaskView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/points',
       name: 'points',
-      // @ts-ignore: suppress missing .vue module type error; add a shims-vue.d.ts in src for a permanent fix
-
       component: () => import('../views/PointsView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/admin',
       name: 'admin',
-      // @ts-ignore: suppress missing .vue module type error; add a shims-vue.d.ts in src for a permanent fix
-
       component: () => import('../views/AdminView.vue'),
       meta: { requiresAuth: true },
     },
@@ -39,7 +32,7 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth) {
-    // 检查用户是否已登录（这里简化处理，实际应该从store中获取）
+    // 检查用户是否已登录
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
     if (isLoggedIn) {
       next()

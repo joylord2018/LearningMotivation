@@ -32,28 +32,62 @@
                             <p>{{ item.description }}</p>
                             <div class="item-price">需要 {{ item.points }} 积分</div>
                         </div>
-                        <button @click="handleExchange(item)" class="exchange-btn"
+                        <button @click="handleExchange(item)" class="exchange-btn" 
                             :disabled="store.currentPoints < item.points">
                             {{ store.currentPoints < item.points ? '积分不足' : '立即兑换' }} </button>
                     </div>
                 </div>
             </div>
 
-            <!-- 积分记录 -->
-            <div class="points-history">
-                <h2>📊 积分记录</h2>
-                <div v-if="sortedRecords.length === 0" class="no-records">暂无积分记录</div>
-                <div v-else class="records-list">
-                    <div v-for="record in sortedRecords" :key="record.id" class="record-item">
-                        <div class="record-info">
-                            <div class="record-date">{{ formatDate(record.date) }}</div>
-                            <div class="record-description">{{ record.description }}</div>
+            <!-- 积分记录按钮 -->
+            <div class="view-records-section">
+                <button @click="showRecordsPopup = true" class="view-records-btn">
+                    📊 查看积分记录
+                </button>
+            </div>
+        </div>
+
+        <!-- 积分记录弹窗 -->
+        <div v-if="showRecordsPopup" class="records-popup-overlay" @click="showRecordsPopup = false">
+            <div class="records-popup-content" @click.stop>
+                <div class="popup-header">
+                    <h2>📊 我的积分记录</h2>
+                    <button class="close-btn" @click="showRecordsPopup = false">✕</button>
+                </div>
+                
+                <div v-if="sortedRecords.length === 0" class="no-records">
+                    <div class="empty-icon">📝</div>
+                    <p>暂无积分记录</p>
+                </div>
+                
+                <div v-else class="records-popup-list">
+                    <div v-for="record in sortedRecords" :key="record.id" 
+                         class="record-popup-item" :class="record.points > 0 ? 'positive' : 'negative'">
+                        <div class="record-icon">
+                            {{ record.points > 0 ? '🎯' : '🛍️' }}
                         </div>
-                        <div class="record-points" :class="record.points > 0 ? 'positive' : 'negative'">
+                        <div class="record-popup-info">
+                            <div class="record-popup-date">{{ formatDate(record.date) }}</div>
+                            <div class="record-popup-description">{{ record.description }}</div>
+                        </div>
+                        <div class="record-popup-points" :class="record.points > 0 ? 'positive' : 'negative'">
                             {{ record.points > 0 ? '+' : '' }}{{ record.points }}
                         </div>
                     </div>
                 </div>
+                
+                <div class="popup-footer">
+                    <button @click="showRecordsPopup = false" class="close-popup-btn">关闭</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 兑换成功弹窗 -->
+        <div v-if="showExchangePopup" class="custom-popup-overlay" @click="showExchangePopup = false">
+            <div class="custom-popup-content" @click.stop>
+                <div class="popup-icon">{{ exchangePopupIcon }}</div>
+                <div class="popup-message">{{ exchangePopupMessage }}</div>
+                <button class="popup-btn" @click="showExchangePopup = false">太棒了！</button>
             </div>
         </div>
     </div>
@@ -67,6 +101,12 @@ import { useUserStore } from '../stores/userStore'
 
 const router = useRouter()
 const store = useUserStore()
+
+// 弹窗状态
+const showRecordsPopup = ref(false)
+const showExchangePopup = ref(false)
+const exchangePopupMessage = ref('')
+const exchangePopupIcon = ref('🎉')
 
 // 导航到其他页面
 function navigateTo(route: string) {
@@ -93,11 +133,15 @@ function handleExchange(item: any) {
         if (confirm(`确定要花费 ${item.points} 积分兑换 ${item.name} 吗？`)) {
             const success = store.exchangeItem(item.id)
             if (success) {
-                alert(`兑换成功！已获得 ${item.name}`)
+                exchangePopupMessage.value = `兑换成功！已获得 ${item.name}`
+                exchangePopupIcon.value = '🎁'
+                showExchangePopup.value = true
             }
         }
     } else {
-        alert('积分不足，无法兑换')
+        exchangePopupMessage.value = '积分不足，无法兑换'
+        exchangePopupIcon.value = '😔'
+        showExchangePopup.value = true
     }
 }
 
@@ -263,8 +307,8 @@ function handleLogout() {
     gap: 30px;
 }
 
-.exchange-section,
-.points-history {
+.exchange-section, 
+.view-records-section {
     background-color: white;
     padding: 20px;
     border-radius: 20px;
@@ -272,8 +316,7 @@ function handleLogout() {
     border: 2px solid #ffedf2;
 }
 
-.exchange-section h2,
-.points-history h2 {
+.exchange-section h2 {
     margin: 0 0 20px 0;
     color: #ff6b8b;
     font-size: 1.5rem;
@@ -376,86 +419,345 @@ function handleLogout() {
     box-shadow: none;
 }
 
-.records-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    max-height: 400px;
-    overflow-y: auto;
+/* 查看积分记录按钮样式 */
+.view-records-btn {
+    width: 100%;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #ffedf2 0%, #ffd6e0 100%);
+    color: #ff6b8b;
+    border: 2px solid #ffedf2;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.1);
 }
 
-.record-item {
+.view-records-btn:hover {
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 139, 0.2);
+    border-color: #ff6b8b;
+}
+
+/* 积分记录弹窗样式 */
+.records-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 138, 171, 0.7);
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    padding: 15px;
-    border-radius: 16px;
-    transition: all 0.3s ease;
-    border: 2px solid;
-    background-color: #fff8fa;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.records-popup-content {
+    background-color: white;
+    padding: 0;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(255, 107, 139, 0.3);
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    border: 3px solid #ffedf2;
+    animation: slideIn 0.3s ease;
+    display: flex;
+    flex-direction: column;
     position: relative;
     overflow: hidden;
 }
 
-.record-item::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 6px;
-    height: 100%;
-    border-radius: 16px 0 0 16px;
+/* 弹窗头部 */
+.popup-header {
+    padding: 20px 25px;
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 17px 17px 0 0;
+    position: relative;
+    z-index: 1;
 }
 
-.record-item.positive {
+.popup-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+/* 弹窗记录列表 */
+.records-popup-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.record-popup-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-radius: 16px;
+    margin-bottom: 12px;
+    background-color: #fff8fa;
+    border: 2px solid #ffedf2;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.record-popup-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.1);
+}
+
+.record-popup-item.positive {
     border-color: #ffedf2;
 }
 
-.record-item.positive::after {
-    background-color: #ff6b8b;
-}
-
-.record-item.negative {
+.record-popup-item.negative {
     border-color: #ffd6e0;
 }
 
-.record-item.negative::after {
-    background-color: #ff8fab;
+.record-icon {
+    font-size: 1.8rem;
+    margin-right: 15px;
+    flex-shrink: 0;
 }
 
-.record-date {
+.record-popup-info {
+    flex: 1;
+}
+
+.record-popup-date {
     color: #ff99b3;
     font-size: 0.85rem;
-    min-width: 120px;
+    margin-bottom: 5px;
 }
 
-.record-description {
-    flex: 1;
-    margin: 0 15px;
+.record-popup-description {
     color: #ff6b8b;
     font-weight: 500;
+    font-size: 0.95rem;
 }
 
-.record-points {
+.record-popup-points {
     font-weight: bold;
     font-size: 1.1rem;
-    min-width: 50px;
+    min-width: 60px;
     text-align: right;
 }
 
-.record-item.positive .record-points {
+.record-popup-item.positive .record-popup-points {
     color: #ff6b8b;
 }
 
-.record-item.negative .record-points {
+.record-popup-item.negative .record-popup-points {
     color: #ff8fab;
 }
 
+/* 无记录状态 */
 .no-records {
     text-align: center;
+    padding: 60px 20px;
     color: #ffb6c1;
-    padding: 40px;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    animation: bounce 1s ease-in-out infinite;
+}
+
+.no-records p {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+/* 弹窗底部 */
+.popup-footer {
+    padding: 20px;
+    text-align: center;
+    border-top: 2px solid #ffedf2;
+}
+
+.close-popup-btn {
+    padding: 12px 30px;
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
     font-size: 1rem;
+    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.3);
+}
+
+.close-popup-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 139, 0.4);
+}
+
+/* 兑换成功弹窗样式 */
+.custom-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 138, 171, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.custom-popup-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(255, 107, 139, 0.3);
+    text-align: center;
+    max-width: 350px;
+    width: 90%;
+    border: 3px solid #ffedf2;
+    animation: slideIn 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 弹窗内部装饰 */
+.custom-popup-content::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    width: 80px;
+    height: 80px;
+    background-color: rgba(255, 203, 219, 0.2);
+    border-radius: 50%;
+}
+
+.custom-popup-content::after {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    left: -15px;
+    width: 60px;
+    height: 60px;
+    background-color: rgba(255, 203, 219, 0.2);
+    border-radius: 50%;
+}
+
+.popup-icon {
+    font-size: 4rem;
+    margin-bottom: 15px;
+    animation: bounce 0.6s ease-in-out infinite;
+}
+
+.popup-message {
+    font-size: 1.2rem;
+    color: #ff6b8b;
+    margin-bottom: 20px;
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+}
+
+.popup-btn {
+    padding: 12px 25px;
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-size: 1rem;
+    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.3);
+    position: relative;
+    z-index: 1;
+}
+
+.popup-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 139, 0.4);
+}
+
+.popup-btn:active {
+    transform: translateY(0);
+}
+
+/* 滚动条样式 */
+.records-popup-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.records-popup-list::-webkit-scrollbar-track {
+    background: #fff0f5;
+    border-radius: 4px;
+}
+
+.records-popup-list::-webkit-scrollbar-thumb {
+    background: #ffb6c1;
+    border-radius: 4px;
+}
+
+.records-popup-list::-webkit-scrollbar-thumb:hover {
+    background: #ff8fab;
+}
+
+/* 动画 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-30px) scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
 /* 手机适配 */
@@ -482,15 +784,24 @@ function handleLogout() {
         grid-template-columns: 1fr;
     }
 
-    .record-item {
-        flex-direction: column;
-        gap: 8px;
-        text-align: center;
+    .records-popup-content {
+        width: 95%;
+        max-height: 90vh;
     }
 
-    .record-date,
-    .record-points {
+    .record-popup-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+
+    .record-icon {
+        margin-right: 0;
+    }
+
+    .record-popup-points {
         min-width: auto;
+        text-align: center;
     }
 }
 </style>

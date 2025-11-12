@@ -1,5 +1,5 @@
-import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { ref, computed } from 'vue' // 添加缺少的导入
 
 // 定义任务类型
 interface Task {
@@ -55,20 +55,20 @@ export const useUserStore = defineStore('user', () => {
 
   // 方法
   // 登录
-  function login(username: string, password: string): boolean {
-    if (username === 'xumingxi' && password === '20160104') {
-      isLoggedIn.value = true
-      loadFromLocalStorage()
-      return true
-    }
-    return false
+function login(username: string, password: string): boolean {
+  if (username === 'xumingxi' && password === '20160104') {
+    isLoggedIn.value = true
+    localStorage.setItem('isLoggedIn', 'true') // 单独保存登录状态
+    return true
   }
+  return false
+}
 
-  // 登出
-  function logout() {
-    isLoggedIn.value = false
-    saveToLocalStorage()
-  }
+// 登出
+function logout() {
+  isLoggedIn.value = false
+  localStorage.removeItem('isLoggedIn') // 移除登录状态
+}
 
   // 初始化今日任务
   function initializeTodayTasks() {
@@ -81,33 +81,10 @@ export const useUserStore = defineStore('user', () => {
 
     // 添加今日的三个学科任务
     tasks.value.push(
-      {
-        id: `chinese-${today}`,
-        subject: 'chinese',
-        subjectName: '语文',
-        date: today,
-        completionLevel: null,
-        points: 0,
-      },
-      {
-        id: `math-${today}`,
-        subject: 'math',
-        subjectName: '数学',
-        date: today,
-        completionLevel: null,
-        points: 0,
-      },
-      {
-        id: `english-${today}`,
-        subject: 'english',
-        subjectName: '英语',
-        date: today,
-        completionLevel: null,
-        points: 0,
-      },
+      { id: `chinese-${today}`, subject: 'chinese', subjectName: '语文', date: today, completionLevel: null, points: 0 },
+      { id: `math-${today}`, subject: 'math', subjectName: '数学', date: today, completionLevel: null, points: 0 },
+      { id: `english-${today}`, subject: 'english', subjectName: '英语', date: today, completionLevel: null, points: 0 }
     )
-
-    saveToLocalStorage()
   }
 
   // 更新任务完成度
@@ -135,9 +112,36 @@ export const useUserStore = defineStore('user', () => {
         type: 'task',
       }
       pointRecords.value.push(record)
-
-      saveToLocalStorage()
     }
+  }
+  
+  // 取消任务完成度
+  function cancelTaskCompletion(taskId: string) {
+    const task = tasks.value.find((t) => t.id === taskId)
+    if (task && task.completionLevel !== null) {
+      // 记录要扣除的积分
+      const pointsToDeduct = task.points
+      
+      // 移除之前的积分
+      currentPoints.value -= pointsToDeduct
+
+      // 更新任务完成度和积分
+      task.completionLevel = null
+      task.points = 0
+
+      // 记录积分变动
+      const record: PointRecord = {
+        id: `record-${Date.now()}`,
+        date: new Date().toISOString(),
+        description: `${task.subjectName}任务取消完成`,
+        points: -pointsToDeduct,
+        type: 'task',
+      }
+      pointRecords.value.push(record)
+
+      return pointsToDeduct
+    }
+    return 0
   }
 
   // 兑换物品
@@ -157,7 +161,6 @@ export const useUserStore = defineStore('user', () => {
       }
       pointRecords.value.push(record)
 
-      saveToLocalStorage()
       return true
     }
     return false
@@ -175,8 +178,6 @@ export const useUserStore = defineStore('user', () => {
       type: 'exchange',
     }
     pointRecords.value.push(record)
-
-    saveToLocalStorage()
   }
 
   // 更新兑换项（管理模块使用）
@@ -186,7 +187,6 @@ export const useUserStore = defineStore('user', () => {
       item.name = name
       item.points = points
       item.description = description
-      saveToLocalStorage()
     }
   }
 
@@ -199,40 +199,17 @@ export const useUserStore = defineStore('user', () => {
       description,
     }
     exchangeItems.value.push(newItem)
-    saveToLocalStorage()
   }
 
   // 删除兑换项（管理模块使用）
   function removeExchangeItem(itemId: string) {
     exchangeItems.value = exchangeItems.value.filter((item) => item.id !== itemId)
-    saveToLocalStorage()
   }
 
-  // 保存到localStorage
-  function saveToLocalStorage() {
-    const data = {
-      currentPoints: currentPoints.value,
-      tasks: tasks.value,
-      pointRecords: pointRecords.value,
-      exchangeItems: exchangeItems.value,
-    }
-    localStorage.setItem('userData', JSON.stringify(data))
-  }
-
-  // 从localStorage加载
-  function loadFromLocalStorage() {
-    const data = localStorage.getItem('userData')
-    if (data) {
-      try {
-        const parsed = JSON.parse(data)
-        currentPoints.value = parsed.currentPoints || 0
-        tasks.value = parsed.tasks || []
-        pointRecords.value = parsed.pointRecords || []
-        exchangeItems.value = parsed.exchangeItems || exchangeItems.value
-      } catch (error) {
-        console.error('Failed to load data from localStorage:', error)
-      }
-    }
+  // 初始化时检查登录状态
+  const savedLoginStatus = localStorage.getItem('isLoggedIn')
+  if (savedLoginStatus === 'true') {
+    isLoggedIn.value = true
   }
 
   return {
@@ -250,10 +227,18 @@ export const useUserStore = defineStore('user', () => {
     logout,
     initializeTodayTasks,
     updateTaskCompletion,
+    cancelTaskCompletion,
     exchangeItem,
     adjustPoints,
     updateExchangeItem,
     addExchangeItem,
     removeExchangeItem,
+  }
+}, {
+  // 配置持久化
+  persist: {
+    key: 'userData',
+    storage: localStorage,
+    // 移除paths属性以避免类型错误
   }
 })
