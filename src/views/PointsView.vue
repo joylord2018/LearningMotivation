@@ -16,6 +16,9 @@
         <header class="points-header">
             <h1>🏆 我的积分王国</h1>
             <div class="header-actions">
+                <button class="lottery-btn" @click="showLotteryPopup = true">
+                    🎰 幸运抽奖
+                </button>
                 <button class="backpack-btn" @click="showBackpackPopup = true">
                     🎒 我的背包 <span v-if="store.backpackItems.length > 0" class="badge">{{ store.backpackItems.length
                         }}</span>
@@ -156,15 +159,18 @@
                 <div v-if="store.backpackItems.length === 0" class="no-items">
                     <div class="empty-icon">🎒</div>
                     <p>背包空空如也</p>
-                    <p class="hint">快去兑换喜欢的物品吧！</p>
+                    <p class="hint">快去抽奖或兑换喜欢的物品吧！</p>
                 </div>
 
                 <div v-else class="backpack-items-list">
-                    <div v-for="item in store.backpackItems" :key="item.id" class="backpack-item">
-                        <div class="item-icon">🎁</div>
+                    <div v-for="item in sortedBackpackItems" :key="item.id" class="backpack-item"
+                        :class="getRarityClass(item.rarity)">
+                        <div class="item-icon">{{ getRarityIcon(item.rarity) }}</div>
+                        <div class="rarity-badge">{{ getRarityText(item.rarity) }}</div>
                         <div class="item-details">
                             <h3>{{ item.name }}</h3>
                             <p>{{ item.description }}</p>
+                            <div v-if="item.effect" class="item-effect">{{ item.effect }}</div>
                             <div class="acquired-date">获得时间: {{ formatDate(item.acquiredDate) }}</div>
                         </div>
                         <button class="use-item-btn" @click="showUseConfirm = true; selectedItem = item">
@@ -192,17 +198,22 @@
                 </div>
             </div>
         </div>
+
+        <!-- 抽奖弹窗 -->
+        <LotteryPopup :visible="showLotteryPopup" @close="showLotteryPopup = false" />
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '../stores/userStore'
+import { useUserStore, ItemRarity } from '../stores/userStore'
 import NavigationTabs from '../components/NavigationTabs.vue'
+import LotteryPopup from '../components/LotteryPopup.vue'
 
 const router = useRouter()
 const store = useUserStore()
+
 
 // 弹窗状态
 const showRecordsPopup = ref(false)
@@ -216,6 +227,14 @@ const pointChangeText = ref('')
 const showBackpackPopup = ref(false)
 const showUseConfirm = ref(false)
 const selectedItem = ref<any>(null)
+
+// 抽奖弹窗状态
+const showLotteryPopup = ref(false)
+
+// 排序后的背包物品（按稀有度排序）
+const sortedBackpackItems = computed(() => {
+    return store.sortedBackpackItems;
+})
 
 // 等级相关计算属性
 const currentLevel = computed(() => {
@@ -241,10 +260,48 @@ const recommendedItems = computed(() => {
         .slice(0, 2)
 })
 
-// 导航函数
-function navigateTo(path: string) {
-    router.push(path)
+// 获取稀有度样式类
+function getRarityClass(rarity?: ItemRarity) {
+    if (!rarity) return ''
+    return `rarity-${rarity}`
 }
+
+// 获取稀有度图标
+function getRarityIcon(rarity?: ItemRarity) {
+    if (!rarity) return '🎁'
+
+    switch (rarity) {
+        case ItemRarity.Common:
+            return '✨'
+        case ItemRarity.Rare:
+            return '🌟'
+        case ItemRarity.Epic:
+            return '💎'
+        case ItemRarity.Legendary:
+            return '👑'
+        default:
+            return '🎁'
+    }
+}
+
+// 获取稀有度文本
+function getRarityText(rarity?: ItemRarity) {
+    if (!rarity) return '普通'
+
+    switch (rarity) {
+        case ItemRarity.Common:
+            return '普通'
+        case ItemRarity.Rare:
+            return '稀有'
+        case ItemRarity.Epic:
+            return '史诗'
+        case ItemRarity.Legendary:
+            return '传说'
+        default:
+            return '普通'
+    }
+}
+
 
 // 登出函数
 function handleLogout() {
@@ -470,14 +527,15 @@ function formatDate(dateString: string) {
 /* 头部操作区域 */
 .header-actions {
     display: flex;
-    gap: 15px;
+    gap: 10px;
     align-items: center;
+    flex-wrap: nowrap;
 }
 
 /* 背包按钮样式 */
 .backpack-btn {
     position: relative;
-    padding: 12px 20px;
+    padding: 12px 15px;
     background: linear-gradient(135deg, #ffedf2 0%, #ffd6e0 100%);
     color: #ff6b8b;
     border: 2px solid #ffedf2;
@@ -485,8 +543,11 @@ function formatDate(dateString: string) {
     cursor: pointer;
     transition: all 0.3s ease;
     font-weight: 600;
-    font-size: 1rem;
+    font-size: 0.9rem;
+    /* 稍微减小字体 */
     box-shadow: 0 4px 12px rgba(255, 107, 139, 0.1);
+    white-space: nowrap;
+    /* 防止文字换行 */
 }
 
 .backpack-btn:hover {
@@ -514,7 +575,7 @@ function formatDate(dateString: string) {
 }
 
 .logout-btn {
-    padding: 12px 20px;
+    padding: 12px 15px;
     background-color: rgba(255, 255, 255, 0.2);
     color: white;
     border-radius: 16px;
@@ -522,6 +583,10 @@ function formatDate(dateString: string) {
     transition: all 0.3s ease;
     font-weight: 600;
     border: 2px solid rgba(255, 255, 255, 0.3);
+    font-size: 0.9rem;
+    /* 稍微减小字体 */
+    white-space: nowrap;
+    /* 防止文字换行 */
 }
 
 .logout-btn:hover {
@@ -1230,6 +1295,162 @@ function formatDate(dateString: string) {
     border-color: #ff6b8b;
 }
 
+/* 抽奖按钮样式 */
+.lottery-btn {
+    padding: 12px 15px;
+    background: linear-gradient(135deg, #feca57 0%, #ff9ff3 100%);
+    color: white;
+    border: 2px solid #ffedf2;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(254, 202, 87, 0.2);
+    white-space: nowrap;
+    /* 防止文字换行 */
+}
+
+.lottery-btn:hover {
+    background: linear-gradient(135deg, #ff9ff3 0%, #feca57 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(254, 202, 87, 0.3);
+}
+
+/* 背包物品稀有度样式 */
+.backpack-item.rarity-common {
+    background-color: #f8f9fa;
+    border: 2px solid #e9ecef;
+}
+
+.backpack-item.rarity-rare {
+    background-color: #e7f3ff;
+    border: 2px solid #1976d2;
+    position: relative;
+    animation: rareGlow 2s ease-in-out infinite;
+}
+
+.backpack-item.rarity-epic {
+    background-color: #f3e5f5;
+    border: 2px solid #7b1fa2;
+    position: relative;
+    animation: epicGlow 2s ease-in-out infinite;
+}
+
+.backpack-item.rarity-legendary {
+    background-color: #fff3e0;
+    border: 2px solid #ff6f00;
+    position: relative;
+    animation: legendaryGlow 2s ease-in-out infinite;
+}
+
+/* 稀有度徽章 */
+.rarity-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background-color: #ff6b81;
+    color: white;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 1;
+}
+
+.rarity-rare .rarity-badge {
+    background-color: #1976d2;
+}
+
+.rarity-epic .rarity-badge {
+    background-color: #7b1fa2;
+}
+
+.rarity-legendary .rarity-badge {
+    background-color: #ff6f00;
+    animation: legendaryBadgeGlow 1s ease-in-out infinite;
+}
+
+/* 物品效果文本 */
+.item-effect {
+    color: #ff6b81;
+    font-style: italic;
+    margin-top: 5px;
+    font-size: 14px;
+}
+
+/* 发光动画 */
+@keyframes rareGlow {
+    0% {
+        box-shadow: 0 0 5px rgba(25, 118, 210, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 15px rgba(25, 118, 210, 0.6);
+    }
+
+    100% {
+        box-shadow: 0 0 5px rgba(25, 118, 210, 0.3);
+    }
+}
+
+@keyframes epicGlow {
+    0% {
+        box-shadow: 0 0 5px rgba(123, 31, 162, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 15px rgba(123, 31, 162, 0.6);
+    }
+
+    100% {
+        box-shadow: 0 0 5px rgba(123, 31, 162, 0.3);
+    }
+}
+
+@keyframes legendaryGlow {
+    0% {
+        box-shadow: 0 0 5px rgba(255, 111, 0, 0.5);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(255, 111, 0, 0.8);
+    }
+
+    100% {
+        box-shadow: 0 0 5px rgba(255, 111, 0, 0.5);
+    }
+}
+
+@keyframes legendaryBadgeGlow {
+    0% {
+        box-shadow: 0 0 5px rgba(255, 111, 0, 0.7);
+    }
+
+    50% {
+        box-shadow: 0 0 10px rgba(255, 111, 0, 1);
+    }
+
+    100% {
+        box-shadow: 0 0 5px rgba(255, 111, 0, 0.7);
+    }
+}
+
+/* 调整背包物品布局以适应稀有度徽章 */
+.backpack-item {
+    position: relative;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.backpack-item:hover {
+    transform: translateY(-2px);
+}
+
 /* 自定义弹窗 */
 .custom-popup-overlay {
     position: fixed;
@@ -1370,12 +1591,20 @@ function formatDate(dateString: string) {
     .points-header {
         flex-direction: column;
         gap: 15px;
-        text-align: center;
+        padding: 15px 20px;
     }
 
     .header-actions {
-        width: 100%;
+        flex-wrap: wrap;
         justify-content: center;
+    }
+
+    /* 小屏幕下进一步调整按钮样式 */
+    .lottery-btn,
+    .backpack-btn,
+    .logout-btn {
+        font-size: 0.8rem;
+        padding: 10px 12px;
     }
 
     .backpack-btn,
@@ -1417,6 +1646,22 @@ function formatDate(dateString: string) {
 
     .points-amount {
         font-size: 2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .lottery-btn,
+    .backpack-btn,
+    .logout-btn {
+        width: 100%;
+        text-align: center;
+        padding: 12px;
+        font-size: 0.9rem;
     }
 }
 </style>

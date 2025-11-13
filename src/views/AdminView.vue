@@ -398,7 +398,7 @@ const notificationIcon = ref('')
 // 方法
 const authenticate = () => {
     // 实际应用中应该有更安全的认证方式
-    if (adminPassword.value === 'admin123') {
+    if (adminPassword.value === '379487') {
         isAuthenticated.value = true
         adminPassword.value = ''
         authError.value = ''

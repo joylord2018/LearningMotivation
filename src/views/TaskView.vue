@@ -1070,6 +1070,53 @@ onMounted(() => {
     z-index: 1;
 }
 
+/* 新增游戏按钮样式 */
+.game-btn {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1.1rem;
+    font-weight: 700;
+    box-shadow: 0 6px 15px rgba(255, 138, 171, 0.4);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.game-btn::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transform: rotate(45deg);
+    animation: shimmer 3s infinite;
+}
+
+.game-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(255, 107, 139, 0.5);
+    background: linear-gradient(135deg, #ff6b8b 0%, #ff4757 100%);
+}
+
+.game-btn:active {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(255, 107, 139, 0.4);
+}
+
+.btn-icon {
+    font-size: 1.2rem;
+    animation: bounce 1.5s ease-in-out infinite;
+}
+
 /* 动画效果 */
 @keyframes fadeIn {
     from {

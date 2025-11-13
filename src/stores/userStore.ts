@@ -44,13 +44,33 @@ interface ExchangeItem {
   description: string
 }
 
-// 定义背包物品类型
+// 将普通枚举声明修改为导出枚举
+export enum ItemRarity {
+  Common = 'common', // 普通
+  Rare = 'rare', // 稀有
+  Epic = 'epic', // 史诗
+  Legendary = 'legendary', // 传说
+}
+
+// 定义抽奖物品类型
+interface LotteryItem {
+  id: string
+  name: string
+  description: string
+  rarity: ItemRarity
+  probability: number // 概率（百分比）
+  effect?: string // 特殊效果描述
+}
+
+// 定义背包物品类型，增加稀有度属性
 interface BackpackItem {
   id: string
   originalId: string
   name: string
   description: string
   acquiredDate: string
+  rarity: ItemRarity
+  effect?: string // 特殊效果描述
 }
 
 export const useUserStore = defineStore(
@@ -66,6 +86,7 @@ export const useUserStore = defineStore(
       { id: '2', name: '小玩具', points: 50, description: '精美小玩具一个' },
       { id: '3', name: '大玩具', points: 100, description: '超值大玩具一个' },
     ])
+
     // 新增成就相关状态
     const achievements = ref<Achievement[]>([
       {
@@ -141,6 +162,89 @@ export const useUserStore = defineStore(
     const lastLoginDate = ref<string>('')
     const studyStreak = ref(0)
 
+    // 新增抽奖池配置
+    const lotteryItems = ref<LotteryItem[]>([
+      // 普通物品 (70% 概率)
+      {
+        id: 'lucky-1',
+        name: '幸运星',
+        description: '带来好运的星星',
+        rarity: ItemRarity.Common,
+        probability: 30,
+      },
+      {
+        id: 'lucky-2',
+        name: '学习笔记',
+        description: '提高学习效率',
+        rarity: ItemRarity.Common,
+        probability: 25,
+      },
+      {
+        id: 'lucky-3',
+        name: '能量饮料',
+        description: '补充学习能量',
+        rarity: ItemRarity.Common,
+        probability: 15,
+      },
+
+      // 稀有物品 (20% 概率)
+      {
+        id: 'rare-1',
+        name: '智慧结晶',
+        description: '增加智慧的结晶',
+        rarity: ItemRarity.Rare,
+        probability: 10,
+        effect: '使用后获得5点积分',
+      },
+      {
+        id: 'rare-2',
+        name: '学习加速器',
+        description: '加速学习进度',
+        rarity: ItemRarity.Rare,
+        probability: 10,
+        effect: '使用后获得额外的任务完成度',
+      },
+
+      // 史诗物品 (8% 概率)
+      {
+        id: 'epic-1',
+        name: '知识宝库',
+        description: '蕴含丰富知识的宝库',
+        rarity: ItemRarity.Epic,
+        probability: 5,
+        effect: '使用后获得10点积分',
+      },
+      {
+        id: 'epic-2',
+        name: '学习大师的祝福',
+        description: '来自学习大师的祝福',
+        rarity: ItemRarity.Epic,
+        probability: 3,
+        effect: '使用后所有任务获得双倍积分',
+      },
+
+      // 传说物品 (2% 概率)
+      {
+        id: 'legendary-1',
+        name: '学习之神的馈赠',
+        description: '学习之神赐予的珍贵礼物',
+        rarity: ItemRarity.Legendary,
+        probability: 1,
+        effect: '使用后获得20点积分和一次额外抽奖机会',
+      },
+      {
+        id: 'legendary-2',
+        name: '全能学霸徽章',
+        description: '全能学霸的象征',
+        rarity: ItemRarity.Legendary,
+        probability: 1,
+        effect: '使用后解锁所有成就进度+1',
+      },
+    ])
+
+    // 抽奖消耗积分
+    const lotteryCost = 10
+
     // 计算属性
     const todayTasks = computed(() => {
       const today = new Date().toISOString().slice(0, 10)
@@ -161,6 +265,25 @@ export const useUserStore = defineStore(
 
     const lockedAchievements = computed(() => {
       return achievements.value.filter((achievement) => !achievement.unlocked)
+    })
+
+    // 按稀有度排序的背包物品
+    const sortedBackpackItems = computed(() => {
+      const rarityOrder = {
+        [ItemRarity.Legendary]: 4,
+        [ItemRarity.Epic]: 3,
+        [ItemRarity.Rare]: 2,
+        [ItemRarity.Common]: 1,
+      }
+
+      return [...backpackItems.value].sort((a, b) => {
+        // 先按稀有度排序
+        if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) {
+          return rarityOrder[b.rarity] - rarityOrder[a.rarity]
+        }
+        // 稀有度相同时按获得时间排序（新的在前）
+        return new Date(b.acquiredDate).getTime() - new Date(a.acquiredDate).getTime()
+      })
     })
 
     // 更新checkAchievements方法，添加游戏化反馈
@@ -364,13 +487,14 @@ export const useUserStore = defineStore(
         }
         pointRecords.value.push(record)
 
-        // 添加到背包
+        // 添加到背包，默认普通稀有度
         const backpackItem: BackpackItem = {
           id: `backpack-${Date.now()}`,
           originalId: item.id,
           name: item.name,
           description: item.description,
           acquiredDate: new Date().toISOString(),
+          rarity: ItemRarity.Common,
         }
         backpackItems.value.push(backpackItem)
 
@@ -383,6 +507,34 @@ export const useUserStore = defineStore(
     function useItemFromBackpack(itemId: string): boolean {
       const index = backpackItems.value.findIndex((item) => item.id === itemId)
       if (index !== -1) {
+        // 使用非空断言操作符或重新获取item以避免类型错误
+        const item = backpackItems.value[index]
+        if (!item) return false // 额外的安全检查
+
+        // 执行物品效果
+        if (item.effect) {
+          // 根据物品效果执行不同的操作
+          if (item.effect.includes('获得5点积分') && item.rarity === ItemRarity.Rare) {
+            adjustPoints(5, `使用稀有物品${item.name}`)
+          } else if (item.effect.includes('获得10点积分') && item.rarity === ItemRarity.Epic) {
+            adjustPoints(10, `使用史诗物品${item.name}`)
+          } else if (item.effect.includes('获得20点积分') && item.rarity === ItemRarity.Legendary) {
+            adjustPoints(20, `使用传说物品${item.name}`)
+            // 可以在这里添加额外抽奖机会的逻辑
+          } else if (
+            item.effect.includes('解锁所有成就进度') &&
+            item.rarity === ItemRarity.Legendary
+          ) {
+            // 增加所有成就的进度
+            achievements.value.forEach((achievement) => {
+              if (!achievement.unlocked) {
+                achievement.current = Math.min(achievement.current + 1, achievement.target)
+              }
+            })
+            checkAchievements() // 检查是否有新解锁的成就
+          }
+        }
+
         // 从背包移除物品
         backpackItems.value.splice(index, 1)
 
@@ -390,7 +542,7 @@ export const useUserStore = defineStore(
         const record: PointRecord = {
           id: `record-${Date.now()}`,
           date: new Date().toISOString(),
-          description: `使用物品`,
+          description: `使用物品${item.name}`,
           points: 0,
           type: 'exchange',
         }
@@ -399,6 +551,71 @@ export const useUserStore = defineStore(
         return true
       }
       return false
+    }
+
+    // 新增抽奖方法
+    function drawLottery(): LotteryItem | null {
+      // 检查积分是否足够
+      if (currentPoints.value < lotteryCost) {
+        return null
+      }
+
+      // 扣除积分
+      currentPoints.value -= lotteryCost
+
+      // 记录抽奖记录
+      const record: PointRecord = {
+        id: `record-${Date.now()}`,
+        date: new Date().toISOString(),
+        description: '参与抽奖',
+        points: -lotteryCost,
+        type: 'exchange',
+      }
+      pointRecords.value.push(record)
+
+      // 根据概率进行抽奖
+      const random = Math.random() * 100
+      let cumulativeProbability = 0
+
+      for (const item of lotteryItems.value) {
+        cumulativeProbability += item.probability
+        if (random < cumulativeProbability) {
+          // 将抽到的物品添加到背包
+          const backpackItem: BackpackItem = {
+            id: `backpack-${Date.now()}`,
+            originalId: item.id,
+            name: item.name,
+            description: item.description,
+            acquiredDate: new Date().toISOString(),
+            rarity: item.rarity,
+            effect: item.effect,
+          }
+          backpackItems.value.push(backpackItem)
+
+          return item
+        }
+      }
+
+      // 默认返回第一个物品（理论上不会执行到这里）
+      // 添加安全检查，确保不会返回undefined
+      if (lotteryItems.value.length > 0) {
+        const defaultItem = lotteryItems.value[0]
+        if (defaultItem) {
+          // 将默认物品添加到背包
+          const backpackItem: BackpackItem = {
+            id: `backpack-${Date.now()}`,
+            originalId: defaultItem.id,
+            name: defaultItem.name,
+            description: defaultItem.description,
+            acquiredDate: new Date().toISOString(),
+            rarity: defaultItem.rarity,
+            effect: defaultItem.effect,
+          }
+          backpackItems.value.push(backpackItem)
+          return defaultItem
+        }
+      }
+      return null // 如果抽奖池为空或有问题，返回null
     }
 
     // 调整积分（管理模块使用） - 修正参数
@@ -462,11 +679,14 @@ export const useUserStore = defineStore(
       totalTaskCompletions,
       lastLoginDate,
       studyStreak,
+      lotteryItems,
+      lotteryCost,
       // 计算属性
       todayTasks,
       todayPoints,
       unlockedAchievements,
       lockedAchievements,
+      sortedBackpackItems,
       // 方法
       login,
       logout,
@@ -481,13 +701,15 @@ export const useUserStore = defineStore(
       updateTaskDescription,
       useItemFromBackpack,
       checkAchievements,
+      drawLottery,
+      ItemRarity,
     }
   },
   {
     // 配置持久化 - 使用pinia-plugin-persistedstate的正确格式
     persist: {
       key: 'user-store',
-      storage: localStorage
+      storage: localStorage,
     },
   },
 )
