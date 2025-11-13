@@ -1,445 +1,1304 @@
 <template>
     <div class="admin-container">
+        <!-- 装饰元素 -->
+        <div class="decorations">
+            <div class="heart heart-1"></div>
+            <div class="heart heart-2"></div>
+            <div class="heart heart-3"></div>
+            <div class="star star-1"></div>
+            <div class="star star-2"></div>
+            <div class="star star-3"></div>
+            <div class="star star-4"></div>
+            <div class="cloud cloud-1"></div>
+            <div class="cloud cloud-2"></div>
+            <div class="magic-wand magic-wand-1"></div>
+            <div class="magic-wand magic-wand-2"></div>
+        </div>
+
         <!-- 密码验证模态框 -->
-        <div v-if="!isPasswordVerified" class="password-modal">
-            <div class="password-modal-content">
-                <h2>🔒 请输入管理密码</h2>
-                <div class="password-form">
-                    <input v-model="adminPassword" type="password" placeholder="请输入密码" @keyup.enter="verifyPassword"
-                        class="password-input" />
-                    <div class="password-buttons">
-                        <button @click="verifyPassword" class="verify-btn">确认</button>
-                        <button @click="cancelVerification" class="cancel-btn">取消</button>
-                    </div>
+        <div v-if="!isAuthenticated" class="password-modal-overlay" @click="closePasswordModal">
+            <div class="password-modal-content" @click.stop>
+                <div class="modal-header">
+                    <h2 class="modal-title">🔒 管理员权限</h2>
+                    <button class="close-btn" @click="closePasswordModal">✕</button>
                 </div>
-                <p v-if="passwordError" class="error-message">密码错误，请重新输入！</p>
+                <div class="modal-body">
+                    <p class="modal-description">请输入管理员密码以访问管理功能</p>
+                    <input type="password" v-model="adminPassword" placeholder="输入密码..." class="password-input"
+                        @keyup.enter="authenticate">
+                    <div v-if="authError" class="auth-error">{{ authError }}</div>
+                    <button class="btn confirm-btn" @click="authenticate">
+                        <span class="btn-icon">🔓</span>
+                        <span>确认</span>
+                    </button>
+                </div>
             </div>
         </div>
 
         <!-- 管理页面内容 -->
-        <div v-else>
-            <!-- 装饰元素 -->
-            <div class="decorations">
-                <div class="decoration heart"></div>
-                <div class="decoration star"></div>
+        <div v-else class="admin-content">
+            <!-- 页面头部 -->
+            <div class="admin-header">
+                <div class="header-content">
+                    <h1 class="game-title">管理控制台 🧙‍♀️</h1>
+                    <div class="header-actions">
+                        <button class="btn back-btn" @click="goBack">
+                            <span class="btn-icon">🏠</span>
+                            <span>返回主页</span>
+                        </button>
+                        <button class="btn logout-btn" @click="logout">
+                            <span class="btn-icon">🚪</span>
+                            <span>登出</span>
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <header class="admin-header">
-                <h1>管理中心 👑</h1>
-                <div class="logout-btn" @click="handleLogout">退出登录</div>
-            </header>
+            <!-- 导航标签 -->
+            <NavigationTabs />
 
-            <div class="nav-tabs">
-                <button class="tab-btn" @click="navigateTo('/tasks')">任务</button>
-                <button class="tab-btn" @click="navigateTo('/points')">积分</button>
-                <button class="tab-btn active" @click="navigateTo('/admin')">管理</button>
-            </div>
-
-            <div class="admin-content">
-                <!-- 积分调整 -->
-                <div class="points-adjust-section">
-                    <h2>积分调整</h2>
-                    <div class="adjust-form">
-                        <div class="form-group">
-                            <label for="pointsAdjust">调整积分数量：</label>
-                            <input id="pointsAdjust" v-model="pointsAdjust" type="number" placeholder="输入积分数量"
-                                step="1" />
-                        </div>
-                        <div class="adjust-buttons">
-                            <button class="add-btn" @click="handleAddPoints">增加积分</button>
-                            <button class="subtract-btn" @click="handleSubtractPoints">减少积分</button>
+            <!-- 管理功能区域 -->
+            <div class="admin-sections">
+                <!-- 积分调整区域 -->
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h2 class="section-title">🎯 积分管理</h2>
+                        <div class="section-decoration"></div>
+                    </div>
+                    <div class="section-content">
+                        <div class="point-controls">
+                            <div class="form-group">
+                                <label for="userId" class="form-label">用户ID</label>
+                                <input type="text" id="userId" v-model="userId" placeholder="输入用户ID..."
+                                    class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="points" class="form-label">积分数量</label>
+                                <input type="number" id="points" v-model.number="pointsToAdjust" placeholder="输入积分..."
+                                    class="form-input">
+                            </div>
+                            <div class="action-buttons">
+                                <button class="btn add-btn" @click="addPoints">
+                                    <span class="btn-icon">➕</span>
+                                    <span>增加积分</span>
+                                </button>
+                                <button class="btn subtract-btn" @click="subtractPoints">
+                                    <span class="btn-icon">➖</span>
+                                    <span>扣除积分</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 今日任务管理 -->
-                <div class="today-tasks-section">
-                    <h2>今日任务管理</h2>
-                    <div v-if="todayTasks.length === 0" class="no-tasks">
-                        <p>今日暂无任务，请稍后再查看~</p>
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h2 class="section-title">📝 任务管理</h2>
+                        <div class="section-decoration"></div>
                     </div>
-                    <div v-else class="today-tasks-list">
-                        <div v-for="task in todayTasks" :key="task.id" class="task-item">
-                            <div class="task-info">
-                                <h3>{{ task.subjectName }}</h3>
-                                <p>{{ task.description }}</p> <!-- 显示任务描述 -->
-                                <div v-if="task.completionLevel" class="completion-status">
-                                    完成度：<span class="status-badge">{{ getCompletionText(task.completionLevel) }}</span>
+                    <div class="section-content">
+                        <button class="btn add-task-btn" @click="showAddTaskModal">
+                            <span class="btn-icon">➕</span>
+                            <span>添加新任务</span>
+                        </button>
+                        <div class="tasks-list">
+                            <div v-for="(task, index) in tasks" :key="task.id" class="task-item fade-in"
+                                :style="{ animationDelay: index * 0.05 + 's' }">
+                                <div class="task-info">
+                                    <div class="task-header">
+                                        <span class="task-icon">{{ task.icon }}</span>
+                                        <h3 class="task-name">{{ task.name }}</h3>
+                                        <span class="task-points">{{ task.points }} 🎯</span>
+                                    </div>
+                                    <p class="task-description">{{ task.description }}</p>
                                 </div>
-                                <div v-else class="completion-status">
-                                    完成度：<span class="status-badge pending">未完成</span>
+                                <div class="task-actions">
+                                    <button class="btn edit-btn" @click="editTask(task)">
+                                        <span class="btn-icon">✏️</span>
+                                        <span>编辑</span>
+                                    </button>
+                                    <button class="btn delete-btn" @click="confirmDeleteTask(task)">
+                                        <span class="btn-icon">🗑️</span>
+                                        <span>删除</span>
+                                    </button>
                                 </div>
-                                <div class="task-points">获得积分：{{ task.points }}</div>
                             </div>
-                            <div class="task-actions">
-                                <button class="edit-btn"
-                                    @click="editTaskDescription(task.id, task.subjectName, task.description)">编辑描述</button>
-                                <button v-if="task.completionLevel" class="cancel-btn"
-                                    @click="showConfirmModal('cancelTask', task.id, task.subjectName, task.points)">取消完成</button>
-                                <div v-else class="no-action">暂无操作</div>
+                            <div v-if="tasks.length === 0" class="no-tasks">
+                                <p class="no-tasks-text">暂无任务</p>
+                                <p class="no-tasks-hint">点击上方按钮添加新任务</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 兑换项管理 -->
-                <div class="exchange-items-section">
-                    <h2>兑换项管理</h2>
-                    <div class="exchange-items-list">
-                        <div v-for="item in store.exchangeItems" :key="item.id" class="exchange-item">
-                            <div class="item-info">
-                                <h3>{{ item.name }}</h3>
-                                <p>{{ item.description }}</p>
-                                <div class="item-price">需要 {{ item.points }} 积分</div>
-                            </div>
-                            <div class="item-actions">
-                                <button class="edit-btn" @click="editExchangeItem(item)">编辑</button>
-                                <button class="delete-btn" @click="showConfirmModal('deleteItem', item.id)">删除</button>
-                            </div>
-                        </div>
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h2 class="section-title">🎁 兑换项管理</h2>
+                        <div class="section-decoration"></div>
                     </div>
-
-                    <!-- 添加兑换项 -->
-                    <div class="add-exchange-form">
-                        <h3>添加新兑换项</h3>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="newItemName">名称：</label>
-                                <input id="newItemName" v-model="newItem.name" type="text" placeholder="输入名称" />
+                    <div class="section-content">
+                        <button class="btn add-reward-btn" @click="showAddRewardModal">
+                            <span class="btn-icon">➕</span>
+                            <span>添加新兑换项</span>
+                        </button>
+                        <div class="rewards-list">
+                            <div v-for="(reward, index) in rewards" :key="reward.id" class="reward-item fade-in"
+                                :style="{ animationDelay: index * 0.05 + 's' }">
+                                <div class="reward-info">
+                                    <div class="reward-header">
+                                        <span class="reward-icon">{{ reward.icon }}</span>
+                                        <h3 class="reward-name">{{ reward.name }}</h3>
+                                        <span class="reward-cost">{{ reward.cost }} 🎯</span>
+                                    </div>
+                                    <p class="reward-description">{{ reward.description }}</p>
+                                </div>
+                                <div class="reward-actions">
+                                    <button class="btn edit-btn" @click="editReward(reward)">
+                                        <span class="btn-icon">✏️</span>
+                                        <span>编辑</span>
+                                    </button>
+                                    <button class="btn delete-btn" @click="confirmDeleteReward(reward)">
+                                        <span class="btn-icon">🗑️</span>
+                                        <span>删除</span>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label for="newItemPoints">积分：</label>
-                                <input id="newItemPoints" v-model="newItem.points" type="number" placeholder="输入积分数量"
-                                    step="1" />
-                            </div>
-                            <div class="form-group full-width">
-                                <label for="newItemDesc">描述：</label>
-                                <input id="newItemDesc" v-model="newItem.description" type="text" placeholder="输入描述" />
+                            <div v-if="rewards.length === 0" class="no-rewards">
+                                <p class="no-rewards-text">暂无兑换项</p>
+                                <p class="no-rewards-hint">点击上方按钮添加新兑换项</p>
                             </div>
                         </div>
-                        <button class="add-item-btn" @click="handleAddItem">添加</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- 可爱的通知弹窗 -->
-        <div v-if="showNotification" class="notification-modal">
-            <div class="notification-content">
-                <div class="notification-icon">{{ notificationIcon }}</div>
-                <h3>{{ notificationTitle }}</h3>
-                <p>{{ notificationMessage }}</p>
-                <button class="notification-btn" @click="closeNotification">确定</button>
+        <!-- 添加/编辑任务弹窗 -->
+        <div v-if="showTaskModal" class="modal-overlay" @click="closeTaskModal">
+            <div class="modal-content" @click.stop>
+                <div class="modal-header">
+                    <h2 class="modal-title">{{ isEditingTask ? '✏️ 编辑任务' : '➕ 添加任务' }}</h2>
+                    <button class="close-btn" @click="closeTaskModal">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="taskName" class="form-label">任务名称</label>
+                        <input type="text" id="taskName" v-model="currentTask.name" placeholder="输入任务名称..."
+                            class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="taskDescription" class="form-label">任务描述</label>
+                        <textarea id="taskDescription" v-model="currentTask.description" placeholder="输入任务描述..."
+                            class="form-textarea" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskPoints" class="form-label">奖励积分</label>
+                        <input type="number" id="taskPoints" v-model.number="currentTask.points" placeholder="输入积分..."
+                            class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="taskIcon" class="form-label">任务图标</label>
+                        <input type="text" id="taskIcon" v-model="currentTask.icon" placeholder="输入图标（例如：📝）..."
+                            class="form-input">
+                    </div>
+                    <button class="btn save-btn" @click="saveTask">
+                        <span class="btn-icon">💾</span>
+                        <span>保存</span>
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- 可爱的确认弹窗 -->
-        <div v-if="showConfirm" class="confirm-modal">
-            <div class="confirm-content">
-                <div class="confirm-icon">{{ confirmIcon }}</div>
-                <h3>{{ confirmTitle }}</h3>
-                <p>{{ confirmMessage }}</p>
-                <div class="confirm-buttons">
-                    <button class="confirm-cancel-btn" @click="closeConfirm">取消</button>
-                    <button class="confirm-ok-btn" @click="handleConfirm">{{ confirmOkText }}</button>
+        <!-- 添加/编辑兑换项弹窗 -->
+        <div v-if="showRewardModal" class="modal-overlay" @click="closeRewardModal">
+            <div class="modal-content" @click.stop>
+                <div class="modal-header">
+                    <h2 class="modal-title">{{ isEditingReward ? '✏️ 编辑兑换项' : '➕ 添加兑换项' }}</h2>
+                    <button class="close-btn" @click="closeRewardModal">✕</button>
                 </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="rewardName" class="form-label">兑换项名称</label>
+                        <input type="text" id="rewardName" v-model="currentReward.name" placeholder="输入兑换项名称..."
+                            class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="rewardDescription" class="form-label">兑换项描述</label>
+                        <textarea id="rewardDescription" v-model="currentReward.description" placeholder="输入兑换项描述..."
+                            class="form-textarea" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="rewardCost" class="form-label">所需积分</label>
+                        <input type="number" id="rewardCost" v-model.number="currentReward.cost" placeholder="输入所需积分..."
+                            class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="rewardIcon" class="form-label">兑换项图标</label>
+                        <input type="text" id="rewardIcon" v-model="currentReward.icon" placeholder="输入图标（例如：🎁）..."
+                            class="form-input">
+                    </div>
+                    <button class="btn save-btn" @click="saveReward">
+                        <span class="btn-icon">💾</span>
+                        <span>保存</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 确认删除弹窗 -->
+        <div v-if="showConfirmModal" class="confirm-modal-overlay" @click="closeConfirmModal">
+            <div class="confirm-modal-content" @click.stop>
+                <div class="modal-header">
+                    <h2 class="modal-title">⚠️ 确认删除</h2>
+                    <button class="close-btn" @click="closeConfirmModal">✕</button>
+                </div>
+                <div class="modal-body">
+                    <p class="confirm-message">{{ confirmMessage }}</p>
+                    <div class="confirm-actions">
+                        <button class="btn cancel-btn" @click="closeConfirmModal">
+                            <span class="btn-icon">❌</span>
+                            <span>取消</span>
+                        </button>
+                        <button class="btn delete-confirm-btn" @click="confirmAction">
+                            <span class="btn-icon">✅</span>
+                            <span>确认</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 通知弹窗 -->
+        <div v-if="showNotification" class="notification-overlay">
+            <div class="notification-content" :class="notificationType">
+                <span class="notification-icon">{{ notificationIcon }}</span>
+                <p class="notification-message">{{ notificationMessage }}</p>
+                <button class="close-notification-btn" @click="closeNotification">✕</button>
             </div>
         </div>
     </div>
 </template>
 
-<script setup lang="ts">
-// 脚本部分
-import { ref, reactive, computed } from 'vue'
+<script lang="ts" setup>
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '../stores/userStore'
+import NavigationTabs from '@/components/NavigationTabs.vue'
 
 const router = useRouter()
-const store = useUserStore()
-const pointsAdjust = ref<number | ''>('')
 
-// 导航到其他页面
-function navigateTo(route: string) {
-    router.push(route)
+// 认证相关
+const isAuthenticated = ref(false)
+const adminPassword = ref('')
+const authError = ref('')
+
+// 积分调整相关
+const userId = ref('')
+const pointsToAdjust = ref(0)
+
+// 任务相关
+interface Task {
+    id: string
+    name: string
+    description: string
+    points: number
+    icon: string
 }
 
-// 密码验证相关状态
-const isPasswordVerified = ref(false)
-const adminPassword = ref('')
-const passwordError = ref(false)
+const tasks = ref<Task[]>([
+    {
+        id: '1',
+        name: '完成每日学习',
+        description: '今天学习至少1小时',
+        points: 20,
+        icon: '📚'
+    },
+    {
+        id: '2',
+        name: '复习笔记',
+        description: '复习昨天的学习笔记',
+        points: 15,
+        icon: '📝'
+    },
+    {
+        id: '3',
+        name: '解决难题',
+        description: '解决一个学习中遇到的难题',
+        points: 30,
+        icon: '🧩'
+    }
+])
 
-// 新兑换项表单
-const newItem = reactive({
+// 兑换项相关
+interface Reward {
+    id: string
+    name: string
+    description: string
+    cost: number
+    icon: string
+}
+
+const rewards = ref<Reward[]>([
+    {
+        id: '1',
+        name: '学习提醒',
+        description: '设置一个学习提醒',
+        cost: 50,
+        icon: '⏰'
+    },
+    {
+        id: '2',
+        name: '学习计划',
+        description: '获取一周学习计划模板',
+        cost: 100,
+        icon: '📅'
+    },
+    {
+        id: '3',
+        name: '激励卡片',
+        description: '获得随机激励卡片',
+        cost: 30,
+        icon: '💌'
+    }
+])
+
+// 模态框相关
+const showTaskModal = ref(false)
+const showRewardModal = ref(false)
+const showConfirmModal = ref(false)
+const isEditingTask = ref(false)
+const isEditingReward = ref(false)
+const confirmMessage = ref('')
+const confirmAction = ref(() => { })
+
+// 当前编辑的任务和兑换项
+const currentTask = reactive<Task>({
+    id: '',
     name: '',
+    description: '',
     points: 0,
-    description: ''
+    icon: ''
 })
 
-// 获取今日任务
-const todayTasks = computed(() => {
-    // 确保今日任务已初始化
-    store.initializeTodayTasks()
-    return store.todayTasks
+const currentReward = reactive<Reward>({
+    id: '',
+    name: '',
+    description: '',
+    cost: 0,
+    icon: ''
 })
 
-// 获取完成度文本
-function getCompletionText(level: string): string {
-    switch (level) {
-        case 'low': return '低（1分）'
-        case 'medium': return '中（2分）'
-        case 'high': return '高（3分）'
-        default: return '未完成'
+// 通知相关
+const showNotification = ref(false)
+const notificationMessage = ref('')
+const notificationType = ref('success') // success, error, info
+const notificationIcon = ref('')
+
+// 方法
+const authenticate = () => {
+    // 实际应用中应该有更安全的认证方式
+    if (adminPassword.value === 'admin123') {
+        isAuthenticated.value = true
+        adminPassword.value = ''
+        authError.value = ''
+        showNotificationMessage('认证成功！欢迎管理员 🧙‍♀️', 'success', '🎉')
+    } else {
+        authError.value = '密码错误，请重试'
+        showNotificationMessage('认证失败，请检查密码', 'error', '❌')
     }
 }
 
-// 通知弹窗相关状态
-const showNotification = ref(false)
-const notificationTitle = ref('')
-const notificationMessage = ref('')
-const notificationIcon = ref('')
-
-// 显示通知弹窗
-function showNotificationModal(title: string, message: string, icon: string = '✨') {
-    notificationTitle.value = title
-    notificationMessage.value = message
-    notificationIcon.value = icon
-    showNotification.value = true
+const closePasswordModal = () => {
+    router.push('/')
 }
 
-// 关闭通知弹窗
-function closeNotification() {
+const addPoints = () => {
+    if (!userId.value || pointsToAdjust.value <= 0) {
+        showNotificationMessage('请输入有效的用户ID和积分数量', 'error', '❌')
+        return
+    }
+
+    // 实际应用中这里应该调用API
+    showNotificationMessage(`成功为用户 ${userId.value} 增加 ${pointsToAdjust.value} 积分！`, 'success', '✅')
+    userId.value = ''
+    pointsToAdjust.value = 0
+}
+
+const subtractPoints = () => {
+    if (!userId.value || pointsToAdjust.value <= 0) {
+        showNotificationMessage('请输入有效的用户ID和积分数量', 'error', '❌')
+        return
+    }
+
+    // 实际应用中这里应该调用API
+    showNotificationMessage(`成功从用户 ${userId.value} 扣除 ${pointsToAdjust.value} 积分！`, 'success', '✅')
+    userId.value = ''
+    pointsToAdjust.value = 0
+}
+
+const showAddTaskModal = () => {
+    isEditingTask.value = false
+    Object.assign(currentTask, {
+        id: '',
+        name: '',
+        description: '',
+        points: 0,
+        icon: ''
+    })
+    showTaskModal.value = true
+}
+
+const showAddRewardModal = () => {
+    isEditingReward.value = false
+    Object.assign(currentReward, {
+        id: '',
+        name: '',
+        description: '',
+        cost: 0,
+        icon: ''
+    })
+    showRewardModal.value = true
+}
+
+const editTask = (task: Task) => {
+    isEditingTask.value = true
+    Object.assign(currentTask, task)
+    showTaskModal.value = true
+}
+
+const editReward = (reward: Reward) => {
+    isEditingReward.value = true
+    Object.assign(currentReward, reward)
+    showRewardModal.value = true
+}
+
+const saveTask = () => {
+    if (!currentTask.name || !currentTask.description || currentTask.points <= 0 || !currentTask.icon) {
+        showNotificationMessage('请填写完整的任务信息', 'error', '❌')
+        return
+    }
+
+    if (isEditingTask.value) {
+        const index = tasks.value.findIndex(t => t.id === currentTask.id)
+        if (index !== -1) {
+            tasks.value[index] = { ...currentTask }
+            showNotificationMessage('任务更新成功！', 'success', '✅')
+        }
+    } else {
+        const newTask = {
+            ...currentTask,
+            id: Date.now().toString()
+        }
+        tasks.value.push(newTask)
+        showNotificationMessage('任务添加成功！', 'success', '✅')
+    }
+
+    closeTaskModal()
+}
+
+const saveReward = () => {
+    if (!currentReward.name || !currentReward.description || currentReward.cost <= 0 || !currentReward.icon) {
+        showNotificationMessage('请填写完整的兑换项信息', 'error', '❌')
+        return
+    }
+
+    if (isEditingReward.value) {
+        const index = rewards.value.findIndex(r => r.id === currentReward.id)
+        if (index !== -1) {
+            rewards.value[index] = { ...currentReward }
+            showNotificationMessage('兑换项更新成功！', 'success', '✅')
+        }
+    } else {
+        const newReward = {
+            ...currentReward,
+            id: Date.now().toString()
+        }
+        rewards.value.push(newReward)
+        showNotificationMessage('兑换项添加成功！', 'success', '✅')
+    }
+
+    closeRewardModal()
+}
+
+const confirmDeleteTask = (task: Task) => {
+    confirmMessage.value = `确定要删除任务 "${task.name}" 吗？`
+    confirmAction.value = () => {
+        tasks.value = tasks.value.filter(t => t.id !== task.id)
+        showNotificationMessage('任务删除成功！', 'success', '✅')
+        closeConfirmModal()
+    }
+    showConfirmModal.value = true
+}
+
+const confirmDeleteReward = (reward: Reward) => {
+    confirmMessage.value = `确定要删除兑换项 "${reward.name}" 吗？`
+    confirmAction.value = () => {
+        rewards.value = rewards.value.filter(r => r.id !== reward.id)
+        showNotificationMessage('兑换项删除成功！', 'success', '✅')
+        closeConfirmModal()
+    }
+    showConfirmModal.value = true
+}
+
+const closeTaskModal = () => {
+    showTaskModal.value = false
+}
+
+const closeRewardModal = () => {
+    showRewardModal.value = false
+}
+
+const closeConfirmModal = () => {
+    showConfirmModal.value = false
+}
+
+const showNotificationMessage = (message: string, type: string, icon: string) => {
+    notificationMessage.value = message
+    notificationType.value = type
+    notificationIcon.value = icon
+    showNotification.value = true
+
+    setTimeout(() => {
+        closeNotification()
+    }, 3000)
+}
+
+const closeNotification = () => {
     showNotification.value = false
 }
 
-// 确认弹窗相关状态
-const showConfirm = ref(false)
-const confirmTitle = ref('')
-const confirmMessage = ref('')
-const confirmIcon = ref('')
-const confirmOkText = ref('确定')
-const confirmAction = ref('')
-const confirmParams = ref<any[]>([])
-
-// 显示确认弹窗
-function showConfirmModal(action: string, ...params: any[]) {
-    confirmAction.value = action
-    confirmParams.value = params
-
-    switch (action) {
-        case 'cancelTask':
-            confirmTitle.value = '取消任务完成'
-            confirmMessage.value = `确定要取消${params[1]}任务的完成状态吗？这将扣除${params[2]}积分。`
-            confirmIcon.value = '❓'
-            confirmOkText.value = '确定取消'
-            break
-        case 'deleteItem':
-            confirmTitle.value = '删除兑换项'
-            confirmMessage.value = '确定要删除这个兑换项吗？'
-            confirmIcon.value = '⚠️'
-            confirmOkText.value = '确认删除'
-            break
-    }
-
-    showConfirm.value = true
-}
-
-// 关闭确认弹窗
-function closeConfirm() {
-    showConfirm.value = false
-}
-
-// 处理确认操作
-function handleConfirm() {
-    closeConfirm()
-
-    switch (confirmAction.value) {
-        case 'cancelTask':
-            // 明确提取并传递参数，确保类型匹配
-            const [taskId, subjectName, points] = confirmParams.value as [string, string, number]
-            handleCancelTask(taskId, subjectName, points)
-            break
-        case 'deleteItem':
-            // 明确提取并传递参数，确保类型匹配
-            const [itemId] = confirmParams.value as [string]
-            handleDeleteItem(itemId)
-            break
-    }
-}
-
-// 处理取消任务完成
-function handleCancelTask(taskId: string, subjectName: string, points: number) {
-    const deductedPoints = store.cancelTaskCompletion(taskId)
-    if (deductedPoints > 0) {
-        showNotificationModal('操作成功', `成功取消${subjectName}任务，已扣除${deductedPoints}积分`, '✅')
-    }
-}
-
-// 验证密码
-function verifyPassword() {
-    if (adminPassword.value === '379487') {
-        isPasswordVerified.value = true
-        passwordError.value = false
-        // 已移除本地存储验证状态的代码
-    } else {
-        passwordError.value = true
-        adminPassword.value = ''
-    }
-}
-
-// 取消密码验证，返回上一页
-function cancelVerification() {
-    router.back()
-}
-
-// 编辑兑换项
-const editExchangeItem = (item: any) => {
-    const name = prompt('请输入新的名称：', item.name)
-    const points = prompt('请输入新的积分数量：', item.points.toString())
-    const description = prompt('请输入新的描述：', item.description)
-
-    if (name && points && description) {
-        const pointsNum = parseInt(points)
-        if (!isNaN(pointsNum) && pointsNum > 0) {
-            store.updateExchangeItem(item.id, name, pointsNum, description)
-        } else {
-            showNotificationModal('输入错误', '请输入有效的积分数量', '❌')
-        }
-    }
-}
-
-// 处理添加积分
-function handleAddPoints() {
-    if (pointsAdjust.value && !isNaN(Number(pointsAdjust.value))) {
-        const amount = Number(pointsAdjust.value)
-        if (amount > 0) {
-            store.adjustPoints(amount)
-            pointsAdjust.value = ''
-            showNotificationModal('积分增加成功', `成功增加 ${amount} 积分`, '🎊')
-        } else {
-            showNotificationModal('输入错误', '请输入正数', '❌')
-        }
-    } else {
-        showNotificationModal('输入错误', '请输入有效的积分数量', '❌')
-    }
-}
-
-// 处理减少积分
-function handleSubtractPoints() {
-    if (pointsAdjust.value && !isNaN(Number(pointsAdjust.value))) {
-        const amount = -Number(pointsAdjust.value)
-        if (amount < 0) {
-            if (store.currentPoints + amount >= 0) {
-                store.adjustPoints(amount)
-                pointsAdjust.value = ''
-                showNotificationModal('积分减少成功', `成功减少 ${-amount} 积分`, '🎊')
-            } else {
-                showNotificationModal('积分不足', '积分不足，无法减少', '❌')
-            }
-        } else {
-            showNotificationModal('输入错误', '请输入正数', '❌')
-        }
-    } else {
-        showNotificationModal('输入错误', '请输入有效的积分数量', '❌')
-    }
-}
-
-// 处理添加兑换项
-function handleAddItem() {
-    if (newItem.name && newItem.points > 0 && newItem.description) {
-        store.addExchangeItem(newItem.name, newItem.points, newItem.description)
-
-        // 重置表单
-        newItem.name = ''
-        newItem.points = 0
-        newItem.description = ''
-
-        showNotificationModal('添加成功', '兑换项添加成功', '🎉')
-    } else {
-        showNotificationModal('信息不完整', '请填写完整的兑换项信息', '❌')
-    }
-}
-
-// 编辑任务描述
-function editTaskDescription(taskId: string, subjectName: string, currentDescription: string) {
-    const newDescription = prompt('请输入新的任务描述：', currentDescription)
-    if (newDescription !== null) {
-        store.updateTaskDescription(taskId, newDescription)
-        showNotificationModal('操作成功', `成功修改${subjectName}任务的描述`, '✅')
-    }
-}
-
-// 处理删除兑换项
-function handleDeleteItem(itemId: string) {
-    store.removeExchangeItem(itemId)
-    showNotificationModal('删除成功', '兑换项已删除', '✅')
-}
-
-// 处理登出
-function handleLogout() {
-    store.logout()
-    localStorage.removeItem('isLoggedIn')
-    localStorage.removeItem('adminVerified') // 保留这行，确保登出后清除验证状态
+const goBack = () => {
     router.push('/')
+}
+
+const logout = () => {
+    isAuthenticated.value = false
+    router.push('/login')
 }
 </script>
 
 <style scoped>
+/* 基础样式 */
 .admin-container {
     min-height: 100vh;
-    background-color: #fff5f7;
-    background-image:
-        radial-gradient(#ffd6e0 1px, transparent 1px),
-        radial-gradient(#ffd6e0 1px, transparent 1px);
-    background-size: 30px 30px;
-    background-position: 0 0, 15px 15px;
-    padding: 20px;
+    background: linear-gradient(135deg, #ffdde1 0%, #ee9ca7 100%);
     position: relative;
-    overflow: hidden;
+    padding: 20px;
+    overflow-x: hidden;
 }
 
 /* 装饰元素 */
 .decorations {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
     pointer-events: none;
-    z-index: -1;
+    z-index: 1;
+    overflow: hidden;
 }
 
-.decoration {
-    position: absolute;
-    opacity: 0.3;
-}
-
+/* 心形装饰 */
 .heart {
-    top: 15%;
-    right: 8%;
-    width: 120px;
-    height: 120px;
-    background-color: #ffb6c1;
-    border-radius: 50% 50% 0 0;
-    transform: rotate(45deg);
-    animation: float 8s ease-in-out infinite;
+    position: absolute;
+    font-size: 24px;
+    animation: float 6s ease-in-out infinite;
+    opacity: 0.7;
 }
 
-.star {
-    bottom: 20%;
-    left: 10%;
-    width: 80px;
-    height: 80px;
-    background-color: #ffda6a;
-    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-    animation: float 6s ease-in-out infinite;
+.heart-1 {
+    top: 10%;
+    left: 5%;
+    color: #ff6b8b;
+    animation-duration: 7s;
+}
+
+.heart-2 {
+    top: 30%;
+    right: 8%;
+    color: #ff8fa3;
+    animation-duration: 8s;
     animation-delay: 1s;
 }
 
+.heart-3 {
+    bottom: 15%;
+    left: 12%;
+    color: #ffb3c1;
+    animation-duration: 6s;
+    animation-delay: 2s;
+}
+
+/* 星星装饰 */
+.star {
+    position: absolute;
+    font-size: 20px;
+    animation: twinkle 4s ease-in-out infinite;
+}
+
+.star-1 {
+    top: 20%;
+    right: 15%;
+    color: #ffd700;
+    animation-delay: 0.5s;
+}
+
+.star-2 {
+    top: 50%;
+    left: 8%;
+    color: #ffec3d;
+    animation-delay: 1.2s;
+}
+
+.star-3 {
+    bottom: 25%;
+    right: 10%;
+    color: #fff48c;
+    animation-delay: 0.8s;
+}
+
+.star-4 {
+    bottom: 10%;
+    left: 20%;
+    color: #ffee9c;
+    animation-delay: 1.5s;
+}
+
+/* 云朵装饰 */
+.cloud {
+    position: absolute;
+    font-size: 40px;
+    animation: float 10s ease-in-out infinite;
+    opacity: 0.8;
+}
+
+.cloud-1 {
+    top: 15%;
+    left: 20%;
+    animation-duration: 15s;
+}
+
+.cloud-2 {
+    bottom: 20%;
+    right: 25%;
+    animation-duration: 18s;
+    animation-delay: 2s;
+}
+
+/* 魔法棒装饰 */
+.magic-wand {
+    position: absolute;
+    font-size: 30px;
+    animation: sparkle 3s ease-in-out infinite;
+}
+
+.magic-wand-1 {
+    top: 25%;
+    right: 15%;
+    animation-delay: 1s;
+}
+
+.magic-wand-2 {
+    bottom: 20%;
+    left: 15%;
+    animation-delay: 2s;
+}
+
+/* 页面头部 */
+.admin-header {
+    position: relative;
+    z-index: 2;
+    margin-bottom: 30px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 8px 30px rgba(255, 107, 139, 0.2);
+    border: 2px solid #ffd1dc;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.game-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #ff6b8b;
+    margin: 0;
+    text-shadow: 3px 3px 0px #ffd1dc, 5px 5px 10px rgba(255, 107, 139, 0.3);
+}
+
+.header-actions {
+    display: flex;
+    gap: 15px;
+}
+
+/* 按钮样式 */
+.btn {
+    background: linear-gradient(45deg, #ff6b8b, #ff8fa3);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    padding: 12px 25px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(255, 107, 139, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: all 0.6s ease;
+}
+
+.btn:hover::before {
+    left: 100%;
+}
+
+.btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(255, 107, 139, 0.4);
+}
+
+.btn-icon {
+    font-size: 1.2rem;
+}
+
+/* 不同按钮类型 */
+.add-btn,
+.add-task-btn,
+.add-reward-btn {
+    background: linear-gradient(45deg, #ff6b8b, #ff8fa3);
+}
+
+.subtract-btn {
+    background: linear-gradient(45deg, #ff8fa3, #ffb3c1);
+}
+
+.edit-btn {
+    background: linear-gradient(45deg, #feca57, #ff9ff3);
+}
+
+.delete-btn,
+.delete-confirm-btn {
+    background: linear-gradient(45deg, #ff6b6b, #ee5253);
+}
+
+.confirm-btn,
+.save-btn {
+    background: linear-gradient(45deg, #54a0ff, #5f27cd);
+}
+
+.cancel-btn {
+    background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+}
+
+/* 管理功能区域 */
+.admin-sections {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+/* 管理区域 */
+.admin-section {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 25px;
+    padding: 30px;
+    box-shadow: 0 10px 35px rgba(255, 107, 139, 0.2);
+    border: 2px solid #ffd1dc;
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 150px;
+    height: 150px;
+    background: rgba(255, 107, 139, 0.05);
+    border-radius: 50%;
+    transform: translate(50%, -50%);
+}
+
+/* 区域标题 */
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+    position: relative;
+    z-index: 1;
+}
+
+.section-title {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #ff6b8b;
+    margin: 0;
+    text-shadow: 2px 2px 0px #ffd1dc;
+}
+
+.section-decoration {
+    flex: 1;
+    height: 3px;
+    background: linear-gradient(90deg, #ff6b8b, transparent);
+    border-radius: 3px;
+}
+
+/* 表单样式 */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #666;
+    font-size: 1rem;
+}
+
+.form-input,
+.form-textarea,
+.password-input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #ffd1dc;
+    border-radius: 15px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.password-input:focus {
+    outline: none;
+    border-color: #ff6b8b;
+    box-shadow: 0 0 0 3px rgba(255, 107, 139, 0.1);
+}
+
+/* 积分控制面板 */
+.point-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-end;
+}
+
+.point-controls .form-group {
+    flex: 1;
+    min-width: 200px;
+    margin-bottom: 0;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* 任务列表 */
+.tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.task-item {
+    background: linear-gradient(135deg, #fff 0%, #ffe6ea 100%);
+    border-radius: 20px;
+    padding: 20px;
+    border: 2px solid #ffd1dc;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.task-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 107, 139, 0.1), transparent);
+    transition: all 0.6s ease;
+}
+
+.task-item:hover::before {
+    left: 100%;
+}
+
+.task-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(255, 107, 139, 0.2);
+}
+
+.task-info {
+    flex: 1;
+    min-width: 250px;
+}
+
+.task-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.task-icon {
+    font-size: 2rem;
+}
+
+.task-name {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #ff6b8b;
+    margin: 0;
+    flex: 1;
+}
+
+.task-points {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #ff6b8b;
+    background: rgba(255, 107, 139, 0.1);
+    padding: 5px 15px;
+    border-radius: 20px;
+}
+
+.task-description {
+    color: #666;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.task-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* 兑换项列表 */
+.rewards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.reward-item {
+    background: linear-gradient(135deg, #fff 0%, #ffe6ea 100%);
+    border-radius: 20px;
+    padding: 20px;
+    border: 2px solid #ffd1dc;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.reward-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 107, 139, 0.1), transparent);
+    transition: all 0.6s ease;
+}
+
+.reward-item:hover::before {
+    left: 100%;
+}
+
+.reward-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(255, 107, 139, 0.2);
+}
+
+.reward-info {
+    flex: 1;
+    min-width: 250px;
+}
+
+.reward-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.reward-icon {
+    font-size: 2rem;
+}
+
+.reward-name {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #ff6b8b;
+    margin: 0;
+    flex: 1;
+}
+
+.reward-cost {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #ff6b8b;
+    background: rgba(255, 107, 139, 0.1);
+    padding: 5px 15px;
+    border-radius: 20px;
+}
+
+.reward-description {
+    color: #666;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.reward-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* 无任务/兑换项状态 */
+.no-tasks,
+.no-rewards {
+    text-align: center;
+    padding: 40px 20px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 20px;
+    border: 2px dashed #ffb3c1;
+}
+
+.no-tasks-text,
+.no-rewards-text {
+    font-size: 1.2rem;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.no-tasks-hint,
+.no-rewards-hint {
+    font-size: 1rem;
+    color: #999;
+    margin: 0;
+}
+
+/* 模态框样式 */
+.modal-overlay,
+.password-modal-overlay,
+.confirm-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content,
+.password-modal-content,
+.confirm-modal-content {
+    background: white;
+    border-radius: 25px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    border: 3px solid #ffd1dc;
+    position: relative;
+    animation: bounceIn 0.4s ease;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #ffd1dc;
+}
+
+.modal-title {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #ff6b8b;
+    margin: 0;
+    text-shadow: 2px 2px 0px #ffd1dc;
+}
+
+.close-btn {
+    background: #ff6b8b;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    background: #ff8fa3;
+    transform: scale(1.1);
+}
+
+.modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.modal-description {
+    color: #666;
+    font-size: 1.1rem;
+    line-height: 1.5;
+}
+
+/* 认证错误 */
+.auth-error {
+    color: #e74c3c;
+    font-size: 0.9rem;
+    text-align: center;
+    margin-top: -10px;
+}
+
+/* 确认操作区域 */
+.confirm-actions {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.confirm-message {
+    color: #666;
+    font-size: 1.1rem;
+    text-align: center;
+    line-height: 1.5;
+}
+
+/* 通知弹窗 */
+.notification-overlay {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2000;
+    animation: fadeIn 0.3s ease;
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px 25px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    animation: slideIn 0.3s ease;
+    max-width: 400px;
+}
+
+.notification-content.success {
+    background: linear-gradient(45deg, #66bb6a, #43a047);
+    color: white;
+}
+
+.notification-content.error {
+    background: linear-gradient(45deg, #ef5350, #e53935);
+    color: white;
+}
+
+.notification-content.info {
+    background: linear-gradient(45deg, #42a5f5, #1e88e5);
+    color: white;
+}
+
+.notification-icon {
+    font-size: 1.5rem;
+}
+
+.notification-message {
+    flex: 1;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.close-notification-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.close-notification-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+/* 动画效果 */
 @keyframes float {
 
     0%,
     100% {
-        transform: translateY(0) rotate(0);
+        transform: translateY(0) rotate(0deg);
     }
 
     50% {
@@ -447,19 +1306,32 @@ function handleLogout() {
     }
 }
 
-/* 密码验证模态框样式 */
-.password-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(255, 138, 171, 0.9);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    animation: fadeIn 0.3s ease;
+@keyframes twinkle {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.6;
+        transform: scale(0.8);
+    }
+}
+
+@keyframes sparkle {
+
+    0%,
+    100% {
+        opacity: 0.7;
+        transform: rotate(0deg);
+    }
+
+    50% {
+        opacity: 1;
+        transform: rotate(10deg);
+    }
 }
 
 @keyframes fadeIn {
@@ -472,436 +1344,16 @@ function handleLogout() {
     }
 }
 
-.password-modal-content {
-    background-color: white;
-    padding: 40px;
-    border-radius: 20px;
-    box-shadow: 0 8px 32px rgba(255, 107, 139, 0.3);
-    text-align: center;
-    max-width: 400px;
-    width: 90%;
-    border: 2px solid #ffedf2;
-    animation: slideIn 0.3s ease;
-}
-
 @keyframes slideIn {
     from {
-        transform: translateY(-20px);
+        transform: translateX(100%);
         opacity: 0;
     }
 
     to {
-        transform: translateY(0);
+        transform: translateX(0);
         opacity: 1;
     }
-}
-
-.password-modal-content h2 {
-    color: #ff6b8b;
-    margin-bottom: 20px;
-    font-size: 24px;
-}
-
-.password-input {
-    padding: 12px;
-    width: 100%;
-    border: 2px solid #ff8fab;
-    border-radius: 25px;
-    font-size: 16px;
-    margin-bottom: 15px;
-    outline: none;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(255, 138, 171, 0.1);
-}
-
-.password-input:focus {
-    border-color: #ff6b8b;
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.2);
-    transform: translateY(-1px);
-}
-
-.verify-btn,
-.password-buttons .cancel-btn {
-    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
-    color: white;
-    border: none;
-    padding: 12px 30px;
-    border-radius: 25px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.3);
-    font-weight: 600;
-}
-
-.password-buttons .cancel-btn {
-    margin-left: 10px;
-}
-
-
-.verify-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 107, 139, 0.4);
-}
-
-.error-message {
-    color: #ff4757;
-    margin-top: 10px;
-    font-size: 14px;
-    animation: shake 0.5s ease;
-}
-
-@keyframes shake {
-
-    0%,
-    100% {
-        transform: translateX(0);
-    }
-
-    25% {
-        transform: translateX(-5px);
-    }
-
-    75% {
-        transform: translateX(5px);
-    }
-}
-
-.admin-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding: 15px;
-    background-color: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.1);
-    border: 2px solid #ffedf2;
-}
-
-.admin-header h1 {
-    color: #ff6b8b;
-    font-size: 1.8rem;
-    margin: 0;
-    font-weight: 700;
-}
-
-.logout-btn {
-    padding: 8px 16px;
-    background-color: #ff8fab;
-    color: white;
-    border: none;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 0.9rem;
-    font-weight: 500;
-    box-shadow: 0 2px 8px rgba(255, 138, 171, 0.3);
-}
-
-.logout-btn:hover {
-    background-color: #ff6b8b;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.4);
-}
-
-.nav-tabs {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    background-color: white;
-    padding: 10px;
-    border-radius: 20px;
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.1);
-    border: 2px solid #ffedf2;
-}
-
-.tab-btn {
-    flex: 1;
-    padding: 12px 20px;
-    border: none;
-    background-color: #fff0f5;
-    border-radius: 16px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    color: #ff8fab;
-    font-weight: 600;
-    font-size: 1rem;
-}
-
-.tab-btn.active {
-    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
-    color: white;
-    box-shadow: 0 2px 8px rgba(255, 107, 139, 0.3);
-}
-
-.tab-btn:hover:not(.active) {
-    background-color: #ffedf2;
-    transform: translateY(-1px);
-}
-
-.admin-content {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-}
-
-.points-adjust-section,
-.today-tasks-section,
-.exchange-items-section {
-    background-color: white;
-    padding: 20px;
-    border-radius: 20px;
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.1);
-    border: 2px solid #ffedf2;
-}
-
-.points-adjust-section h2,
-.today-tasks-section h2,
-.exchange-items-section h2 {
-    margin: 0 0 20px 0;
-    color: #ff6b8b;
-    font-size: 1.5rem;
-    font-weight: 700;
-}
-
-.adjust-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.form-group label {
-    color: #ff8fab;
-    font-weight: 600;
-    font-size: 0.95rem;
-}
-
-.form-group input {
-    padding: 10px 15px;
-    border: 2px solid #ffedf2;
-    border-radius: 12px;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    outline: none;
-}
-
-.form-group input:focus {
-    border-color: #ff6b8b;
-    box-shadow: 0 2px 8px rgba(255, 107, 139, 0.15);
-    transform: translateY(-1px);
-}
-
-.adjust-buttons {
-    display: flex;
-    gap: 10px;
-}
-
-.add-btn,
-.subtract-btn,
-.edit-btn,
-.delete-btn,
-.add-item-btn,
-.cancel-btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 16px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 600;
-    font-size: 0.95rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.add-btn {
-    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
-    color: white;
-    flex: 1;
-}
-
-.subtract-btn {
-    background: linear-gradient(135deg, #ffb6c1 0%, #ff8fab 100%);
-    color: white;
-    flex: 1;
-}
-
-.edit-btn {
-    background-color: #fff0f5;
-    color: #ff8fab;
-    border: 2px solid #ffedf2;
-}
-
-.delete-btn {
-    background-color: #ff6b8b;
-    color: white;
-}
-
-.add-item-btn {
-    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
-    color: white;
-    width: 100%;
-    margin-top: 15px;
-}
-
-.cancel-btn {
-    background: linear-gradient(135deg, #ff6b8b 0%, #ff4757 100%) !important;
-    color: white;
-}
-
-.add-btn:hover,
-.subtract-btn:hover,
-.add-item-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.3);
-}
-
-.edit-btn:hover {
-    background-color: #ffedf2;
-    transform: translateY(-1px);
-}
-
-.delete-btn:hover {
-    background-color: #ff4757;
-    transform: translateY(-1px);
-}
-
-.cancel-btn:hover {
-    background: linear-gradient(135deg, #ff5266 0%, #ff384d 100%);
-    transform: translateY(-1px);
-}
-
-.exchange-items-list,
-.today-tasks-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-bottom: 25px;
-}
-
-.exchange-item,
-.task-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    background-color: #fff8fa;
-    border-radius: 16px;
-    transition: all 0.3s ease;
-    border: 2px solid #ffedf2;
-    box-shadow: 0 2px 8px rgba(255, 107, 139, 0.05);
-}
-
-.exchange-item:hover,
-.task-item:hover {
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.15);
-    transform: translateY(-2px);
-}
-
-.item-info h3,
-.task-info h3 {
-    margin: 0 0 5px 0;
-    color: #ff6b8b;
-    font-size: 1.1rem;
-}
-
-.item-info p {
-    margin: 0 0 8px 0;
-    color: #ff8fab;
-    font-size: 0.9rem;
-}
-
-.item-price,
-.task-points {
-    font-weight: bold;
-    color: #ff6b8b;
-    font-size: 1rem;
-}
-
-.completion-status {
-    margin: 5px 0;
-    color: #ff8fab;
-    font-size: 0.9rem;
-}
-
-.status-badge {
-    padding: 3px 8px;
-    border-radius: 12px;
-    background-color: #ffedf2;
-    color: #ff6b8b;
-    font-weight: 600;
-    font-size: 0.85rem;
-}
-
-.status-badge.pending {
-    background-color: #f8f9fa;
-    color: #6c757d;
-}
-
-.item-actions,
-.task-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.no-action {
-    color: #ccc;
-    font-style: italic;
-    font-size: 0.9rem;
-}
-
-.no-tasks {
-    text-align: center;
-    padding: 40px;
-    color: #ff8fab;
-}
-
-.add-exchange-form h3 {
-    color: #ff6b8b;
-    margin: 0 0 15px 0;
-    font-size: 1.2rem;
-}
-
-.form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-}
-
-.form-group.full-width {
-    grid-column: 1 / -1;
-}
-
-/* 可爱的通知弹窗样式 */
-.notification-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(255, 138, 171, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    animation: fadeIn 0.3s ease;
-}
-
-.notification-content {
-    background-color: white;
-    padding: 40px;
-    border-radius: 24px;
-    box-shadow: 0 8px 32px rgba(255, 107, 139, 0.3);
-    text-align: center;
-    max-width: 380px;
-    width: 90%;
-    border: 3px solid #ffedf2;
-    animation: bounceIn 0.5s ease;
 }
 
 @keyframes bounceIn {
@@ -920,202 +1372,62 @@ function handleLogout() {
     }
 }
 
-.notification-icon {
-    font-size: 48px;
-    margin-bottom: 15px;
-    animation: pulse 1s ease-in-out infinite;
-}
-
-@keyframes pulse {
-
-    0%,
-    100% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.1);
-    }
-}
-
-.notification-content h3 {
-    color: #ff6b8b;
-    margin-bottom: 10px;
-    font-size: 22px;
-}
-
-.notification-content p {
-    color: #ff8fab;
-    margin-bottom: 20px;
-    font-size: 16px;
-}
-
-.notification-btn {
-    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
-    color: white;
-    border: none;
-    padding: 12px 30px;
-    border-radius: 25px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.3);
-    font-weight: 600;
-}
-
-.notification-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 107, 139, 0.4);
-}
-
-/* 可爱的确认弹窗样式 */
-.confirm-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(255, 138, 171, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    animation: fadeIn 0.3s ease;
-}
-
-.confirm-content {
-    background-color: white;
-    padding: 40px;
-    border-radius: 24px;
-    box-shadow: 0 8px 32px rgba(255, 107, 139, 0.3);
-    text-align: center;
-    max-width: 380px;
-    width: 90%;
-    border: 3px solid #ffedf2;
-    animation: slideIn 0.4s ease;
-}
-
-.confirm-icon {
-    font-size: 48px;
-    margin-bottom: 15px;
-}
-
-.confirm-content h3 {
-    color: #ff6b8b;
-    margin-bottom: 10px;
-    font-size: 22px;
-}
-
-.confirm-content p {
-    color: #ff8fab;
-    margin-bottom: 25px;
-    font-size: 16px;
-}
-
-.confirm-buttons {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-}
-
-.confirm-cancel-btn,
-.confirm-ok-btn {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 25px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 600;
-    flex: 1;
-    max-width: 150px;
-}
-
-.confirm-cancel-btn {
-    background-color: #f8f9fa;
-    color: #6c757d;
-    border: 2px solid #e9ecef;
-}
-
-.confirm-cancel-btn:hover {
-    background-color: #e9ecef;
-    transform: translateY(-1px);
-}
-
-.confirm-ok-btn {
-    background: linear-gradient(135deg, #ff6b8b 0%, #ff4757 100%);
-    color: white;
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.3);
-}
-
-.confirm-ok-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 107, 139, 0.4);
-}
-
-/* 手机适配 */
+/* 响应式设计 */
 @media (max-width: 768px) {
     .admin-container {
-        padding: 10px;
+        padding: 15px;
     }
 
-    .admin-header {
+    .header-content {
         flex-direction: column;
-        gap: 10px;
         text-align: center;
     }
 
-    .admin-header h1 {
+    .game-title {
+        font-size: 2rem;
+    }
+
+    .admin-section {
+        padding: 20px;
+    }
+
+    .section-title {
         font-size: 1.5rem;
     }
 
-    .nav-tabs {
+    .point-controls {
         flex-direction: column;
-    }
-
-    .adjust-buttons {
-        flex-direction: column;
-    }
-
-    .form-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .exchange-item,
-    .task-item {
-        flex-direction: column;
-        gap: 15px;
         align-items: stretch;
     }
 
-    .item-actions,
-    .task-actions {
-        justify-content: center;
-    }
-
-    .notification-content,
-    .confirm-content {
-        padding: 30px 20px;
-        margin: 20px;
-    }
-
-    .notification-content h3,
-    .confirm-content h3 {
-        font-size: 20px;
-    }
-
-    .notification-content p,
-    .confirm-content p {
-        font-size: 14px;
-    }
-
-    .confirm-buttons {
+    .action-buttons {
         flex-direction: column;
     }
 
-    .confirm-cancel-btn,
-    .confirm-ok-btn {
-        max-width: none;
+    .task-item,
+    .reward-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .task-actions,
+    .reward-actions {
+        justify-content: center;
+    }
+
+    .modal-content,
+    .password-modal-content,
+    .confirm-modal-content {
+        padding: 25px 20px;
+        margin: 20px;
+    }
+
+    .modal-title {
+        font-size: 1.6rem;
+    }
+
+    .notification-content {
+        max-width: calc(100vw - 40px);
     }
 }
 </style>

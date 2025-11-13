@@ -1,38 +1,85 @@
 <template>
     <div class="points-container">
-        <!-- 装饰元素 -->
+        <!-- 更丰富的装饰元素 -->
         <div class="decorations">
             <div class="decoration heart"></div>
+            <div class="decoration heart small"></div>
             <div class="decoration star"></div>
+            <div class="decoration star small"></div>
             <div class="decoration circle"></div>
+            <div class="decoration cloud"></div>
+            <div class="decoration rainbow"></div>
+            <div class="decoration gift-box"></div>
         </div>
 
+        <!-- 游戏化头部 -->
         <header class="points-header">
-            <h1>🏆 我的积分</h1>
-            <div class="logout-btn" @click="handleLogout">退出登录</div>
+            <h1>🏆 我的积分王国</h1>
+            <div class="header-actions">
+                <button class="backpack-btn" @click="showBackpackPopup = true">
+                    🎒 我的背包 <span v-if="store.backpackItems.length > 0" class="badge">{{ store.backpackItems.length
+                        }}</span>
+                </button>
+                <div class="logout-btn" @click="handleLogout">退出登录</div>
+            </div>
         </header>
 
-        <div class="nav-tabs">
-            <button class="tab-btn" @click="navigateTo('/tasks')">任务</button>
-            <button class="tab-btn active" @click="navigateTo('/points')">积分</button>
-            <button class="tab-btn" @click="navigateTo('/admin')">管理</button>
+        <NavigationTabs />
+
+        <!-- 游戏化进度展示 -->
+        <div class="level-progress">
+            <div class="level-info">
+                <span class="level-badge">Lv.{{ currentLevel }}</span>
+                <span class="next-level-text">距离下一级还需 {{ pointsToNextLevel }} 积分</span>
+            </div>
+            <div class="level-bar">
+                <div class="level-fill" :style="{ width: levelProgress + '%' }"></div>
+            </div>
         </div>
 
         <div class="points-content">
             <!-- 积分兑换 -->
             <div class="exchange-section">
-                <h2>🎁 积分兑换</h2>
+                <h2>🎁 积分兑换商店</h2>
                 <div class="current-points">
-                    当前拥有积分: <span class="points-amount">{{ store.currentPoints }}</span>
+                    <div class="points-display">
+                        <span class="points-icon">✨</span>
+                        当前拥有积分: <span class="points-amount">{{ store.currentPoints }}</span>
+                    </div>
+                    <div class="level-up-hint" v-if="pointsToNextLevel <= 100">
+                        💫 即将升级！加油哦~ 💫
+                    </div>
                 </div>
+
+                <!-- 推荐兑换项 -->
+                <div v-if="recommendedItems.length > 0" class="recommended-section">
+                    <h3>🌟 推荐兑换</h3>
+                    <div class="recommended-items">
+                        <div v-for="item in recommendedItems" :key="item.id" class="exchange-item recommended">
+                            <div class="item-info">
+                                <div class="recommend-badge">🔥 热门</div>
+                                <h3>{{ item.name }}</h3>
+                                <p>{{ item.description }}</p>
+                                <div class="item-price">需要 {{ item.points }} 积分</div>
+                            </div>
+                            <button @click="handleExchange(item)" class="exchange-btn"
+                                :disabled="store.currentPoints < item.points">
+                                {{ store.currentPoints < item.points ? '积分不足' : '立即兑换' }} </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 所有兑换项 -->
+                <h3 class="section-title">🛍️ 全部商品</h3>
                 <div class="exchange-items">
-                    <div v-for="item in store.exchangeItems" :key="item.id" class="exchange-item">
+                    <div v-for="item in store.exchangeItems" :key="item.id" class="exchange-item"
+                        :class="{ 'affordable': store.currentPoints >= item.points, 'unavailable': store.currentPoints < item.points }">
                         <div class="item-info">
                             <h3>{{ item.name }}</h3>
                             <p>{{ item.description }}</p>
                             <div class="item-price">需要 {{ item.points }} 积分</div>
                         </div>
-                        <button @click="handleExchange(item)" class="exchange-btn" 
+                        <button @click="handleExchange(item)" class="exchange-btn"
                             :disabled="store.currentPoints < item.points">
                             {{ store.currentPoints < item.points ? '积分不足' : '立即兑换' }} </button>
                     </div>
@@ -54,15 +101,16 @@
                     <h2>📊 我的积分记录</h2>
                     <button class="close-btn" @click="showRecordsPopup = false">✕</button>
                 </div>
-                
+
                 <div v-if="sortedRecords.length === 0" class="no-records">
                     <div class="empty-icon">📝</div>
                     <p>暂无积分记录</p>
+                    <p class="hint">完成任务获取第一笔积分吧！</p>
                 </div>
-                
+
                 <div v-else class="records-popup-list">
-                    <div v-for="record in sortedRecords" :key="record.id" 
-                         class="record-popup-item" :class="record.points > 0 ? 'positive' : 'negative'">
+                    <div v-for="record in sortedRecords" :key="record.id" class="record-popup-item"
+                        :class="record.points > 0 ? 'positive' : 'negative'">
                         <div class="record-icon">
                             {{ record.points > 0 ? '🎯' : '🛍️' }}
                         </div>
@@ -75,7 +123,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="popup-footer">
                     <button @click="showRecordsPopup = false" class="close-popup-btn">关闭</button>
                 </div>
@@ -87,17 +135,71 @@
             <div class="custom-popup-content" @click.stop>
                 <div class="popup-icon">{{ exchangePopupIcon }}</div>
                 <div class="popup-message">{{ exchangePopupMessage }}</div>
+                <!-- 积分变动动画 -->
+                <transition name="point-change">
+                    <div v-if="showPointChange" class="point-change-animation">
+                        {{ pointChangeText }}
+                    </div>
+                </transition>
                 <button class="popup-btn" @click="showExchangePopup = false">太棒了！</button>
+            </div>
+        </div>
+
+        <!-- 背包弹窗 -->
+        <div v-if="showBackpackPopup" class="backpack-popup-overlay" @click="showBackpackPopup = false">
+            <div class="backpack-popup-content" @click.stop>
+                <div class="popup-header">
+                    <h2>🎒 我的背包</h2>
+                    <button class="close-btn" @click="showBackpackPopup = false">✕</button>
+                </div>
+
+                <div v-if="store.backpackItems.length === 0" class="no-items">
+                    <div class="empty-icon">🎒</div>
+                    <p>背包空空如也</p>
+                    <p class="hint">快去兑换喜欢的物品吧！</p>
+                </div>
+
+                <div v-else class="backpack-items-list">
+                    <div v-for="item in store.backpackItems" :key="item.id" class="backpack-item">
+                        <div class="item-icon">🎁</div>
+                        <div class="item-details">
+                            <h3>{{ item.name }}</h3>
+                            <p>{{ item.description }}</p>
+                            <div class="acquired-date">获得时间: {{ formatDate(item.acquiredDate) }}</div>
+                        </div>
+                        <button class="use-item-btn" @click="showUseConfirm = true; selectedItem = item">
+                            使用
+                        </button>
+                    </div>
+                </div>
+
+                <div class="popup-footer">
+                    <button @click="showBackpackPopup = false" class="close-popup-btn">关闭</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 使用物品确认弹窗 -->
+        <div v-if="showUseConfirm" class="confirm-popup-overlay" @click="showUseConfirm = false">
+            <div class="confirm-popup-content" @click.stop>
+                <div class="confirm-icon">✨</div>
+                <h3>使用物品确认</h3>
+                <p v-if="selectedItem">是否立即使用「{{ selectedItem.name }}」？</p>
+                <p class="confirm-hint">使用后物品将从背包中移除</p>
+                <div class="confirm-buttons">
+                    <button class="confirm-cancel" @click="showUseConfirm = false">取消</button>
+                    <button class="confirm-use" @click="handleUseItem">确认使用</button>
+                </div>
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-// 脚本部分保持不变
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/userStore'
+import NavigationTabs from '../components/NavigationTabs.vue'
 
 const router = useRouter()
 const store = useUserStore()
@@ -105,298 +207,642 @@ const store = useUserStore()
 // 弹窗状态
 const showRecordsPopup = ref(false)
 const showExchangePopup = ref(false)
-const exchangePopupMessage = ref('')
 const exchangePopupIcon = ref('🎉')
+const exchangePopupMessage = ref('兑换成功！')
+const showPointChange = ref(false)
+const pointChangeText = ref('')
 
-// 导航到其他页面
-function navigateTo(route: string) {
-    router.push(route)
+// 背包相关状态
+const showBackpackPopup = ref(false)
+const showUseConfirm = ref(false)
+const selectedItem = ref<any>(null)
+
+// 等级相关计算属性
+const currentLevel = computed(() => {
+    return Math.floor(store.currentPoints / 100) + 1
+})
+
+const pointsToNextLevel = computed(() => {
+    const nextLevelPoints = currentLevel.value * 100
+    return Math.max(0, nextLevelPoints - store.currentPoints)
+})
+
+const levelProgress = computed(() => {
+    const currentLevelMin = (currentLevel.value - 1) * 100
+    const currentLevelMax = currentLevel.value * 100
+    const progress = ((store.currentPoints - currentLevelMin) / (currentLevelMax - currentLevelMin)) * 100
+    return Math.min(100, progress)
+})
+
+// 推荐物品
+const recommendedItems = computed(() => {
+    return store.exchangeItems
+        .filter(item => store.currentPoints >= item.points && item.points < 500)
+        .slice(0, 2)
+})
+
+// 导航函数
+function navigateTo(path: string) {
+    router.push(path)
 }
 
-// 按日期排序的积分记录
+// 登出函数
+function handleLogout() {
+    store.logout()
+    router.push('/login')
+}
+
+// 积分兑换处理
+function handleExchange(item: any) {
+    if (store.currentPoints >= item.points) {
+        const success = store.exchangeItem(item.id)
+        if (success) {
+            exchangePopupIcon.value = '🎉'
+            exchangePopupMessage.value = `${item.name}兑换成功！已放入背包`
+            showExchangePopup.value = true
+
+            // 显示积分变动动画
+            showPointChange.value = true
+            pointChangeText.value = `- ${item.points} 积分`
+            setTimeout(() => {
+                showPointChange.value = false
+            }, 1500)
+        }
+    }
+}
+
+// 使用物品处理
+function handleUseItem() {
+    if (selectedItem.value) {
+        const success = store.useItemFromBackpack(selectedItem.value.id)
+        if (success) {
+            showUseConfirm.value = false
+            showBackpackPopup.value = false
+            exchangePopupIcon.value = '✨'
+            exchangePopupMessage.value = `${selectedItem.value.name}使用成功！`
+            showExchangePopup.value = true
+            selectedItem.value = null
+        }
+    }
+}
+
+// 排序积分记录
 const sortedRecords = computed(() => {
-    return [...store.pointRecords].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    return [...store.pointRecords].sort((a, b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+    )
 })
 
 // 格式化日期
 function formatDate(dateString: string) {
     const date = new Date(dateString)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-}
-
-// 处理积分兑换
-function handleExchange(item: any) {
-    if (store.currentPoints >= item.points) {
-        if (confirm(`确定要花费 ${item.points} 积分兑换 ${item.name} 吗？`)) {
-            const success = store.exchangeItem(item.id)
-            if (success) {
-                exchangePopupMessage.value = `兑换成功！已获得 ${item.name}`
-                exchangePopupIcon.value = '🎁'
-                showExchangePopup.value = true
-            }
-        }
-    } else {
-        exchangePopupMessage.value = '积分不足，无法兑换'
-        exchangePopupIcon.value = '😔'
-        showExchangePopup.value = true
-    }
-}
-
-// 处理登出
-function handleLogout() {
-    store.logout()
-    localStorage.removeItem('isLoggedIn')
-    router.push('/')
+    return date.toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    })
 }
 </script>
 
 <style scoped>
+/* 基础容器样式 */
 .points-container {
     min-height: 100vh;
-    background-color: #fff5f7;
-    background-image:
-        radial-gradient(#ffd6e0 1px, transparent 1px),
-        radial-gradient(#ffd6e0 1px, transparent 1px);
-    background-size: 30px 30px;
-    background-position: 0 0, 15px 15px;
-    padding: 20px;
+    background: linear-gradient(135deg, #ffedf2 0%, #fff8fa 100%);
     position: relative;
-    overflow: hidden;
+    padding: 20px;
+    font-family: 'Arial', sans-serif;
+    overflow-x: hidden;
 }
 
-/* 装饰元素 */
+/* 更丰富的装饰元素 */
 .decorations {
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
-    z-index: -1;
+    z-index: 0;
 }
 
 .decoration {
     position: absolute;
-    opacity: 0.3;
-}
-
-.heart {
-    top: 15%;
-    right: 8%;
-    width: 120px;
-    height: 120px;
-    background-color: #ffb6c1;
-    border-radius: 50% 50% 0 0;
-    transform: rotate(45deg);
+    opacity: 0.6;
     animation: float 8s ease-in-out infinite;
 }
 
-.star {
-    bottom: 20%;
+.decoration.heart {
+    top: 10%;
+    right: 15%;
+    width: 60px;
+    height: 60px;
+    background-color: #ffb6c1;
+    clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+    animation-delay: 0s;
+}
+
+.decoration.heart.small {
+    top: 25%;
     left: 10%;
-    width: 80px;
-    height: 80px;
-    background-color: #ffda6a;
-    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-    animation: float 6s ease-in-out infinite;
+    width: 40px;
+    height: 40px;
     animation-delay: 1s;
 }
 
-.circle {
-    top: 60%;
-    right: 15%;
-    width: 100px;
-    height: 100px;
-    background-color: #b5ead7;
-    border-radius: 50%;
-    animation: float 10s ease-in-out infinite;
+.decoration.star {
+    top: 30%;
+    left: 10%;
+    width: 50px;
+    height: 50px;
+    background-color: #ffd700;
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
     animation-delay: 2s;
+}
+
+.decoration.star.small {
+    bottom: 15%;
+    right: 25%;
+    width: 30px;
+    height: 30px;
+    animation-delay: 3s;
+}
+
+.decoration.circle {
+    bottom: 15%;
+    right: 20%;
+    width: 70px;
+    height: 70px;
+    background-color: #ffccda;
+    border-radius: 50%;
+    animation-delay: 4s;
+}
+
+.decoration.cloud {
+    top: 5%;
+    left: 15%;
+    width: 80px;
+    height: 50px;
+    background-color: #f8f9fa;
+    border-radius: 50px 50px 0 0;
+    animation-delay: 5s;
+}
+
+.decoration.rainbow {
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 50px;
+    background: linear-gradient(90deg, #ff7eb3, #ff8fab, #ffb344, #ffe566, #a3d9ff, #c2d9ff);
+    border-radius: 100px 100px 0 0;
+    opacity: 0.4;
+    animation-delay: 6s;
+}
+
+.decoration.gift-box {
+    bottom: 20%;
+    left: 20%;
+    width: 60px;
+    height: 60px;
+    background-color: #ff6b8b;
+    position: relative;
+    animation-delay: 7s;
+}
+
+.decoration.gift-box::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 10px;
+    background-color: #ff4757;
+}
+
+.decoration.gift-box::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 10px;
+    background-color: #ff4757;
 }
 
 @keyframes float {
 
     0%,
     100% {
-        transform: translateY(0) rotate(0);
+        transform: translateY(0) rotate(0deg);
     }
 
     50% {
-        transform: translateY(-20px) rotate(5deg);
+        transform: translateY(-20px) rotate(10deg);
     }
 }
 
+/* 游戏化头部样式 */
 .points-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    padding: 20px 30px;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(255, 107, 139, 0.3);
     margin-bottom: 20px;
-    padding: 15px;
-    background-color: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.1);
-    border: 2px solid #ffedf2;
+    position: relative;
+    z-index: 1;
+    border: 3px solid #ffd6e0;
 }
 
 .points-header h1 {
-    color: #ff6b8b;
-    font-size: 1.8rem;
-    margin: 0;
-    font-weight: 700;
-}
-
-.logout-btn {
-    padding: 8px 16px;
-    background-color: #ff8fab;
     color: white;
-    border: none;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 0.9rem;
-    font-weight: 500;
-    box-shadow: 0 2px 8px rgba(255, 138, 171, 0.3);
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+    text-shadow: 2px 2px 0px rgba(255, 255, 255, 0.3);
 }
 
-.logout-btn:hover {
-    background-color: #ff6b8b;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.4);
-}
-
-.nav-tabs {
+/* 头部操作区域 */
+.header-actions {
     display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    background-color: white;
-    padding: 10px;
-    border-radius: 20px;
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.1);
-    border: 2px solid #ffedf2;
+    gap: 15px;
+    align-items: center;
 }
 
-.tab-btn {
-    flex: 1;
+/* 背包按钮样式 */
+.backpack-btn {
+    position: relative;
     padding: 12px 20px;
-    border: none;
-    background-color: #fff0f5;
+    background: linear-gradient(135deg, #ffedf2 0%, #ffd6e0 100%);
+    color: #ff6b8b;
+    border: 2px solid #ffedf2;
     border-radius: 16px;
     cursor: pointer;
     transition: all 0.3s ease;
-    color: #ff8fab;
     font-weight: 600;
     font-size: 1rem;
+    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.1);
 }
 
-.tab-btn.active {
+.backpack-btn:hover {
     background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
     color: white;
-    box-shadow: 0 2px 8px rgba(255, 107, 139, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 139, 0.2);
+    border-color: #ff6b8b;
 }
 
-.tab-btn:hover:not(.active) {
-    background-color: #ffedf2;
-    transform: translateY(-1px);
-}
-
-.points-content {
+.backpack-btn .badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ff4757;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
     display: flex;
-    flex-direction: column;
-    gap: 30px;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
 }
 
-.exchange-section, 
-.view-records-section {
-    background-color: white;
+.logout-btn {
+    padding: 12px 20px;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.logout-btn:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 139, 0.3);
+}
+
+/* 等级进度条 */
+.level-progress {
+    background: white;
     padding: 20px;
     border-radius: 20px;
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.1);
+    margin-bottom: 20px;
+    box-shadow: 0 8px 32px rgba(255, 107, 139, 0.1);
     border: 2px solid #ffedf2;
+    position: relative;
+    z-index: 1;
+}
+
+.level-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.level-badge {
+    background: linear-gradient(135deg, #ffd700, #ffa502);
+    color: white;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 1rem;
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+}
+
+.next-level-text {
+    color: #ff8fab;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.level-bar {
+    height: 15px;
+    background-color: #ffedf2;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid #ffd6e0;
+}
+
+.level-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff8fab 0%, #ff6b8b 100%);
+    transition: width 0.5s ease;
+    position: relative;
+}
+
+.level-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* 积分内容区域 */
+.points-content {
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+}
+
+/* 兑换区域 */
+.exchange-section {
+    background-color: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(255, 107, 139, 0.1);
+    margin-bottom: 30px;
+    border: 3px solid #ffedf2;
+    position: relative;
+    overflow: hidden;
+}
+
+.exchange-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #ff8fab, #ff6b8b, #ff4757);
 }
 
 .exchange-section h2 {
-    margin: 0 0 20px 0;
     color: #ff6b8b;
+    margin-top: 0;
+    margin-bottom: 20px;
     font-size: 1.5rem;
-    font-weight: 700;
+    text-align: center;
+    text-shadow: 1px 1px 0px rgba(255, 107, 139, 0.2);
+}
+
+.section-title {
+    color: #ff8fab;
+    margin: 25px 0 15px 0;
+    font-size: 1.3rem;
+    border-left: 4px solid #ff6b8b;
+    padding-left: 10px;
 }
 
 .current-points {
     text-align: center;
+    margin-bottom: 30px;
+}
+
+.points-display {
     font-size: 1.2rem;
-    color: #ff8fab;
-    margin-bottom: 20px;
-    font-weight: 600;
+    color: #ff6b8b;
+    margin-bottom: 10px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.points-icon {
+    font-size: 1.5rem;
+    animation: bounce 2s ease-in-out infinite;
 }
 
 .points-amount {
-    font-size: 1.8rem;
-    color: #ff6b8b;
+    font-size: 2.5rem;
     font-weight: bold;
-    margin: 0 8px;
+    color: #ff4757;
+    text-shadow: 2px 2px 0px rgba(255, 107, 139, 0.1);
+    animation: pulse 2s ease-in-out infinite;
 }
 
+.level-up-hint {
+    background: linear-gradient(135deg, #ffedf2, #ffd6e0);
+    color: #ff6b8b;
+    padding: 10px;
+    border-radius: 15px;
+    font-weight: 600;
+    animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 10px rgba(255, 107, 139, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(255, 107, 139, 0.6);
+    }
+}
+
+/* 推荐区域 */
+.recommended-section {
+    margin-bottom: 20px;
+}
+
+.recommended-section h3 {
+    color: #ff6b8b;
+    margin: 0 0 15px 0;
+    font-size: 1.2rem;
+}
+
+.recommended-items {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+
+.recommended-items::-webkit-scrollbar {
+    height: 6px;
+}
+
+.recommended-items::-webkit-scrollbar-thumb {
+    background: #ffd6e0;
+    border-radius: 10px;
+}
+
+.recommended-items::-webkit-scrollbar-track {
+    background: #ffedf2;
+    border-radius: 10px;
+}
+
+/* 兑换项列表 */
 .exchange-items {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: 1fr;
     gap: 20px;
 }
 
 .exchange-item {
     display: flex;
-    flex-direction: column;
-    gap: 15px;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #fff8fa 0%, #ffedf2 100%);
     padding: 20px;
-    background-color: #fff8fa;
     border-radius: 16px;
-    transition: all 0.3s ease;
     border: 2px solid #ffedf2;
-    box-shadow: 0 2px 8px rgba(255, 107, 139, 0.05);
+    transition: all 0.3s ease;
     position: relative;
-    overflow: hidden;
-}
-
-.exchange-item::before {
-    content: '';
-    position: absolute;
-    top: -10px;
-    right: -10px;
-    width: 60px;
-    height: 60px;
-    background-color: rgba(255, 107, 139, 0.1);
-    border-radius: 50%;
 }
 
 .exchange-item:hover {
-    box-shadow: 0 6px 20px rgba(255, 107, 139, 0.15);
-    transform: translateY(-2px);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(255, 107, 139, 0.2);
+    border-color: #ffb6c1;
+}
+
+.exchange-item.recommended {
+    background: linear-gradient(135deg, #ffd6e0 0%, #ffb6c1 100%);
+    border-color: #ff6b8b;
+    animation: recommendedGlow 2s ease-in-out infinite;
+}
+
+.exchange-item.affordable {
+    border-color: #ff6b8b;
+}
+
+.exchange-item.unavailable {
+    opacity: 0.7;
+    filter: grayscale(20%);
+}
+
+@keyframes recommendedGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 4px 15px rgba(255, 107, 139, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 4px 25px rgba(255, 107, 139, 0.5);
+    }
+}
+
+.recommend-badge {
+    position: absolute;
+    top: -10px;
+    right: 15px;
+    background: #ff4757;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.item-info {
+    flex: 1;
 }
 
 .item-info h3 {
     margin: 0 0 8px 0;
     color: #ff6b8b;
     font-size: 1.2rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    font-weight: bold;
 }
 
 .item-info p {
-    margin: 0 0 10px 0;
+    margin: 0 0 8px 0;
     color: #ff8fab;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
 }
 
 .item-price {
-    font-weight: bold;
-    color: #ff6b8b;
+    font-weight: 600;
+    color: #ff4757;
     font-size: 1.1rem;
 }
 
 .exchange-btn {
-    padding: 10px 20px;
+    padding: 12px 25px;
     background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
     color: white;
     border: none;
@@ -406,20 +852,27 @@ function handleLogout() {
     font-weight: 600;
     box-shadow: 0 2px 8px rgba(255, 107, 139, 0.3);
     margin-top: 10px;
+    flex-shrink: 0;
 }
 
 .exchange-btn:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(255, 107, 139, 0.4);
+    background: linear-gradient(135deg, #ff6b8b 0%, #ff4757 100%);
 }
 
 .exchange-btn:disabled {
     background-color: #ffd6e0;
     cursor: not-allowed;
     box-shadow: none;
+    color: #ff8fab;
 }
 
-/* 查看积分记录按钮样式 */
+/* 查看积分记录按钮 */
+.view-records-section {
+    text-align: center;
+}
+
 .view-records-btn {
     width: 100%;
     padding: 15px 20px;
@@ -442,7 +895,7 @@ function handleLogout() {
     border-color: #ff6b8b;
 }
 
-/* 积分记录弹窗样式 */
+/* 积分记录弹窗 */
 .records-popup-overlay {
     position: fixed;
     top: 0;
@@ -473,6 +926,37 @@ function handleLogout() {
     overflow: hidden;
 }
 
+/* 背包弹窗样式 */
+.backpack-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 138, 171, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.backpack-popup-content {
+    background-color: white;
+    padding: 0;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(255, 107, 139, 0.3);
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    border: 3px solid #ffedf2;
+    animation: slideIn 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
 /* 弹窗头部 */
 .popup-header {
     padding: 20px 25px;
@@ -490,6 +974,7 @@ function handleLogout() {
     margin: 0;
     font-size: 1.3rem;
     font-weight: 700;
+    text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.3);
 }
 
 .close-btn {
@@ -505,76 +990,103 @@ function handleLogout() {
 
 .close-btn:hover {
     background-color: rgba(255, 255, 255, 0.2);
-    transform: scale(1.1);
+    transform: scale(1.1) rotate(90deg);
 }
 
-/* 弹窗记录列表 */
-.records-popup-list {
+/* 背包物品列表 */
+.backpack-items-list {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
 }
 
-.record-popup-item {
+.backpack-item {
     display: flex;
     align-items: center;
-    padding: 15px;
+    padding: 20px;
     border-radius: 16px;
-    margin-bottom: 12px;
-    background-color: #fff8fa;
+    margin-bottom: 15px;
+    background: linear-gradient(135deg, #fff8fa 0%, #ffedf2 100%);
     border: 2px solid #ffedf2;
-    position: relative;
     transition: all 0.3s ease;
+    position: relative;
 }
 
-.record-popup-item:hover {
+.backpack-item:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.1);
+    box-shadow: 0 6px 20px rgba(255, 107, 139, 0.2);
+    border-color: #ffb6c1;
 }
 
-.record-popup-item.positive {
-    border-color: #ffedf2;
-}
-
-.record-popup-item.negative {
-    border-color: #ffd6e0;
-}
-
-.record-icon {
-    font-size: 1.8rem;
-    margin-right: 15px;
+.item-icon {
+    font-size: 2.5rem;
+    margin-right: 20px;
     flex-shrink: 0;
+    animation: bounce 2s ease-in-out infinite;
 }
 
-.record-popup-info {
+.item-details {
     flex: 1;
 }
 
-.record-popup-date {
-    color: #ff99b3;
-    font-size: 0.85rem;
-    margin-bottom: 5px;
-}
-
-.record-popup-description {
+.item-details h3 {
+    margin: 0 0 8px 0;
     color: #ff6b8b;
-    font-weight: 500;
-    font-size: 0.95rem;
+    font-size: 1.2rem;
 }
 
-.record-popup-points {
-    font-weight: bold;
-    font-size: 1.1rem;
-    min-width: 60px;
-    text-align: right;
-}
-
-.record-popup-item.positive .record-popup-points {
-    color: #ff6b8b;
-}
-
-.record-popup-item.negative .record-popup-points {
+.item-details p {
+    margin: 0 0 8px 0;
     color: #ff8fab;
+    font-size: 0.9rem;
+}
+
+.acquired-date {
+    font-size: 0.8rem;
+    color: #ffb6c1;
+}
+
+.use-item-btn {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(255, 107, 139, 0.3);
+    margin-left: 15px;
+    flex-shrink: 0;
+}
+
+.use-item-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.4);
+    background: linear-gradient(135deg, #ff6b8b 0%, #ff4757 100%);
+}
+
+/* 无物品状态 */
+.no-items {
+    text-align: center;
+    padding: 60px 20px;
+    color: #ffb6c1;
+}
+
+.no-items .empty-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    animation: bounce 1s ease-in-out infinite;
+}
+
+.no-items p {
+    margin: 0 0 10px 0;
+    font-size: 1.2rem;
+}
+
+.no-items .hint {
+    font-size: 1rem;
+    color: #ffd6e0;
 }
 
 /* 无记录状态 */
@@ -595,6 +1107,103 @@ function handleLogout() {
     font-size: 1.1rem;
 }
 
+.no-records .hint {
+    font-size: 1rem;
+    color: #ffd6e0;
+    margin-top: 10px;
+}
+
+/* 使用确认弹窗 */
+.confirm-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 138, 171, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1001;
+    animation: fadeIn 0.3s ease;
+}
+
+.confirm-popup-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(255, 107, 139, 0.3);
+    max-width: 400px;
+    width: 85%;
+    text-align: center;
+    border: 3px solid #ffedf2;
+    animation: bounceIn 0.3s ease;
+}
+
+.confirm-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.confirm-popup-content h3 {
+    color: #ff6b8b;
+    margin: 0 0 15px 0;
+    font-size: 1.3rem;
+}
+
+.confirm-popup-content p {
+    color: #ff8fab;
+    margin: 0 0 10px 0;
+    font-size: 1rem;
+}
+
+.confirm-hint {
+    font-size: 0.9rem !important;
+    color: #ffb6c1 !important;
+}
+
+.confirm-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+}
+
+.confirm-cancel {
+    padding: 12px 25px;
+    background-color: #ffedf2;
+    color: #ff6b8b;
+    border: 2px solid #ffd6e0;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+.confirm-cancel:hover {
+    background-color: #ffd6e0;
+    transform: translateY(-1px);
+}
+
+.confirm-use {
+    padding: 12px 25px;
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(255, 107, 139, 0.3);
+}
+
+.confirm-use:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.4);
+    background: linear-gradient(135deg, #ff6b8b 0%, #ff4757 100%);
+}
+
 /* 弹窗底部 */
 .popup-footer {
     padding: 20px;
@@ -604,23 +1213,24 @@ function handleLogout() {
 
 .close-popup-btn {
     padding: 12px 30px;
-    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
-    color: white;
-    border: none;
-    border-radius: 25px;
+    background: linear-gradient(135deg, #ffedf2 0%, #ffd6e0 100%);
+    color: #ff6b8b;
+    border: 2px solid #ffedf2;
+    border-radius: 16px;
     cursor: pointer;
     transition: all 0.3s ease;
     font-weight: 600;
-    font-size: 1rem;
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.3);
 }
 
 .close-popup-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 107, 139, 0.4);
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.3);
+    border-color: #ff6b8b;
 }
 
-/* 兑换成功弹窗样式 */
+/* 自定义弹窗 */
 .custom-popup-overlay {
     position: fixed;
     top: 0;
@@ -637,104 +1247,75 @@ function handleLogout() {
 
 .custom-popup-content {
     background-color: white;
-    padding: 30px;
+    padding: 40px;
     border-radius: 20px;
     box-shadow: 0 8px 32px rgba(255, 107, 139, 0.3);
     text-align: center;
-    max-width: 350px;
-    width: 90%;
     border: 3px solid #ffedf2;
-    animation: slideIn 0.3s ease;
+    animation: bounceIn 0.3s ease;
     position: relative;
-    overflow: hidden;
-}
-
-/* 弹窗内部装饰 */
-.custom-popup-content::before {
-    content: '';
-    position: absolute;
-    top: -20px;
-    right: -20px;
-    width: 80px;
-    height: 80px;
-    background-color: rgba(255, 203, 219, 0.2);
-    border-radius: 50%;
-}
-
-.custom-popup-content::after {
-    content: '';
-    position: absolute;
-    bottom: -15px;
-    left: -15px;
-    width: 60px;
-    height: 60px;
-    background-color: rgba(255, 203, 219, 0.2);
-    border-radius: 50%;
 }
 
 .popup-icon {
-    font-size: 4rem;
-    margin-bottom: 15px;
-    animation: bounce 0.6s ease-in-out infinite;
+    font-size: 3.5rem;
+    margin-bottom: 20px;
+    animation: pulse 2s ease-in-out infinite;
 }
 
 .popup-message {
-    font-size: 1.2rem;
     color: #ff6b8b;
-    margin-bottom: 20px;
+    font-size: 1.2rem;
     font-weight: 600;
-    position: relative;
-    z-index: 1;
+    margin-bottom: 15px;
+}
+
+.point-change-animation {
+    background: #ff6b8b;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.point-change-enter-active,
+.point-change-leave-active {
+    transition: all 0.5s ease;
+}
+
+.point-change-enter-from {
+    transform: scale(0);
+    opacity: 0;
+}
+
+.point-change-leave-to {
+    transform: translateY(-30px);
+    opacity: 0;
 }
 
 .popup-btn {
-    padding: 12px 25px;
+    padding: 12px 30px;
     background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
     color: white;
     border: none;
-    border-radius: 25px;
+    border-radius: 16px;
     cursor: pointer;
     transition: all 0.3s ease;
     font-weight: 600;
-    font-size: 1rem;
-    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.3);
-    position: relative;
-    z-index: 1;
+    box-shadow: 0 2px 8px rgba(255, 107, 139, 0.3);
 }
 
 .popup-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 107, 139, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.4);
 }
 
-.popup-btn:active {
-    transform: translateY(0);
-}
-
-/* 滚动条样式 */
-.records-popup-list::-webkit-scrollbar {
-    width: 8px;
-}
-
-.records-popup-list::-webkit-scrollbar-track {
-    background: #fff0f5;
-    border-radius: 4px;
-}
-
-.records-popup-list::-webkit-scrollbar-thumb {
-    background: #ffb6c1;
-    border-radius: 4px;
-}
-
-.records-popup-list::-webkit-scrollbar-thumb:hover {
-    background: #ff8fab;
-}
-
-/* 动画 */
+/* 动画效果 */
 @keyframes fadeIn {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -742,66 +1323,100 @@ function handleLogout() {
 
 @keyframes slideIn {
     from {
-        transform: translateY(-30px) scale(0.9);
+        transform: translateY(-50px);
         opacity: 0;
     }
+
     to {
-        transform: translateY(0) scale(1);
+        transform: translateY(0);
         opacity: 1;
     }
 }
 
-@keyframes bounce {
-    0%, 100% {
-        transform: translateY(0);
+@keyframes bounceIn {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
     }
-    50% {
-        transform: translateY(-10px);
+
+    70% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
     }
 }
 
-/* 手机适配 */
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-15px);
+    }
+}
+
+/* 响应式设计 */
 @media (max-width: 768px) {
     .points-container {
-        padding: 10px;
+        padding: 15px;
     }
 
     .points-header {
         flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .header-actions {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .backpack-btn,
+    .logout-btn {
+        flex: 1;
+        text-align: center;
+    }
+
+    .level-info {
+        flex-direction: column;
         gap: 10px;
         text-align: center;
     }
 
-    .points-header h1 {
-        font-size: 1.5rem;
+    .exchange-section {
+        padding: 20px;
     }
 
-    .nav-tabs {
-        flex-direction: column;
-    }
-
-    .exchange-items {
-        grid-template-columns: 1fr;
-    }
-
-    .records-popup-content {
-        width: 95%;
-        max-height: 90vh;
-    }
-
-    .record-popup-item {
+    .exchange-item {
         flex-direction: column;
         text-align: center;
-        gap: 10px;
+        gap: 15px;
     }
 
-    .record-icon {
+    .use-item-btn {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .backpack-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+    }
+
+    .item-icon {
         margin-right: 0;
     }
 
-    .record-popup-points {
-        min-width: auto;
-        text-align: center;
+    .points-amount {
+        font-size: 2rem;
     }
 }
 </style>
