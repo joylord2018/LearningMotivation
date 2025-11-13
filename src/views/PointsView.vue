@@ -21,7 +21,7 @@
                 </button>
                 <button class="backpack-btn" @click="showBackpackPopup = true">
                     🎒 我的背包 <span v-if="store.backpackItems.length > 0" class="badge">{{ store.backpackItems.length
-                        }}</span>
+                    }}</span>
                 </button>
                 <div class="logout-btn" @click="handleLogout">退出登录</div>
             </div>
@@ -1475,6 +1475,74 @@ function formatDate(dateString: string) {
     border: 3px solid #ffedf2;
     animation: bounceIn 0.3s ease;
     position: relative;
+}
+
+.records-popup-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.record-popup-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 12px;
+    background-color: #f9f9f9;
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+.record-popup-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.record-popup-item.positive {
+    border-left-color: #4CAF50;
+    background-color: #f1f8e9;
+}
+
+.record-popup-item.negative {
+    border-left-color: #f44336;
+    background-color: #ffebee;
+}
+
+.record-icon {
+    font-size: 24px;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.record-popup-info {
+    flex: 1;
+}
+
+.record-popup-date {
+    font-size: 0.85rem;
+    color: #888;
+    margin-bottom: 4px;
+}
+
+.record-popup-description {
+    font-size: 0.95rem;
+    color: #333;
+    font-weight: 500;
+}
+
+.record-popup-points {
+    font-size: 1.1rem;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.record-popup-points.positive {
+    color: #4CAF50;
+}
+
+.record-popup-points.negative {
+    color: #f44336;
 }
 
 .popup-icon {

@@ -68,7 +68,7 @@
                     <div class="section-content">
                         <div class="point-controls">
                             <div class="form-group">
-                                <label for="userId" class="form-label">用户ID</label>
+                                <label for="userId" class="form-label">用户账号</label>
                                 <input type="text" id="userId" v-model="userId" placeholder="输入用户ID..."
                                     class="form-input">
                             </div>
@@ -285,9 +285,10 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import NavigationTabs from '@/components/NavigationTabs.vue'
+import { useUserStore } from '../stores/userStore'
 
 const router = useRouter()
-
+const store = useUserStore()
 // 认证相关
 const isAuthenticated = ref(false)
 const adminPassword = ref('')
@@ -414,26 +415,26 @@ const closePasswordModal = () => {
 }
 
 const addPoints = () => {
-    if (!userId.value || pointsToAdjust.value <= 0) {
-        showNotificationMessage('请输入有效的用户ID和积分数量', 'error', '❌')
+    if (pointsToAdjust.value <= 0) {
+        showNotificationMessage('请输入有效的积分数量', 'error', '❌')
         return
     }
 
-    // 实际应用中这里应该调用API
-    showNotificationMessage(`成功为用户 ${userId.value} 增加 ${pointsToAdjust.value} 积分！`, 'success', '✅')
-    userId.value = ''
+    // 直接调用store的adjustPoints方法
+    store.adjustPoints(pointsToAdjust.value, '管理员增加积分')
+    showNotificationMessage(`成功增加 ${pointsToAdjust.value} 积分！`, 'success', '✅')
     pointsToAdjust.value = 0
 }
 
 const subtractPoints = () => {
-    if (!userId.value || pointsToAdjust.value <= 0) {
-        showNotificationMessage('请输入有效的用户ID和积分数量', 'error', '❌')
+    if (pointsToAdjust.value <= 0) {
+        showNotificationMessage('请输入有效的积分数量', 'error', '❌')
         return
     }
 
-    // 实际应用中这里应该调用API
-    showNotificationMessage(`成功从用户 ${userId.value} 扣除 ${pointsToAdjust.value} 积分！`, 'success', '✅')
-    userId.value = ''
+    // 直接调用store的adjustPoints方法，传入负数
+    store.adjustPoints(-pointsToAdjust.value, '管理员扣除积分')
+    showNotificationMessage(`成功扣除 ${pointsToAdjust.value} 积分！`, 'success', '✅')
     pointsToAdjust.value = 0
 }
 
@@ -479,18 +480,27 @@ const saveTask = () => {
         return
     }
 
+    // 这里需要修改，将任务添加到userStore的tasks中
+    const today = new Date().toISOString().slice(0, 10)
+    const newTask = {
+        id: isEditingTask.value ? currentTask.id : `custom-${Date.now()}`,
+        subject: 'chinese' as 'chinese' | 'math' | 'english', // 使用类型断言确保类型正确
+        subjectName: currentTask.name,
+        date: today,
+        completionLevel: null,
+        points: currentTask.points,
+        description: currentTask.description
+    }
+
+    // 添加到store的tasks中
     if (isEditingTask.value) {
-        const index = tasks.value.findIndex(t => t.id === currentTask.id)
+        const index = store.tasks.findIndex(t => t.id === newTask.id)
         if (index !== -1) {
-            tasks.value[index] = { ...currentTask }
+            store.tasks[index] = newTask
             showNotificationMessage('任务更新成功！', 'success', '✅')
         }
     } else {
-        const newTask = {
-            ...currentTask,
-            id: Date.now().toString()
-        }
-        tasks.value.push(newTask)
+        store.tasks.push(newTask)
         showNotificationMessage('任务添加成功！', 'success', '✅')
     }
 

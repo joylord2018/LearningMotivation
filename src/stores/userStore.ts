@@ -12,6 +12,14 @@ interface Task {
   description: string
 }
 
+// 定义抽奖记录类型
+interface LotteryRecord {
+  id: string
+  date: string
+  itemName: string
+  itemRarity: ItemRarity
+}
+
 interface Achievement {
   id: string
   name: string
@@ -86,7 +94,8 @@ export const useUserStore = defineStore(
       { id: '2', name: '小玩具', points: 50, description: '精美小玩具一个' },
       { id: '3', name: '大玩具', points: 100, description: '超值大玩具一个' },
     ])
-
+    // 添加抽奖记录状态
+    const lotteryRecords = ref<LotteryRecord[]>([])
     // 新增成就相关状态
     const achievements = ref<Achievement[]>([
       {
@@ -592,6 +601,15 @@ export const useUserStore = defineStore(
           }
           backpackItems.value.push(backpackItem)
 
+          // 添加抽奖记录到lotteryRecords
+          const lotteryRecord: LotteryRecord = {
+            id: `lottery-${Date.now()}`,
+            date: new Date().toISOString(),
+            itemName: item.name,
+            itemRarity: item.rarity,
+          }
+          lotteryRecords.value.unshift(lotteryRecord)
+
           return item
         }
       }
@@ -687,6 +705,7 @@ export const useUserStore = defineStore(
       unlockedAchievements,
       lockedAchievements,
       sortedBackpackItems,
+      lotteryRecords,
       // 方法
       login,
       logout,

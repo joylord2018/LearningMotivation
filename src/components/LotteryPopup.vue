@@ -55,14 +55,18 @@
       <div class="lottery-history">
         <h3>🎯 最近抽奖</h3>
         <div class="history-list">
-          <div v-for="(historyItem, index) in recentLotteryHistory" :key="index" class="history-item">
-            <div class="history-icon">{{ getRarityIcon(historyItem.rarity) }}</div>
-            <div class="history-info">
-              <div class="history-name">{{ historyItem.name }}</div>
-              <div class="history-rarity">{{ getRarityText(historyItem.rarity) }}</div>
+          <template v-if="store.lotteryRecords.length > 0">
+            <div 
+              v-for="(historyItem, index) in store.lotteryRecords.slice(0, 5)" 
+              :key="historyItem.id || index" 
+              class="history-item"
+            >
+              <div class="history-icon">{{ getRarityIcon(historyItem.itemRarity) }}</div>
+              <div class="history-name">{{ historyItem.itemName }}</div>
+              <div class="history-rarity">{{ getRarityText(historyItem.itemRarity) }}</div>
             </div>
-          </div>
-          <div v-if="recentLotteryHistory.length === 0" class="no-history">
+          </template>
+          <div v-else class="no-history">
             还没有抽奖记录
           </div>
         </div>
@@ -72,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useUserStore, ItemRarity } from '../stores/userStore'
 
 // Props
@@ -99,7 +103,6 @@ const isSpinning = ref(false)
 const showResult = ref(false)
 const resultItem = ref<any>(null)
 const wheelRotation = ref(0)
-const recentLotteryHistory = ref<any[]>([])
 
 // 抽奖消耗
 const lotteryCost = 10
@@ -135,7 +138,6 @@ const resultTitle = computed(() => {
     case ItemRarity.Common:
       return '恭喜获得普通物品！'
     case ItemRarity.Rare:
-      return '太棒了！获得稀有物品！'
     case ItemRarity.Epic:
       return '太厉害了！获得史诗物品！'
     case ItemRarity.Legendary:
@@ -147,6 +149,7 @@ const resultTitle = computed(() => {
 
 // 方法
 function handleClose() {
+  // 移除旋转状态的限制，允许随时关闭
   emit('close')
 }
 
@@ -193,23 +196,11 @@ function handleDraw() {
 }
 
 function performLottery() {
-  // 调用store中的抽奖方法
+  // 调用store中的抽奖方法 - 这里会自动将抽奖记录保存到store.lotteryRecords
   const result = store.drawLottery()
 
   if (result) {
     resultItem.value = result
-
-    // 添加到历史记录
-    recentLotteryHistory.value.unshift({
-      name: result.name,
-      rarity: result.rarity
-    })
-
-    // 限制历史记录数量
-    if (recentLotteryHistory.value.length > 5) {
-      recentLotteryHistory.value.pop()
-    }
-
     // 显示结果
     showResult.value = true
   }
@@ -265,60 +256,22 @@ function getRarityText(rarity?: ItemRarity) {
   }
 }
 
-// 计算每个扇形的样式 - 使用简单可靠的旋转方法
+// 计算每个扇形的样式
 function getSegmentStyle(index: number) {
-  const segmentsCount = store.lotteryItems.length;
-  const anglePerSegment = 360 / segmentsCount;
-  const startAngle = index * anglePerSegment;
-  
+  const segmentsCount = store.lotteryItems.length
+  const angle = (360 / segmentsCount) * index
   return {
-    position: 'absolute' as const,
-    width: '100%',
-    height: '100%',
-    transformOrigin: 'center center',
-    transform: `rotate(${startAngle}deg)`,
-    overflow: 'hidden'
-  };
-}
-
-// 计算文本包装器的样式，确保文字朝向外侧
-function getTextWrapperStyle(index: number) {
-  const segmentsCount = store.lotteryItems.length;
-  const anglePerSegment = 360 / segmentsCount;
-  const startAngle = index * anglePerSegment;
-  
-  // 文本需要旋转的角度，确保文字朝向外侧
-  // 90deg是初始偏移，使第一个扇形的文字水平向右
-  const textRotation = startAngle + 90 + anglePerSegment / 2;
-  
-  return {
-    position: 'absolute' as const,
-    width: '50%',
-    height: '100%',
-    transformOrigin: 'left center',
-    left: '50%',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    justifyContent: 'center',
-    transform: `rotate(${textRotation}deg)`,
-    paddingLeft: '20px'
-  };
-}
-
-// 监听弹窗显示状态，重置动画
-watch(() => props.visible, (newVal) => {
-  if (newVal) {
-    wheelRotation.value = 0
-    isSpinning.value = false
-    showResult.value = false
-    resultItem.value = null
-  } else {
-    // 当弹窗被关闭时，确保所有状态重置
-    isSpinning.value = false
-    showResult.value = false
+    transform: `rotate(${angle}deg)`
   }
-})
+}
+
+function getTextWrapperStyle(index: number) {
+  const segmentsCount = store.lotteryItems.length
+  const angle = (360 / segmentsCount) * index + (360 / segmentsCount) / 2
+  return {
+    transform: `rotate(${angle}deg)`
+  }
+}
 </script>
 
 <style scoped>
@@ -326,27 +279,26 @@ watch(() => props.visible, (newVal) => {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  right: 0;
+  bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn 0.3s ease;
 }
 
 .lottery-popup-content {
-  background-color: white;
+  background: white;
   border-radius: 20px;
   padding: 30px;
-  max-width: 500px;
   width: 90%;
-  max-height: 80vh;
+  max-width: 400px;
+  max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  position: relative;
-  animation: slideIn 0.3s ease-out;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease;
 }
 
 .popup-header {
@@ -407,90 +359,69 @@ watch(() => props.visible, (newVal) => {
   position: relative;
   border-radius: 50%;
   background-color: #f8f9fa;
-  transition: transform 3s cubic-bezier(0.1, 0.7, 0.1, 1);
+  transition: transform 0.5s ease-out;
   overflow: hidden;
   border: 8px solid #ff6b81;
 }
 
+.lottery-wheel.spinning {
+  transition: transform 3s cubic-bezier(0.1, 0.7, 0.1, 1);
+}
+
 .lottery-segment {
   position: absolute;
   width: 100%;
   height: 100%;
+  transform-origin: 50% 50%;
   overflow: hidden;
+  clip-path: polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 50% 100%);
 }
 
-/* 使用伪元素创建扇形背景 */
-.lottery-segment::before {
-  content: '';
+.segment-content {
   position: absolute;
   width: 100%;
   height: 100%;
-  top: 0;
-  left: 0;
-  background: currentColor;
-  transform-origin: center center;
-  transform: rotate(var(--segment-angle)) skewY(var(--skew-angle));
-}
-
-/* 为每个扇形设置正确的角度 - 使用CSS变量 */
-.lottery-segment {
-  --segment-angle: calc(360deg / var(--segments-count) / 2);
-  --skew-angle: calc(90deg - 360deg / var(--segments-count));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+  transform-origin: 50% 50%;
+  text-align: center;
+  transform: rotate(-90deg);
+  /* 修正内容方向 */
 }
 
 .segment-text-wrapper {
   position: absolute;
   width: 50%;
   height: 100%;
-  left: 50%;
-  transform-origin: left center;
+  top: 0;
+  right: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* 稀有度样式 */
-.rarity-common {
-  color: #e9ecef;
-}
-
-.rarity-rare {
-  color: #d1ecf1;
-}
-
-.rarity-epic {
-  color: #ddd6fe;
-}
-
-.rarity-legendary {
-  color: #fed7aa;
+  align-items: center;
+  text-align: center;
+  transform-origin: left center;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .segment-icon {
-  font-size: 18px;
-  margin-bottom: 3px;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+  font-size: 24px;
+  margin-bottom: 5px;
 }
 
 .segment-name {
   font-weight: bold;
-  font-size: 12px;
-  margin-bottom: 2px;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
-  text-align: center;
-  max-width: 100px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 14px;
+  margin-bottom: 3px;
 }
 
 .segment-probability {
-  font-size: 10px;
-  opacity: 0.8;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+  font-size: 12px;
 }
 
 .lottery-pointer {
@@ -576,7 +507,6 @@ watch(() => props.visible, (newVal) => {
   position: absolute;
   top: -10px;
   right: -10px;
-  background: #ff6b81;
   color: white;
   padding: 5px 10px;
   border-radius: 15px;
@@ -658,11 +588,33 @@ watch(() => props.visible, (newVal) => {
   padding: 20px;
 }
 
+/* 稀有度样式 */
+.rarity-common {
+  background-color: #f8f9fa;
+  color: #333;
+}
+
+.rarity-rare {
+  background-color: #e7f3ff;
+  color: #0066cc;
+}
+
+.rarity-epic {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.rarity-legendary {
+  background-color: #fff3e0;
+  color: #ff6f00;
+}
+
 /* 动画 */
 @keyframes fadeIn {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -673,6 +625,7 @@ watch(() => props.visible, (newVal) => {
     transform: translateY(-20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -684,12 +637,15 @@ watch(() => props.visible, (newVal) => {
     transform: scale(0.3);
     opacity: 0;
   }
+
   50% {
     transform: scale(1.05);
   }
+
   70% {
     transform: scale(0.9);
   }
+
   100% {
     transform: scale(1);
     opacity: 1;
@@ -701,6 +657,7 @@ watch(() => props.visible, (newVal) => {
     transform: scale(0);
     opacity: 0;
   }
+
   to {
     transform: scale(1);
     opacity: 1;
@@ -711,9 +668,11 @@ watch(() => props.visible, (newVal) => {
   0% {
     box-shadow: 0 0 5px rgba(255, 111, 0, 0.5);
   }
+
   50% {
     box-shadow: 0 0 20px rgba(255, 111, 0, 0.8);
   }
+
   100% {
     box-shadow: 0 0 5px rgba(255, 111, 0, 0.5);
   }
@@ -744,12 +703,11 @@ watch(() => props.visible, (newVal) => {
   }
 
   .segment-name {
-    font-size: 10px;
-    max-width: 80px;
+    font-size: 12px;
   }
 
   .segment-icon {
-    font-size: 16px;
+    font-size: 20px;
   }
 }
 </style>
