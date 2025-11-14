@@ -683,7 +683,7 @@ function formatDate(dateString: string) {
     margin-bottom: 30px;
     border: 3px solid #ffedf2;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .exchange-section::before {
@@ -803,6 +803,7 @@ function formatDate(dateString: string) {
     gap: 15px;
     overflow-x: auto;
     overflow-y: visible;
+    padding-top: 20px;
     padding-bottom: 10px;
 }
 
@@ -827,16 +828,17 @@ function formatDate(dateString: string) {
     gap: 20px;
 }
 
-.exchange-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: linear-gradient(135deg, #fff8fa 0%, #ffedf2 100%);
-    padding: 20px;
-    border-radius: 16px;
-    border: 2px solid #ffedf2;
-    transition: all 0.3s ease;
-    position: relative;
+.exchange-item { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    background: linear-gradient(135deg, #fff8fa 0%, #ffedf2 100%); 
+    padding: 20px; 
+    border-radius: 16px; 
+    border: 2px solid #ffedf2; 
+    transition: all 0.3s ease; 
+    position: relative; 
+    overflow: visible; 
 }
 
 .exchange-item:hover {
@@ -872,16 +874,17 @@ function formatDate(dateString: string) {
     }
 }
 
-.recommend-badge {
-    position: absolute;
-    top: -10px;
-    right: 15px;
-    background: #ff4757;
-    color: white;
-    padding: 3px 10px;
-    border-radius: 15px;
-    font-size: 0.8rem;
-    font-weight: bold;
+.recommend-badge { 
+    position: absolute; 
+    top: -16px; 
+    right: -10px; 
+    background: #ff4757; 
+    color: white; 
+    padding: 6px 16px; 
+    border-radius: 15px; 
+    font-size: 0.8rem; 
+    font-weight: bold; 
+    z-index: 9999; 
 }
 
 .item-info {

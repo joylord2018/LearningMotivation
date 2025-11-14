@@ -35,8 +35,6 @@
         </div>
       </div>
 
-
-
       <!-- 抽奖结果展示 -->
       <transition name="result-popup">
         <div v-if="showResult" class="result-popup">
@@ -329,7 +327,7 @@ async function handleCellClick(cellIndex: number) {
   border-radius: 20px;
   padding: 30px;
   width: 90%;
-  max-width: 400px;
+  max-width: 90vw;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
@@ -383,8 +381,10 @@ async function handleCellClick(cellIndex: number) {
 
 .lottery-grid-container {
   position: relative;
-  width: 360px;
-  height: 360px;
+  width: calc(100% - 40px);
+  max-width: 380px;
+  height: auto;
+  aspect-ratio: 1/1;
   margin: 0 auto 20px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
