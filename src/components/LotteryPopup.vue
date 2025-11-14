@@ -52,6 +52,16 @@
         </div>
       </transition>
 
+      <!-- 积分不足弹窗 -->
+      <transition name="result-popup">
+        <div v-if="showInsufficientPointsPopup" class="result-popup insufficient-points-popup">
+          <div class="result-icon">💔</div>
+          <h3 class="result-title">积分不足</h3>
+          <p class="result-description">您的积分不够抽奖哦~ 快去完成任务赚积分吧！</p>
+          <button class="result-btn" @click="handleCloseInsufficientPointsPopup">好的</button>
+        </div>
+      </transition>
+
       <!-- 抽奖历史 -->
       <div class="lottery-history">
         <h3>🎯 最近抽奖</h3>
@@ -102,6 +112,7 @@ const isSpinning = ref(false)
 const showResult = ref(false)
 const resultItem = ref<BackpackItem | null>(null)
 const revealedCell = ref<number | null>(null)
+const showInsufficientPointsPopup = ref(false)
 
 // 抽奖消耗
 const lotteryCost = 10
@@ -212,6 +223,10 @@ function handleCloseResult() {
   resultItem.value = null
 }
 
+function handleCloseInsufficientPointsPopup() {
+  showInsufficientPointsPopup.value = false
+}
+
 // 获取稀有度样式类
 function getRarityClass(rarity?: ItemRarity) {
   if (!rarity) return ''
@@ -261,7 +276,12 @@ function getRarityText(rarity?: ItemRarity) {
 
 // 格子点击事件处理
 async function handleCellClick(cellIndex: number) {
-  if (isSpinning.value || store.currentPoints < lotteryCost) return;
+  if (isSpinning.value || store.currentPoints < lotteryCost) {
+    if (store.currentPoints < lotteryCost) {
+      showInsufficientPointsPopup.value = true;
+    }
+    return;
+  }
 
   // 设置抽奖状态
   isSpinning.value = true;
@@ -363,8 +383,8 @@ async function handleCellClick(cellIndex: number) {
 
 .lottery-grid-container {
   position: relative;
-  width: 300px;
-  height: 300px;
+  width: 360px;
+  height: 360px;
   margin: 0 auto 20px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -376,8 +396,8 @@ async function handleCellClick(cellIndex: number) {
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 8px;
-  overflow: hidden;
+  border-radius: 15px;
+  overflow: visible;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -394,6 +414,7 @@ async function handleCellClick(cellIndex: number) {
   color: white;
   font-weight: bold;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  border-radius: 15px;
 }
 
 /* 格子前面纸覆盖层 */
@@ -405,6 +426,7 @@ async function handleCellClick(cellIndex: number) {
   height: 100%;
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   color: white;
@@ -413,6 +435,10 @@ async function handleCellClick(cellIndex: number) {
   transition: all 0.6s ease;
   transform-origin: top left;
   box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  padding: 0;
+  box-sizing: border-box;
+  border-radius: 15px;
 }
 
 /* 纸撕开效果 */
@@ -423,7 +449,19 @@ async function handleCellClick(cellIndex: number) {
 
 .paper-text {
   text-align: center;
-  padding: 10px;
+  padding: 10px 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: normal;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+  word-break: break-word;
+  overflow-wrap: break-word;
+  width: 100%;
+  box-sizing: border-box;
+  max-height: 100%;
+  overflow: visible;
+  margin: 0;
 }
 
 .segment-text {
@@ -434,13 +472,31 @@ async function handleCellClick(cellIndex: number) {
 
 .segment-icon {
   font-size: 24px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .segment-name {
-  font-size: 14px;
+  font-size: 16px;
   margin-bottom: 4px;
   text-align: center;
+  font-weight: bold;
+}
+
+.segment-probability {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.prize-content,
+.placeholder-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
 
@@ -497,6 +553,11 @@ async function handleCellClick(cellIndex: number) {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   z-index: 1010;
   min-width: 300px;
+}
+
+.insufficient-points-popup {
+  background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+  color: white;
 }
 
 .result-icon {
@@ -637,13 +698,6 @@ async function handleCellClick(cellIndex: number) {
   color: #fff;
   text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
   line-height: 1.2;
-  z-index: 10;
-  position: relative;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  padding: 0 10px;
 }
 
 /* 动画 */
