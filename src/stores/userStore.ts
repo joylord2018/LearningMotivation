@@ -97,6 +97,27 @@ export const useUserStore = defineStore(
     // 添加抽奖记录状态
     const lotteryRecords = ref<LotteryRecord[]>([])
     // 最后完成日期（用于计算连续天数）
+    // 用户信息
+    const userInfo = ref<{
+      username: string
+      nickname: string
+      bio: string
+      email: string
+      joinDate: string
+      password: string
+    }>({
+      username: 'xumingxi',
+      nickname: '',
+      bio: '',
+      email: '',
+      joinDate: new Date().toISOString().split('T')[0] ?? '',
+      password: '20160104', // 默认密码
+    })
+
+    // 最长连续学习天数
+    const longestStreak = ref(0)
+
+    // 最后完成日期（用于计算连续天数）
     const lastCompletionDate = ref<string | null>(null)
     // 新增成就相关状态
     const achievements = ref<Achievement[]>([
@@ -111,7 +132,7 @@ export const useUserStore = defineStore(
         current: 0,
         category: 'task',
         isNew: true,
-        progressDescription: '已完成{{current}}个任务'
+        progressDescription: '已完成{{current}}个任务',
       },
       {
         id: 'achievement-2',
@@ -124,7 +145,7 @@ export const useUserStore = defineStore(
         current: 0,
         category: 'task',
         isNew: true,
-        progressDescription: '已完成{{current}}个任务'
+        progressDescription: '已完成{{current}}个任务',
       },
       {
         id: 'achievement-3',
@@ -137,7 +158,7 @@ export const useUserStore = defineStore(
         current: 0,
         category: 'task',
         isNew: true,
-        progressDescription: '已完成{{current}}个任务'
+        progressDescription: '已完成{{current}}个任务',
       },
       {
         id: 'achievement-4',
@@ -150,7 +171,7 @@ export const useUserStore = defineStore(
         current: 0,
         category: 'points',
         isNew: true,
-        progressDescription: '已获得{{current}}积分'
+        progressDescription: '已获得{{current}}积分',
       },
       {
         id: 'achievement-5',
@@ -163,7 +184,7 @@ export const useUserStore = defineStore(
         current: 0,
         category: 'points',
         isNew: true,
-        progressDescription: '已获得{{current}}积分'
+        progressDescription: '已获得{{current}}积分',
       },
       {
         id: 'achievement-6',
@@ -176,7 +197,7 @@ export const useUserStore = defineStore(
         current: 0,
         category: 'points',
         isNew: true,
-        progressDescription: '已获得{{current}}积分'
+        progressDescription: '已获得{{current}}积分',
       },
       {
         id: 'achievement-7',
@@ -189,7 +210,7 @@ export const useUserStore = defineStore(
         current: 0,
         category: 'streak',
         isNew: true,
-        progressDescription: '已连续学习{{current}}天'
+        progressDescription: '已连续学习{{current}}天',
       },
       {
         id: 'achievement-8',
@@ -202,7 +223,7 @@ export const useUserStore = defineStore(
         current: 0,
         category: 'streak',
         isNew: true,
-        progressDescription: '已连续学习{{current}}天'
+        progressDescription: '已连续学习{{current}}天',
       },
       {
         id: 'achievement-9',
@@ -215,7 +236,7 @@ export const useUserStore = defineStore(
         current: 0,
         category: 'streak',
         isNew: true,
-        progressDescription: '已连续学习{{current}}天'
+        progressDescription: '已连续学习{{current}}天',
       },
       {
         id: 'achievement-10',
@@ -228,7 +249,7 @@ export const useUserStore = defineStore(
         current: 0,
         category: 'streak',
         isNew: true,
-        progressDescription: '已连续学习{{current}}天'
+        progressDescription: '已连续学习{{current}}天',
       },
       {
         id: 'achievement-11',
@@ -241,7 +262,7 @@ export const useUserStore = defineStore(
         current: 0,
         category: 'special',
         isNew: true,
-        progressDescription: '已完成{{current}}天任务'
+        progressDescription: '已完成{{current}}天任务',
       },
       {
         id: 'achievement-12',
@@ -254,7 +275,7 @@ export const useUserStore = defineStore(
         current: 0,
         category: 'special',
         isNew: true,
-        progressDescription: '已完成{{current}}个科目'
+        progressDescription: '已完成{{current}}个科目',
       },
       {
         id: 'achievement-13',
@@ -267,8 +288,8 @@ export const useUserStore = defineStore(
         current: 0,
         category: 'special',
         isNew: true,
-        progressDescription: '已抽中{{current}}次稀有物品'
-      }
+        progressDescription: '已抽中{{current}}次稀有物品',
+      },
     ])
     // 新增背包物品状态
     const backpackItems = ref<BackpackItem[]>([])
@@ -455,7 +476,7 @@ export const useUserStore = defineStore(
     // 方法
     // 登录
     function login(username: string, password: string): boolean {
-      if (username === 'xumingxi' && password === '20160104') {
+      if (username === userInfo.value.username && password === userInfo.value.password) {
         isLoggedIn.value = true
         localStorage.setItem('isLoggedIn', 'true')
         // 记录登录日期，用于计算连续登录
@@ -529,7 +550,7 @@ export const useUserStore = defineStore(
         const todayDate = new Date(today ?? '')
         const diffTime = todayDate.getTime() - lastDate.getTime()
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-        
+
         if (diffDays === 1) {
           // 连续一天，增加计数
           studyStreak.value++
@@ -823,12 +844,22 @@ export const useUserStore = defineStore(
       exchangeItems.value = exchangeItems.value.filter((item) => item.id !== itemId)
     }
 
+    // 更新用户信息
+    function updateUserInfo(info: Partial<typeof userInfo.value>) {
+      userInfo.value = { ...userInfo.value, ...info }
+    }
+
+    // 更新密码
+    function updatePassword(newPassword: string) {
+      userInfo.value.password = newPassword
+    }
+
     // 初始化时检查登录状态
-const savedLoginStatus = localStorage.getItem('isLoggedIn')
-if (savedLoginStatus === 'true') {
-  isLoggedIn.value = true
-  calculateConsecutiveDays() // 应用启动时计算连续天数
-}
+    const savedLoginStatus = localStorage.getItem('isLoggedIn')
+    if (savedLoginStatus === 'true') {
+      isLoggedIn.value = true
+      calculateConsecutiveDays() // 应用启动时计算连续天数
+    }
 
     return {
       // 状态
@@ -842,9 +873,11 @@ if (savedLoginStatus === 'true') {
       totalTaskCompletions,
       lastLoginDate,
       studyStreak,
+      longestStreak,
       lastCompletionDate,
       lotteryItems,
       lotteryCost,
+      userInfo,
       // 计算属性
       todayTasks,
       todayPoints,
@@ -867,6 +900,8 @@ if (savedLoginStatus === 'true') {
       useItemFromBackpack,
       checkAchievements,
       drawLottery,
+      updateUserInfo,
+      updatePassword,
       ItemRarity,
     }
   },

@@ -18,7 +18,8 @@ const tabs = ref([
     { path: '/points', icon: '⭐', text: '积分' },
     { path: '/achievements', icon: '🏆', text: '成就' },
     { path: '/statistics', icon: '📊', text: '统计' },
-    { path: '/admin', icon: '🛠️', text: '管理' }
+    { path: '/admin', icon: '🛠️', text: '管理' },
+    { path: '/profile', icon: '👤', text: '个人信息' }
 ])
 
 const router = useRouter()

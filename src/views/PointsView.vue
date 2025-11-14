@@ -802,6 +802,7 @@ function formatDate(dateString: string) {
     display: flex;
     gap: 15px;
     overflow-x: auto;
+    overflow-y: visible;
     padding-bottom: 10px;
 }
 

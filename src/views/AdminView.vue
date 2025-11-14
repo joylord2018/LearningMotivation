@@ -387,7 +387,7 @@ const authenticate = () => {
 }
 
 const closePasswordModal = () => {
-    router.push('/')
+    router.back()
 }
 
 const addPoints = () => {
@@ -564,7 +564,7 @@ const closeNotification = () => {
 }
 
 const goBack = () => {
-    router.push('/')
+    router.back()
 }
 
 const logout = () => {
