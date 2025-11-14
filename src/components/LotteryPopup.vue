@@ -12,29 +12,30 @@
         每次抽奖消耗 <span class="cost-amount">{{ lotteryCost }}</span> 积分
       </div>
 
-      <!-- 抽奖转盘 -->
-      <div class="lottery-wheel-container">
-        <div class="lottery-wheel" :style="wheelStyle">
-          <div 
-            v-for="(item, index) in store.lotteryItems" 
-            :key="item.id" 
-            class="lottery-segment"
-            :class="getRarityClass(item.rarity)"
-            :style="getSegmentStyle(index)"
-          >
-            <div class="segment-text-wrapper" :style="getTextWrapperStyle(index)">
-              <div class="segment-icon">{{ getRarityIcon(item.rarity) }}</div>
-              <div class="segment-name">{{ item.name }}</div>
-              <div class="segment-probability">{{ item.probability }}%</div>
+      <!-- 九宫格抽奖 -->
+      <div class="lottery-grid-container">
+        <div v-for="index in 9" :key="index" class="lottery-grid-cell">
+          <!-- 纸覆盖层 -->
+          <div class="cell-front" :class="{ 'teared': revealedCell === index }" @click="handleCellClick(index)">
+            <div class="paper-text">🎁 点击抽奖</div>
+          </div>
+          <!-- 奖品内容层 -->
+          <div class="cell-back">
+            <div v-if="revealedCell === index" class="prize-content">
+              <div class="segment-icon">{{ getRarityIcon(gridItems[index - 1]!.rarity) }}</div>
+              {{ gridItems[index - 1]!.name }}
+              <div class="segment-probability">{{ gridItems[index - 1]!.probability }}%</div>
+            </div>
+            <div v-else class="placeholder-content">
+              <div class="segment-icon">🎁</div>
+              <div class="segment-name">神秘奖品</div>
+              <div class="segment-probability">???</div>
             </div>
           </div>
         </div>
-        <div class="lottery-pointer"></div>
       </div>
 
-      <!-- 抽奖按钮 -->
-      <button class="draw-btn" @click="handleDraw" :disabled="isSpinning || store.currentPoints < lotteryCost">
-        {{ isSpinning ? '抽奖中...' : (store.currentPoints < lotteryCost ? '积分不足' : '开始抽奖') }} </button>
+
 
       <!-- 抽奖结果展示 -->
       <transition name="result-popup">
@@ -56,11 +57,8 @@
         <h3>🎯 最近抽奖</h3>
         <div class="history-list">
           <template v-if="store.lotteryRecords.length > 0">
-            <div 
-              v-for="(historyItem, index) in store.lotteryRecords.slice(0, 5)" 
-              :key="historyItem.id || index" 
-              class="history-item"
-            >
+            <div v-for="(historyItem, index) in store.lotteryRecords.slice(0, 5)" :key="historyItem.id || index"
+              class="history-item">
               <div class="history-icon">{{ getRarityIcon(historyItem.itemRarity) }}</div>
               <div class="history-name">{{ historyItem.itemName }}</div>
               <div class="history-rarity">{{ getRarityText(historyItem.itemRarity) }}</div>
@@ -76,8 +74,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useUserStore, ItemRarity } from '../stores/userStore'
+import { ref, computed, onMounted } from 'vue'
+import type { CSSProperties } from 'vue'
+import { useUserStore, ItemRarity, type LotteryItem, type BackpackItem } from '../stores/userStore'
 
 // Props
 interface Props {
@@ -101,17 +100,70 @@ const store = useUserStore()
 // 状态
 const isSpinning = ref(false)
 const showResult = ref(false)
-const resultItem = ref<any>(null)
-const wheelRotation = ref(0)
+const resultItem = ref<BackpackItem | null>(null)
+const revealedCell = ref<number | null>(null)
 
 // 抽奖消耗
 const lotteryCost = 10
 
-// 计算属性
-const wheelStyle = computed(() => {
-  return {
-    transform: `rotate(${wheelRotation.value}deg)`
-  }
+// 计算属性已移除，使用九宫格样式
+// 初始化九宫格奖品数据
+const gridItems = ref<LotteryItem[]>([])
+
+// 重置九宫格奖品数据
+const resetGridItems = () => {
+  gridItems.value = Array.from({ length: 9 }, (_, i): LotteryItem => {
+
+    // 中心格子固定为超级大奖
+    if (i === 4) {
+      return {
+        id: 'grid-center-prize',
+        name: '超级大奖',
+        rarity: ItemRarity.Legendary,
+        probability: 1,
+        description: '恭喜获得超级大奖！',
+        effect: '+1000 学习积分',
+        icon: '🏆'
+      }
+    }
+    // 其他格子随机分配奖品
+    const items = store.lotteryItems
+    // 确保有奖品可以分配
+    if (items.length === 0) {
+      return {
+        id: 'fallback-item',
+        name: '安慰奖',
+        rarity: ItemRarity.Common,
+        probability: 100,
+        description: '感谢参与！',
+        effect: '+10 学习积分',
+        icon: '🎁'
+      }
+    }
+    const randomIndex = Math.floor(Math.random() * items.length)
+    const selectedItem = items[randomIndex]
+    // 确保selectedItem不是undefined
+    if (!selectedItem) {
+      return {
+        id: 'fallback-item',
+        name: '安慰奖',
+        rarity: ItemRarity.Common,
+        probability: 100,
+        description: '感谢参与！',
+        effect: '+10 学习积分',
+        icon: '🎁'
+      }
+    }
+    return selectedItem
+  })
+}
+
+// 立即调用初始化九宫格奖品数据
+resetGridItems()
+
+// 组件挂载时初始化九宫格奖品数据
+onMounted(() => {
+  resetGridItems()
 })
 
 const resultIcon = computed(() => {
@@ -153,60 +205,7 @@ function handleClose() {
   emit('close')
 }
 
-function handleDraw() {
-  if (isSpinning.value || store.currentPoints < lotteryCost) {
-    return
-  }
 
-  isSpinning.value = true
-
-  // 执行抽奖动画
-  const segmentsCount = store.lotteryItems.length
-  const baseRotation = 360 * 5 // 基础旋转5圈
-  const randomSegment = Math.floor(Math.random() * segmentsCount)
-  const segmentRotation = (360 / segmentsCount) * randomSegment
-
-  // 动画持续时间
-  const animationDuration = 3000 // 3秒
-  const frameDuration = 16 // 约60fps
-  const totalFrames = animationDuration / frameDuration
-  let currentFrame = 0
-
-  // 动画函数 - 使用缓动函数
-  const animateWheel = () => {
-    currentFrame++
-    const progress = currentFrame / totalFrames
-    // 使用easeOut缓动函数
-    const easeOutProgress = 1 - Math.pow(1 - progress, 3)
-
-    wheelRotation.value = baseRotation * easeOutProgress + segmentRotation
-
-    if (currentFrame < totalFrames) {
-      requestAnimationFrame(animateWheel)
-    } else {
-      // 动画结束，执行抽奖逻辑
-      setTimeout(() => {
-        performLottery()
-      }, 500)
-    }
-  }
-
-  // 开始动画
-  requestAnimationFrame(animateWheel)
-}
-
-function performLottery() {
-  // 调用store中的抽奖方法 - 这里会自动将抽奖记录保存到store.lotteryRecords
-  const result = store.drawLottery()
-
-  if (result) {
-    resultItem.value = result
-    // 显示结果
-    showResult.value = true
-  }
-
-  isSpinning.value = false
-}
 
 function handleCloseResult() {
   showResult.value = false
@@ -256,21 +255,37 @@ function getRarityText(rarity?: ItemRarity) {
   }
 }
 
-// 计算每个扇形的样式
-function getSegmentStyle(index: number) {
-  const segmentsCount = store.lotteryItems.length
-  const angle = (360 / segmentsCount) * index
-  return {
-    transform: `rotate(${angle}deg)`
-  }
-}
 
-function getTextWrapperStyle(index: number) {
-  const segmentsCount = store.lotteryItems.length
-  const angle = (360 / segmentsCount) * index + (360 / segmentsCount) / 2
-  return {
-    transform: `rotate(${angle}deg)`
+
+
+
+// 格子点击事件处理
+async function handleCellClick(cellIndex: number) {
+  if (isSpinning.value || store.currentPoints < lotteryCost) return;
+
+  // 设置抽奖状态
+  isSpinning.value = true;
+  revealedCell.value = cellIndex;
+
+  // 等待纸撕开动画完成
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // 获取点击格子对应的奖品
+  const selectedGridItem = gridItems.value[cellIndex - 1]
+  // 执行抽奖并保存记录
+  const drawnItem = store.drawLottery(selectedGridItem)
+  if (drawnItem) {
+    // 设置抽奖结果（不显示弹窗）
+    resultItem.value = drawnItem
   }
+
+  // 3秒后重置抽奖状态并重新初始化奖品
+  setTimeout(() => {
+    revealedCell.value = null;
+    isSpinning.value = false;
+    showResult.value = false;
+    resetGridItems() // 每次抽奖后重新生成奖品
+  }, 3000);
 }
 </script>
 
@@ -346,83 +361,89 @@ function getTextWrapperStyle(index: number) {
   font-size: 20px;
 }
 
-.lottery-wheel-container {
+.lottery-grid-container {
   position: relative;
   width: 300px;
   height: 300px;
   margin: 0 auto 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 8px;
 }
 
-.lottery-wheel {
-  width: 100%;
-  height: 100%;
+.lottery-grid-cell {
   position: relative;
-  border-radius: 50%;
-  background-color: #f8f9fa;
-  transition: transform 0.5s ease-out;
-  overflow: hidden;
-  border: 8px solid #ff6b81;
-}
-
-.lottery-wheel.spinning {
-  transition: transform 3s cubic-bezier(0.1, 0.7, 0.1, 1);
-}
-
-.lottery-segment {
-  position: absolute;
   width: 100%;
   height: 100%;
-  transform-origin: 50% 50%;
+  border-radius: 8px;
   overflow: hidden;
-  clip-path: polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 50% 100%);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.segment-content {
-  position: absolute;
+/* 格子后面内容层 */
+.cell-back {
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 20px;
-  box-sizing: border-box;
-  transform-origin: 50% 50%;
-  text-align: center;
-  transform: rotate(-90deg);
-  /* 修正内容方向 */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-.segment-text-wrapper {
+/* 格子前面纸覆盖层 */
+.cell-front {
   position: absolute;
-  width: 50%;
-  height: 100%;
   top: 0;
-  right: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  transition: all 0.6s ease;
+  transform-origin: top left;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* 纸撕开效果 */
+.cell-front.teared {
+  transform: rotateY(90deg) scale(0.5);
+  opacity: 0;
+}
+
+.paper-text {
   text-align: center;
-  transform-origin: left center;
-  padding: 20px;
-  box-sizing: border-box;
+  padding: 10px;
+}
+
+.segment-text {
+  color: #333;
+  font-weight: bold;
+  text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.8);
 }
 
 .segment-icon {
   font-size: 24px;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 
 .segment-name {
-  font-weight: bold;
   font-size: 14px;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
+  text-align: center;
 }
 
-.segment-probability {
-  font-size: 12px;
-}
+
 
 .lottery-pointer {
   position: absolute;
@@ -609,6 +630,22 @@ function getTextWrapperStyle(index: number) {
   color: #ff6f00;
 }
 
+/* 中奖内容 */
+.prize-content {
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+  line-height: 1.2;
+  z-index: 10;
+  position: relative;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  padding: 0 10px;
+}
+
 /* 动画 */
 @keyframes fadeIn {
   from {
@@ -618,6 +655,20 @@ function getTextWrapperStyle(index: number) {
   to {
     opacity: 1;
   }
+}
+
+@keyframes rotateWheel {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rotation-wheel {
+  animation: rotateWheel 0.5s linear infinite;
+  transform-origin: center center;
 }
 
 @keyframes slideIn {

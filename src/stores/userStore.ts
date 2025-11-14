@@ -61,17 +61,18 @@ export enum ItemRarity {
 }
 
 // 定义抽奖物品类型
-interface LotteryItem {
+export interface LotteryItem {
   id: string
   name: string
   description: string
   rarity: ItemRarity
   probability: number // 概率（百分比）
   effect?: string // 特殊效果描述
+  icon: string
 }
 
 // 定义背包物品类型，增加稀有度属性
-interface BackpackItem {
+export interface BackpackItem {
   id: string
   originalId: string
   name: string
@@ -79,6 +80,7 @@ interface BackpackItem {
   acquiredDate: string
   rarity: ItemRarity
   effect?: string // 特殊效果描述
+  icon: string
 }
 
 export const useUserStore = defineStore(
@@ -307,6 +309,7 @@ export const useUserStore = defineStore(
         description: '带来好运的星星',
         rarity: ItemRarity.Common,
         probability: 30,
+        icon: '✨'
       },
       {
         id: 'lucky-2',
@@ -314,6 +317,7 @@ export const useUserStore = defineStore(
         description: '提高学习效率',
         rarity: ItemRarity.Common,
         probability: 25,
+        icon: '📓'
       },
       {
         id: 'lucky-3',
@@ -321,6 +325,7 @@ export const useUserStore = defineStore(
         description: '补充学习能量',
         rarity: ItemRarity.Common,
         probability: 15,
+        icon: '🥤'
       },
 
       // 稀有物品 (20% 概率)
@@ -331,6 +336,7 @@ export const useUserStore = defineStore(
         rarity: ItemRarity.Rare,
         probability: 10,
         effect: '使用后获得5点积分',
+        icon: '💡'
       },
       {
         id: 'rare-2',
@@ -339,6 +345,7 @@ export const useUserStore = defineStore(
         rarity: ItemRarity.Rare,
         probability: 10,
         effect: '使用后获得额外的任务完成度',
+        icon: '🚀'
       },
 
       // 史诗物品 (8% 概率)
@@ -349,6 +356,7 @@ export const useUserStore = defineStore(
         rarity: ItemRarity.Epic,
         probability: 5,
         effect: '使用后获得10点积分',
+        icon: '🏰'
       },
       {
         id: 'epic-2',
@@ -357,6 +365,7 @@ export const useUserStore = defineStore(
         rarity: ItemRarity.Epic,
         probability: 3,
         effect: '使用后所有任务获得双倍积分',
+        icon: '🧙‍♂️'
       },
 
       // 传说物品 (2% 概率)
@@ -367,6 +376,7 @@ export const useUserStore = defineStore(
         rarity: ItemRarity.Legendary,
         probability: 1,
         effect: '使用后获得20点积分和一次额外抽奖机会',
+        icon: '🌟'
       },
       {
         id: 'legendary-2',
@@ -375,6 +385,7 @@ export const useUserStore = defineStore(
         rarity: ItemRarity.Legendary,
         probability: 1,
         effect: '使用后解锁所有成就进度+1',
+        icon: '🏅'
       },
     ])
 
@@ -669,6 +680,7 @@ export const useUserStore = defineStore(
           description: item.description,
           acquiredDate: new Date().toISOString(),
           rarity: ItemRarity.Common,
+          icon: '🎁'
         }
         backpackItems.value.push(backpackItem)
 
@@ -728,7 +740,7 @@ export const useUserStore = defineStore(
     }
 
     // 新增抽奖方法
-    function drawLottery(): LotteryItem | null {
+    function drawLottery(item?: LotteryItem): BackpackItem | null {
       // 检查积分是否足够
       if (currentPoints.value < lotteryCost) {
         return null
@@ -743,62 +755,58 @@ export const useUserStore = defineStore(
         date: new Date().toISOString(),
         description: '参与抽奖',
         points: -lotteryCost,
-        type: 'exchange',
+        type: 'exchange'
       }
       pointRecords.value.push(record)
 
-      // 根据概率进行抽奖
-      const random = Math.random() * 100
-      let cumulativeProbability = 0
+      // 使用提供的物品或根据概率进行抽奖
+      const selectedItem = item || (() => {
+        // 根据概率进行抽奖
+        const random = Math.random() * 100
+        let cumulativeProbability = 0
 
-      for (const item of lotteryItems.value) {
-        cumulativeProbability += item.probability
-        if (random < cumulativeProbability) {
-          // 将抽到的物品添加到背包
-          const backpackItem: BackpackItem = {
-            id: `backpack-${Date.now()}`,
-            originalId: item.id,
-            name: item.name,
-            description: item.description,
-            acquiredDate: new Date().toISOString(),
-            rarity: item.rarity,
-            effect: item.effect,
+        for (const lotteryItem of lotteryItems.value) {
+          cumulativeProbability += lotteryItem.probability
+          if (random < cumulativeProbability) {
+            return lotteryItem
           }
-          backpackItems.value.push(backpackItem)
-
-          // 添加抽奖记录到lotteryRecords
-          const lotteryRecord: LotteryRecord = {
-            id: `lottery-${Date.now()}`,
-            date: new Date().toISOString(),
-            itemName: item.name,
-            itemRarity: item.rarity,
-          }
-          lotteryRecords.value.unshift(lotteryRecord)
-
-          return item
         }
-      }
 
-      // 默认返回第一个物品（理论上不会执行到这里）
-      // 添加安全检查，确保不会返回undefined
-      if (lotteryItems.value.length > 0) {
-        const defaultItem = lotteryItems.value[0]
-        if (defaultItem) {
-          // 将默认物品添加到背包
-          const backpackItem: BackpackItem = {
-            id: `backpack-${Date.now()}`,
-            originalId: defaultItem.id,
-            name: defaultItem.name,
-            description: defaultItem.description,
-            acquiredDate: new Date().toISOString(),
-            rarity: defaultItem.rarity,
-            effect: defaultItem.effect,
-          }
-          backpackItems.value.push(backpackItem)
-          return defaultItem
-        }
+        // 如果没有找到（理论上不会发生），返回安慰奖
+        return {
+          id: 'fallback-item',
+          name: '安慰奖',
+          description: '感谢参与！',
+          rarity: ItemRarity.Common,
+          probability: 100,
+          effect: '+10 学习积分',
+          icon: '🎁'
+        } as LotteryItem
+      })()
+
+      // 将抽到的物品添加到背包
+      const backpackItem: BackpackItem = {
+        id: `backpack-${Date.now()}`,
+        originalId: selectedItem.id,
+        name: selectedItem.name,
+        description: selectedItem.description,
+        acquiredDate: new Date().toISOString(),
+        rarity: selectedItem.rarity,
+        effect: selectedItem.effect,
+        icon: selectedItem.icon
       }
-      return null // 如果抽奖池为空或有问题，返回null
+      backpackItems.value.push(backpackItem)
+
+      // 添加抽奖记录到lotteryRecords
+      const lotteryRecord: LotteryRecord = {
+        id: `lottery-${Date.now()}`,
+        date: new Date().toISOString(),
+        itemName: selectedItem.name,
+        itemRarity: selectedItem.rarity
+      }
+      lotteryRecords.value.unshift(lotteryRecord)
+
+      return backpackItem
     }
 
     // 调整积分（管理模块使用） - 修正参数
