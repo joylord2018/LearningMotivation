@@ -396,8 +396,8 @@ async function handleCellClick(cellIndex: number) {
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 15px;
-  overflow: visible;
+  border-radius: 20px;
+  overflow: hidden;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -414,7 +414,9 @@ async function handleCellClick(cellIndex: number) {
   color: white;
   font-weight: bold;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-  border-radius: 15px;
+  border-radius: 20px;
+  border: 2px solid white;
+  box-sizing: border-box;
 }
 
 /* 格子前面纸覆盖层 */
@@ -438,7 +440,8 @@ async function handleCellClick(cellIndex: number) {
   overflow: hidden;
   padding: 0;
   box-sizing: border-box;
-  border-radius: 15px;
+  border-radius: 20px;
+  border: 2px solid white;
 }
 
 /* 纸撕开效果 */
