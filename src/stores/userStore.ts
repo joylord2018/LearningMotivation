@@ -96,73 +96,179 @@ export const useUserStore = defineStore(
     ])
     // 添加抽奖记录状态
     const lotteryRecords = ref<LotteryRecord[]>([])
+    // 最后完成日期（用于计算连续天数）
+    const lastCompletionDate = ref<string | null>(null)
     // 新增成就相关状态
     const achievements = ref<Achievement[]>([
       {
-        id: 'first-task',
-        name: '初次尝试',
-        description: '完成你的第一个学习任务',
-        icon: '🎯',
+        id: 'achievement-1',
+        name: '学习新手',
+        description: '完成第一个学习任务',
+        icon: '📚',
         unlocked: false,
-        condition: 'task-completion',
+        condition: 'task',
         target: 1,
         current: 0,
         category: 'task',
-        isNew: false,
-        progressDescription: '完成1个任务解锁',
+        isNew: true,
+        progressDescription: '已完成{{current}}个任务'
       },
       {
-        id: 'task-master',
-        name: '任务达人',
-        description: '累计完成10个学习任务',
-        icon: '🏆',
+        id: 'achievement-2',
+        name: '学习达人',
+        description: '完成10个学习任务',
+        icon: '🎓',
         unlocked: false,
-        condition: 'total-task-completion',
+        condition: 'task',
         target: 10,
         current: 0,
         category: 'task',
-        isNew: false,
-        progressDescription: '完成10个任务解锁',
+        isNew: true,
+        progressDescription: '已完成{{current}}个任务'
       },
       {
-        id: 'point-collector',
-        name: '积分收集者',
-        description: '累计获得100积分',
-        icon: '💰',
+        id: 'achievement-3',
+        name: '学习大师',
+        description: '完成50个学习任务',
+        icon: '🏆',
         unlocked: false,
-        condition: 'total-points',
+        condition: 'task',
+        target: 50,
+        current: 0,
+        category: 'task',
+        isNew: true,
+        progressDescription: '已完成{{current}}个任务'
+      },
+      {
+        id: 'achievement-4',
+        name: '积分新手',
+        description: '累计获得100积分',
+        icon: '✨',
+        unlocked: false,
+        condition: 'points',
         target: 100,
         current: 0,
         category: 'points',
-        isNew: false,
-        progressDescription: '获得100积分解锁',
+        isNew: true,
+        progressDescription: '已获得{{current}}积分'
       },
       {
-        id: 'streak-3',
-        name: '三天坚持',
-        description: '连续3天完成学习任务',
-        icon: '🔥',
+        id: 'achievement-5',
+        name: '积分达人',
+        description: '累计获得500积分',
+        icon: '💎',
+        unlocked: false,
+        condition: 'points',
+        target: 500,
+        current: 0,
+        category: 'points',
+        isNew: true,
+        progressDescription: '已获得{{current}}积分'
+      },
+      {
+        id: 'achievement-6',
+        name: '积分大师',
+        description: '累计获得1000积分',
+        icon: '🌟',
+        unlocked: false,
+        condition: 'points',
+        target: 1000,
+        current: 0,
+        category: 'points',
+        isNew: true,
+        progressDescription: '已获得{{current}}积分'
+      },
+      {
+        id: 'achievement-7',
+        name: '连续学习',
+        description: '连续学习3天',
+        icon: '🏆',
         unlocked: false,
         condition: 'streak',
         target: 3,
         current: 0,
         category: 'streak',
-        isNew: false,
-        progressDescription: '连续学习3天解锁',
+        isNew: true,
+        progressDescription: '已连续学习{{current}}天'
       },
       {
-        id: 'special-one',
-        name: '神秘成就',
-        description: '解锁这个神秘成就，展示你的学习热情！',
-        icon: '🎁',
+        id: 'achievement-8',
+        name: '一周达人',
+        description: '连续学习7天',
+        icon: '🌟',
+        unlocked: false,
+        condition: 'streak',
+        target: 7,
+        current: 0,
+        category: 'streak',
+        isNew: true,
+        progressDescription: '已连续学习{{current}}天'
+      },
+      {
+        id: 'achievement-9',
+        name: '坚持达人',
+        description: '连续学习14天',
+        icon: '🔥',
+        unlocked: false,
+        condition: 'streak',
+        target: 14,
+        current: 0,
+        category: 'streak',
+        isNew: true,
+        progressDescription: '已连续学习{{current}}天'
+      },
+      {
+        id: 'achievement-10',
+        name: '学霸养成',
+        description: '连续学习30天',
+        icon: '🎖️',
+        unlocked: false,
+        condition: 'streak',
+        target: 30,
+        current: 0,
+        category: 'streak',
+        isNew: true,
+        progressDescription: '已连续学习{{current}}天'
+      },
+      {
+        id: 'achievement-11',
+        name: '完美一周',
+        description: '一周内完成所有学习任务',
+        icon: '🌈',
         unlocked: false,
         condition: 'special',
-        target: 1,
+        target: 7,
         current: 0,
         category: 'special',
-        isNew: false,
-        progressDescription: '完成特殊条件解锁',
+        isNew: true,
+        progressDescription: '已完成{{current}}天任务'
       },
+      {
+        id: 'achievement-12',
+        name: '多才多艺',
+        description: '完成所有科目的学习任务',
+        icon: '🎨',
+        unlocked: false,
+        condition: 'special',
+        target: 3,
+        current: 0,
+        category: 'special',
+        isNew: true,
+        progressDescription: '已完成{{current}}个科目'
+      },
+      {
+        id: 'achievement-13',
+        name: '抽奖幸运儿',
+        description: '抽中5次稀有物品',
+        icon: '🎰',
+        unlocked: false,
+        condition: 'lottery',
+        target: 5,
+        current: 0,
+        category: 'special',
+        isNew: true,
+        progressDescription: '已抽中{{current}}次稀有物品'
+      }
     ])
     // 新增背包物品状态
     const backpackItems = ref<BackpackItem[]>([])
@@ -415,6 +521,30 @@ export const useUserStore = defineStore(
     }
 
     // 更新任务完成度
+    // 计算连续完成天数
+    function calculateConsecutiveDays() {
+      const today = new Date().toISOString().split('T')[0]
+      if (lastCompletionDate.value) {
+        const lastDate = new Date(lastCompletionDate.value)
+        const todayDate = new Date(today ?? '')
+        const diffTime = todayDate.getTime() - lastDate.getTime()
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+        
+        if (diffDays === 1) {
+          // 连续一天，增加计数
+          studyStreak.value++
+        } else if (diffDays > 1) {
+          // 重置计数
+          studyStreak.value = 1
+        }
+        // 如果diffDays === 0，同一天，不更新
+      } else {
+        // 第一次完成任务
+        studyStreak.value = 1
+      }
+      lastCompletionDate.value = today ?? null
+    }
+
     function updateTaskCompletion(taskId: string, level: 'low' | 'medium' | 'high') {
       const task = tasks.value.find((t) => t.id === taskId)
       if (task) {
@@ -447,6 +577,8 @@ export const useUserStore = defineStore(
 
         // 检查成就
         checkAchievements()
+        // 计算连续完成天数
+        calculateConsecutiveDays()
       }
     }
 
@@ -473,6 +605,18 @@ export const useUserStore = defineStore(
           type: 'task',
         }
         pointRecords.value.push(record)
+
+        // 检查当天是否还有其他已完成的任务
+        const today = new Date().toISOString().split('T')[0]
+        const hasCompletedTasksToday = tasks.value.some(
+          (t) => t.date === today && t.completionLevel !== null,
+        )
+
+        // 如果当天没有已完成的任务，重置连续完成天数和最后完成日期
+        if (!hasCompletedTasksToday) {
+          studyStreak.value = 0
+          lastCompletionDate.value = null
+        }
 
         return pointsToDeduct
       }
@@ -680,10 +824,11 @@ export const useUserStore = defineStore(
     }
 
     // 初始化时检查登录状态
-    const savedLoginStatus = localStorage.getItem('isLoggedIn')
-    if (savedLoginStatus === 'true') {
-      isLoggedIn.value = true
-    }
+const savedLoginStatus = localStorage.getItem('isLoggedIn')
+if (savedLoginStatus === 'true') {
+  isLoggedIn.value = true
+  calculateConsecutiveDays() // 应用启动时计算连续天数
+}
 
     return {
       // 状态
@@ -697,6 +842,7 @@ export const useUserStore = defineStore(
       totalTaskCompletions,
       lastLoginDate,
       studyStreak,
+      lastCompletionDate,
       lotteryItems,
       lotteryCost,
       // 计算属性

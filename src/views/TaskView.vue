@@ -96,6 +96,44 @@
                 </div>
             </div>
 
+            <!-- 提醒设置 -->
+            <div class="reminder-settings card">
+                <div class="card-header">
+                    <h3>⏰ 学习提醒设置</h3>
+                    <span class="bell">🔔</span>
+                </div>
+                <div class="reminder-content">
+                    <div class="reminder-item">
+                        <label class="reminder-label">开启每日提醒</label>
+                        <input type="checkbox" v-model="reminderEnabled" @change="handleReminderToggle"
+                            class="toggle-switch">
+                    </div>
+                    <div class="reminder-item time-picker" v-if="reminderEnabled">
+                        <label class="reminder-label">提醒时间</label>
+                        <input type="time" v-model="reminderTime" @change="handleReminderTimeChange" class="time-input">
+                    </div>
+                    <div class="reminder-item" v-if="reminderEnabled">
+                        <label class="reminder-label">提醒频率</label>
+                        <select v-model="reminderFrequency" @change="handleReminderFrequencyChange"
+                            class="frequency-select">
+                            <option value="daily">每天</option>
+                            <option value="weekdays">工作日</option>
+                            <option value="custom">自定义</option>
+                        </select>
+                    </div>
+                    <div class="reminder-item custom-days" v-if="reminderEnabled && reminderFrequency === 'custom'">
+                        <label class="reminder-label">选择日期</label>
+                        <div class="days-container">
+                            <div v-for="day in daysOfWeek" :key="day.value" class="day-item">
+                                <input type="checkbox" :id="`day-${day.value}`" :value="day.value"
+                                    v-model="selectedDays" class="day-checkbox">
+                                <label :for="`day-${day.value}`" class="day-label">{{ day.label }}</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 额外奖励提示 -->
             <div class="reward-hint card">
                 <div class="reward-icon">🎁</div>
@@ -124,14 +162,178 @@
     </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+<script lang="ts" setup>
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/userStore'
 import NavigationTabs from '../components/NavigationTabs.vue'
 
 const router = useRouter()
 const store = useUserStore()
+
+// 提醒功能状态
+const reminderEnabled = ref(false)
+const reminderTime = ref("19:00")
+const reminderFrequency = ref("daily")
+const selectedDays = ref(['0', '1', '2', '3', '4', '5', '6']) // 0: Sunday, 1: Monday, ..., 6: Saturday
+
+// 星期几选项
+const daysOfWeek = [
+    { value: '0', label: '周日' },
+    { value: '1', label: '周一' },
+    { value: '2', label: '周二' },
+    { value: '3', label: '周三' },
+    { value: '4', label: '周四' },
+    { value: '5', label: '周五' },
+    { value: '6', label: '周六' }
+]
+
+// 加载本地存储的提醒设置
+onMounted(() => {
+    const savedEnabled = localStorage.getItem('reminderEnabled')
+    const savedTime = localStorage.getItem('reminderTime')
+    const savedFrequency = localStorage.getItem('reminderFrequency')
+    const savedDays = localStorage.getItem('selectedDays')
+
+    if (savedEnabled) reminderEnabled.value = JSON.parse(savedEnabled)
+    if (savedTime) reminderTime.value = savedTime
+    if (savedFrequency) reminderFrequency.value = savedFrequency
+    if (savedDays) selectedDays.value = JSON.parse(savedDays)
+
+    // 初始化今日任务
+    store.initializeTodayTasks()
+
+    // 如果提醒已启用，检查权限并安排提醒
+    if (reminderEnabled.value) {
+        requestNotificationPermission()
+        scheduleNotification()
+    }
+})
+
+// 请求通知权限
+const requestNotificationPermission = async () => {
+    if ('Notification' in window) {
+        const permission = await Notification.requestPermission()
+        if (permission !== 'granted') {
+            alert('请允许通知权限以接收每日提醒！')
+            reminderEnabled.value = false
+            localStorage.setItem('reminderEnabled', JSON.stringify(false))
+        }
+    } else {
+        alert('您的浏览器不支持通知功能！')
+        reminderEnabled.value = false
+        localStorage.setItem('reminderEnabled', JSON.stringify(false))
+    }
+}
+
+// 安排提醒通知
+const scheduleNotification = () => {
+    // 清除之前的通知定时器
+    if ((window as any).notificationTimeout) {
+        clearTimeout((window as any).notificationTimeout)
+    }
+
+    const now = new Date()
+    const [hours, minutes] = reminderTime.value.split(':').map(Number)
+    const reminderDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes)
+
+    // 如果时间已过，安排明天的提醒
+    if (reminderDate < now) {
+        reminderDate.setDate(reminderDate.getDate() + 1)
+    }
+
+    // 检查提醒频率
+    if (reminderFrequency.value === 'weekdays') {
+        // 确保是工作日（周一-周五，1-5）
+        while (reminderDate.getDay() === 0 || reminderDate.getDay() === 6) {
+            reminderDate.setDate(reminderDate.getDate() + 1)
+        }
+    } else if (reminderFrequency.value === 'custom') {
+        // 确保是选中的日期
+        let isSelectedDay = selectedDays.value.includes(reminderDate.getDay().toString())
+        let daysChecked = 0
+
+        while (!isSelectedDay && daysChecked < 7) {
+            reminderDate.setDate(reminderDate.getDate() + 1)
+            isSelectedDay = selectedDays.value.includes(reminderDate.getDay().toString())
+            daysChecked++
+        }
+
+        // 如果没有选中日期，禁用提醒
+        if (!isSelectedDay) {
+            reminderEnabled.value = false
+            localStorage.setItem('reminderEnabled', JSON.stringify(false))
+            return
+        }
+    }
+
+    // 计算延迟时间
+    const delay = reminderDate.getTime() - now.getTime();
+    
+    // 设置新的定时器
+    (window as { notificationTimeout?: number }).notificationTimeout = window.setTimeout(() => {
+        showNotification()
+        // 循环安排下一次提醒
+        scheduleNotification()
+    }, delay)
+
+    // 保存下一次提醒时间到本地存储
+    localStorage.setItem('nextReminder', reminderDate.toISOString())
+}
+
+// 显示通知
+const showNotification = () => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('📚 学习提醒', {
+            body: '该完成今天的学习任务啦！',
+            icon: '/favicon.ico'
+        })
+    }
+}
+
+// 清除提醒通知
+const clearNotification = () => {
+    if ((window as any).notificationTimeout) {
+        clearTimeout((window as any).notificationTimeout)
+        delete (window as any).notificationTimeout
+    }
+}
+
+// 处理提醒开关
+const handleReminderToggle = () => {
+    localStorage.setItem('reminderEnabled', JSON.stringify(reminderEnabled.value))
+
+    if (reminderEnabled.value) {
+        requestNotificationPermission()
+        scheduleNotification()
+    } else {
+        clearNotification()
+    }
+}
+
+// 处理提醒时间变更
+const handleReminderTimeChange = () => {
+    localStorage.setItem('reminderTime', reminderTime.value)
+    if (reminderEnabled.value) {
+        scheduleNotification()
+    }
+}
+
+// 处理提醒频率变更
+const handleReminderFrequencyChange = () => {
+    localStorage.setItem('reminderFrequency', reminderFrequency.value)
+    if (reminderEnabled.value) {
+        scheduleNotification()
+    }
+}
+
+// 处理自定义日期变更
+const handleCustomDaysChange = () => {
+    localStorage.setItem('selectedDays', JSON.stringify(selectedDays.value))
+    if (reminderEnabled.value) {
+        scheduleNotification()
+    }
+}
 
 // 计算当前日期
 const currentDate = computed(() => {
@@ -959,6 +1161,133 @@ onMounted(() => {
     font-weight: 500;
     position: relative;
     z-index: 1;
+}
+
+/* 提醒设置 */
+.reminder-settings {
+    background: linear-gradient(135deg, #e0f7fa 0%, #80deea 100%);
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(128, 222, 234, 0.3);
+}
+
+.reminder-settings .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.reminder-settings .card-header h3 {
+    color: #006064;
+    margin: 0;
+    font-size: 1.3em;
+}
+
+.reminder-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.reminder-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.reminder-label {
+    font-size: 1em;
+    color: #00838f;
+    font-weight: 500;
+}
+
+.toggle-switch {
+    width: 50px;
+    height: 25px;
+    border-radius: 25px;
+    background-color: #e0f7fa;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.toggle-switch:checked {
+    background-color: #00bcd4;
+}
+
+.toggle-switch::before {
+    content: '';
+    width: 21px;
+    height: 21px;
+    border-radius: 50%;
+    background-color: white;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: left 0.3s;
+}
+
+.toggle-switch:checked::before {
+    left: 27px;
+}
+
+.time-input {
+    padding: 10px;
+    border: 2px solid #80deea;
+    border-radius: 10px;
+    font-size: 1em;
+    color: #006064;
+    background: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+}
+
+.frequency-select {
+    padding: 10px 15px;
+    border: 2px solid #80deea;
+    border-radius: 10px;
+    font-size: 1em;
+    color: #006064;
+    background: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="#006064" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 10px top 50%;
+    padding-right: 40px;
+}
+
+.custom-days .days-container {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.custom-days .day-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.custom-days .day-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: #00bcd4;
+    cursor: pointer;
+}
+
+.custom-days .day-label {
+    font-size: 0.95em;
+    color: #006064;
+    cursor: pointer;
+    user-select: none;
 }
 
 /* 游戏风格弹窗 */
