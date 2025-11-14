@@ -144,13 +144,13 @@
                             <span>添加新兑换项</span>
                         </button>
                         <div class="rewards-list">
-                            <div v-for="(reward, index) in rewards" :key="reward.id" class="reward-item fade-in"
-                                :style="{ animationDelay: index * 0.05 + 's' }">
+                            <div v-for="(reward, index) in store.exchangeItems" :key="reward.id"
+                                class="reward-item fade-in" :style="{ animationDelay: index * 0.05 + 's' }">
                                 <div class="reward-info">
                                     <div class="reward-header">
-                                        <span class="reward-icon">{{ reward.icon }}</span>
+                                        <span class="reward-icon">🎁</span> <!-- 使用固定图标或从store中获取 -->
                                         <h3 class="reward-name">{{ reward.name }}</h3>
-                                        <span class="reward-cost">{{ reward.cost }} 🎯</span>
+                                        <span class="reward-cost">{{ reward.points }} 🎯</span> <!-- 修改为points -->
                                     </div>
                                     <p class="reward-description">{{ reward.description }}</p>
                                 </div>
@@ -165,7 +165,7 @@
                                     </button>
                                 </div>
                             </div>
-                            <div v-if="rewards.length === 0" class="no-rewards">
+                            <div v-if="store.exchangeItems.length === 0" class="no-rewards">
                                 <p class="no-rewards-text">暂无兑换项</p>
                                 <p class="no-rewards-hint">点击上方按钮添加新兑换项</p>
                             </div>
@@ -340,30 +340,6 @@ interface Reward {
     icon: string
 }
 
-const rewards = ref<Reward[]>([
-    {
-        id: '1',
-        name: '学习提醒',
-        description: '设置一个学习提醒',
-        cost: 50,
-        icon: '⏰'
-    },
-    {
-        id: '2',
-        name: '学习计划',
-        description: '获取一周学习计划模板',
-        cost: 100,
-        icon: '📅'
-    },
-    {
-        id: '3',
-        name: '激励卡片',
-        description: '获得随机激励卡片',
-        cost: 30,
-        icon: '💌'
-    }
-])
-
 // 模态框相关
 const showTaskModal = ref(false)
 const showRewardModal = ref(false)
@@ -468,9 +444,16 @@ const editTask = (task: Task) => {
     showTaskModal.value = true
 }
 
-const editReward = (reward: Reward) => {
+const editReward = (reward: any) => { // 修改参数类型为any以适配store中的结构
     isEditingReward.value = true
-    Object.assign(currentReward, reward)
+    // 调整字段映射
+    Object.assign(currentReward, {
+        id: reward.id,
+        name: reward.name,
+        description: reward.description,
+        cost: reward.points, // 将points映射到cost
+        icon: reward.icon || '🎁' // 提供默认图标
+    })
     showRewardModal.value = true
 }
 
@@ -508,26 +491,28 @@ const saveTask = () => {
 }
 
 const saveReward = () => {
-    if (!currentReward.name || !currentReward.description || currentReward.cost <= 0 || !currentReward.icon) {
+    if (!currentReward.name || !currentReward.description || currentReward.cost <= 0) {
         showNotificationMessage('请填写完整的兑换项信息', 'error', '❌')
         return
     }
 
     if (isEditingReward.value) {
-        const index = rewards.value.findIndex(r => r.id === currentReward.id)
-        if (index !== -1) {
-            rewards.value[index] = { ...currentReward }
-            showNotificationMessage('兑换项更新成功！', 'success', '✅')
-        }
+        // 修复参数格式，按照store方法的要求传入各个参数
+        store.updateExchangeItem(
+            currentReward.id,
+            currentReward.name,
+            currentReward.cost,
+            currentReward.description
+        )
     } else {
-        const newReward = {
-            ...currentReward,
-            id: Date.now().toString()
-        }
-        rewards.value.push(newReward)
-        showNotificationMessage('兑换项添加成功！', 'success', '✅')
+        // 修复参数格式
+        store.addExchangeItem(
+            currentReward.name,
+            currentReward.cost,
+            currentReward.description
+        )
     }
-
+    showNotificationMessage(isEditingReward.value ? '兑换项更新成功！' : '兑换项添加成功！', 'success', '✅')
     closeRewardModal()
 }
 
@@ -541,10 +526,10 @@ const confirmDeleteTask = (task: Task) => {
     showConfirmModal.value = true
 }
 
-const confirmDeleteReward = (reward: Reward) => {
+const confirmDeleteReward = (reward: any) => {
     confirmMessage.value = `确定要删除兑换项 "${reward.name}" 吗？`
     confirmAction.value = () => {
-        rewards.value = rewards.value.filter(r => r.id !== reward.id)
+        store.removeExchangeItem(reward.id)
         showNotificationMessage('兑换项删除成功！', 'success', '✅')
         closeConfirmModal()
     }
