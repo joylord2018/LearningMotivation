@@ -800,7 +800,7 @@ function formatDate(dateString: string) {
 
 .recommended-items {
     display: flex;
-    gap: 15px;
+    gap: 12px;
     overflow-x: auto;
     overflow-y: visible;
     padding-top: 20px;
