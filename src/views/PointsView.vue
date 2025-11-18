@@ -21,7 +21,7 @@
                 </button>
                 <button class="backpack-btn" @click="showBackpackPopup = true">
                     🎒 我的背包 <span v-if="store.backpackItems.length > 0" class="badge">{{ store.backpackItems.length
-                    }}</span>
+                        }}</span>
                 </button>
                 <div class="logout-btn" @click="handleLogout">退出登录</div>
             </div>
@@ -105,14 +105,22 @@
                     <button class="close-btn" @click="showRecordsPopup = false">✕</button>
                 </div>
 
-                <div v-if="sortedRecords.length === 0" class="no-records">
+                <!-- 筛选按钮 -->
+                <div class="filter-buttons">
+                    <button v-for="filter in ['all', 'task', 'exchange']" :key="filter" @click="selectedFilter = filter"
+                        :class="['filter-btn', { active: selectedFilter === filter }]">
+                        {{ filter === 'all' ? '全部' : filter === 'task' ? '任务' : '兑换' }}
+                    </button>
+                </div>
+
+                <div v-if="filteredRecords.length === 0" class="no-records">
                     <div class="empty-icon">📝</div>
                     <p>暂无积分记录</p>
                     <p class="hint">完成任务获取第一笔积分吧！</p>
                 </div>
 
                 <div v-else class="records-popup-list">
-                    <div v-for="record in sortedRecords" :key="record.id" class="record-popup-item"
+                    <div v-for="record in filteredRecords" :key="record.id" class="record-popup-item"
                         :class="record.points > 0 ? 'positive' : 'negative'">
                         <div class="record-icon">
                             {{ record.points > 0 ? '🎯' : '🛍️' }}
@@ -343,9 +351,18 @@ function handleUseItem() {
     }
 }
 
+// 积分记录筛选
+const selectedFilter = ref('all')
+
 // 排序积分记录
-const sortedRecords = computed(() => {
-    return [...store.pointRecords].sort((a, b) =>
+const filteredRecords = computed(() => {
+    let records = [...store.pointRecords]
+    // 筛选记录
+    if (selectedFilter.value !== 'all') {
+        records = records.filter(record => record.type === selectedFilter.value)
+    }
+    // 排序记录
+    return records.sort((a, b) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
     )
 })
@@ -828,17 +845,17 @@ function formatDate(dateString: string) {
     gap: 20px;
 }
 
-.exchange-item { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    background: linear-gradient(135deg, #fff8fa 0%, #ffedf2 100%); 
-    padding: 20px; 
-    border-radius: 16px; 
-    border: 2px solid #ffedf2; 
-    transition: all 0.3s ease; 
-    position: relative; 
-    overflow: visible; 
+.exchange-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #fff8fa 0%, #ffedf2 100%);
+    padding: 20px;
+    border-radius: 16px;
+    border: 2px solid #ffedf2;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: visible;
 }
 
 .exchange-item:hover {
@@ -874,17 +891,17 @@ function formatDate(dateString: string) {
     }
 }
 
-.recommend-badge { 
-    position: absolute; 
-    top: -16px; 
-    right: -10px; 
-    background: #ff4757; 
-    color: white; 
-    padding: 6px 16px; 
-    border-radius: 15px; 
-    font-size: 0.8rem; 
-    font-weight: bold; 
-    z-index: 9999; 
+.recommend-badge {
+    position: absolute;
+    top: -16px;
+    right: -8px;
+    background: #ff4757;
+    color: white;
+    padding: 6px 16px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    z-index: 9999;
 }
 
 .item-info {
@@ -993,6 +1010,38 @@ function formatDate(dateString: string) {
     flex-direction: column;
     position: relative;
     overflow: hidden;
+}
+
+/* 筛选按钮 */
+.filter-buttons {
+    display: flex;
+    padding: 15px 20px;
+    gap: 8px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.filter-btn {
+    padding: 8px 16px;
+    border: 1px solid #dee2e6;
+    border-radius: 20px;
+    background-color: white;
+    color: #495057;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+    border-color: #ff8fab;
+    color: #ff6b8b;
+}
+
+.filter-btn.active {
+    background-color: #ff8fab;
+    border-color: #ff8fab;
+    color: white;
+    box-shadow: 0 2px 8px rgba(255, 138, 171, 0.3);
 }
 
 /* 背包弹窗样式 */

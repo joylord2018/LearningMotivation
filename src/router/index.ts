@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import LeaderboardView from '../views/LeaderboardView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -43,7 +44,16 @@ const router = createRouter({
       name: 'profile', 
       component: () => import('../views/ProfileView.vue'), 
       meta: { requiresAuth: true } 
-    } 
+    },
+    {
+      path: '/leaderboard',
+      name: 'Leaderboard',
+      component: LeaderboardView,
+      // 可以添加路由守卫，确保用户登录后才能访问
+      meta: {
+        requiresAuth: true
+      }
+    }
   ],
 })
 

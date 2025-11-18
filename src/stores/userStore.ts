@@ -83,6 +83,15 @@ export interface BackpackItem {
   icon: string
 }
 
+// 新增用户排行榜数据结构
+interface LeaderboardUser {
+  id: string
+  nickname: string
+  avatar: string
+  points: number
+  level: number
+}
+
 export const useUserStore = defineStore(
   'user',
   () => {
@@ -299,6 +308,20 @@ export const useUserStore = defineStore(
     const totalTaskCompletions = ref(0)
     const lastLoginDate = ref<string>('')
     const studyStreak = ref(0)
+
+    // 新增排行榜相关状态
+    const leaderboardUsers = ref<LeaderboardUser[]>([
+        { id: 'user-1', nickname: '小草莓', avatar: '🍓', points: 1500, level: 12 },
+        { id: 'user-2', nickname: '小樱花', avatar: '🌸', points: 1250, level: 10 },
+        { id: 'user-3', nickname: '小云朵', avatar: '☁️', points: 1000, level: 8 },
+        { id: 'user-4', nickname: '小彩虹', avatar: '🌈', points: 950, level: 7 },
+        { id: 'user-5', nickname: '小月亮', avatar: '🌙', points: 880, level: 7 },
+        { id: 'user-6', nickname: '小星星', avatar: '⭐', points: 820, level: 6 },
+        { id: 'user-7', nickname: '小爱心', avatar: '❤️', points: 750, level: 6 },
+        { id: 'user-8', nickname: '小太阳', avatar: '☀️', points: 680, level: 5 },
+        { id: 'user-9', nickname: '小雪花', avatar: '❄️', points: 620, level: 5 },
+        { id: 'user-10', nickname: '小薄荷', avatar: '🍃', points: 550, level: 4 },
+    ])
 
     // 新增抽奖池配置
     const lotteryItems = ref<LotteryItem[]>([
@@ -862,6 +885,12 @@ export const useUserStore = defineStore(
       userInfo.value.password = newPassword
     }
 
+    // 新增获取排行榜数据的方法
+    function getLeaderboardData() {
+      // 排序用户数据
+      return [...leaderboardUsers.value].sort((a, b) => b.points - a.points)
+    }
+
     // 初始化时检查登录状态
     const savedLoginStatus = localStorage.getItem('isLoggedIn')
     if (savedLoginStatus === 'true') {
@@ -910,6 +939,8 @@ export const useUserStore = defineStore(
       drawLottery,
       updateUserInfo,
       updatePassword,
+      getLeaderboardData,
+      leaderboardUsers,
       ItemRarity,
     }
   },
