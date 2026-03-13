@@ -1,12 +1,23 @@
 <template>
     <div class="login-container">
+        <button @click="clearCache" class="game-btn clear-cache-btn">
+            <span class="btn-icon">🗑️</span> 清除缓存
+        </button>
         <!-- 可爱的背景装饰元素 -->
         <div class="decorations">
-            <div class="decoration heart"></div>
-            <div class="decoration star"></div>
-            <div class="decoration cloud"></div>
-            <div class="decoration circle"></div>
-            <div class="decoration rainbow"></div>
+            <!-- 星星装饰 -->
+            <div v-for="(pos, index) in starPositions" :key="'star-' + index" class="decoration star" :style="{ left: pos.left, top: pos.top, animationDelay: pos.animationDelay }"></div>
+            
+            <!-- 云朵装饰 -->
+            <div v-for="(pos, index) in cloudPositions" :key="'cloud-' + index" class="decoration cloud" :style="{ left: pos.left, top: pos.top, animationDelay: pos.animationDelay }"></div>
+            
+            <!-- 爱心装饰 -->
+            <div v-for="i in 5" :key="'heart-' + i" class="decoration-with-string" :style="{ left: (i * 20 - 10) + '%' }">
+                <template v-for="j in 1" :key="'heart-pos-' + i">
+                    <div class="connection-string" :style="{ height: heartTop[i-1] + 'px' }"></div>
+                    <div class="decoration heart" :style="{ top: heartTop[i-1] + 'px', animationDelay: Math.random() * 3 + 's' }"></div>
+                </template>
+            </div>
         </div>
 
         <div class="login-card">
@@ -40,11 +51,20 @@
                 </form>
             </div>
         </div>
+
+        <!-- 通知弹窗 -->
+        <div v-if="showNotification" class="notification-overlay">
+            <div class="notification-content" :class="notificationType">
+                <span class="notification-icon">{{ notificationIcon }}</span>
+                <p class="notification-message">{{ notificationMessage }}</p>
+                <button class="close-notification-btn" @click="closeNotification">✕</button>
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/userStore'
 
@@ -55,13 +75,64 @@ const username = ref('')
 const password = ref('')
 const error = ref('')
 
+// 装饰元素位置
+const starPositions = ref([])
+const cloudPositions = ref([])
+const heartTop = ref([])
+
+// 初始化装饰元素位置
+onMounted(() => {
+    // 生成星星位置
+    starPositions.value = Array.from({ length: 30 }, () => ({
+        left: Math.random() * 100 + '%',
+        top: Math.random() * 100 + '%',
+        animationDelay: Math.random() * 5 + 's'
+    }))
+    
+    // 生成云朵位置
+    cloudPositions.value = Array.from({ length: 8 }, () => ({
+        left: Math.random() * 100 + '%',
+        top: Math.random() * 100 + '%',
+        animationDelay: Math.random() * 5 + 's'
+    }))
+    
+    // 生成爱心位置
+    heartTop.value = Array.from({ length: 5 }, () => 200 + Math.random() * 150)
+})
+
+// 通知相关
+const showNotification = ref(false)
+const notificationMessage = ref('')
+const notificationType = ref('success') // success, error, info
+const notificationIcon = ref('')
+
 function handleLogin() {
     if (store.login(username.value, password.value)) {
         localStorage.setItem('isLoggedIn', 'true')
-        router.push('/tasks')
+        router.push('/plans')
     } else {
         error.value = '账号或密码错误，请重试'
     }
+}
+
+function clearCache() {
+    store.resetAllData()
+    showNotificationMessage('缓存已清除！', 'success', '✅')
+}
+
+function showNotificationMessage(message: string, type: string, icon: string) {
+    notificationMessage.value = message
+    notificationType.value = type
+    notificationIcon.value = icon
+    showNotification.value = true
+
+    setTimeout(() => {
+        closeNotification()
+    }, 3000)
+}
+
+function closeNotification() {
+    showNotification.value = false
 }
 </script>
 
@@ -89,7 +160,7 @@ body {
     background: linear-gradient(135deg, #fff0f5 0%, #ffe6ed 100%);
     padding: 20px;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 /* 背景装饰 */
@@ -105,59 +176,80 @@ body {
 
 .decoration {
     position: absolute;
-    opacity: 0.6;
-    animation: float 10s ease-in-out infinite;
+    pointer-events: none;
 }
 
+/* 星星装饰 */
+.star {
+    width: 20px;
+    height: 20px;
+    background-color: #ffda6a;
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    animation: twinkle 3s ease-in-out infinite;
+    box-shadow: 0 0 10px #ffda6a;
+}
+
+/* 带连接线的装饰元素容器 */
+.decoration-with-string {
+    position: absolute;
+    top: 0;
+    width: 100px;
+    height: 300px;
+    pointer-events: none;
+    transform-origin: top center;
+    animation: pendulum 4s ease-in-out infinite;
+}
+
+/* 连接线 */
+.connection-string {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 2px;
+    height: 200px;
+    background-color: rgba(255, 107, 139, 0.3);
+    transform-origin: top center;
+}
+
+/* 爱心装饰 */
 .heart {
-    top: 10%;
-    right: 15%;
-    width: 120px;
-    height: 120px;
-    background-color: #ffb6c1;
-    transform: rotate(45deg);
-    animation-delay: 0s;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 40px;
+    height: 40px;
+    background-color: #ff6b8b;
+    z-index: 3;
 }
 
 .heart:before,
 .heart:after {
     content: '';
     position: absolute;
-    width: 120px;
-    height: 120px;
-    background-color: #ffb6c1;
+    width: 40px;
+    height: 40px;
+    background-color: #ff6b8b;
     border-radius: 50%;
 }
 
 .heart:before {
-    top: -60px;
+    top: -20px;
     left: 0;
 }
 
 .heart:after {
     top: 0;
-    left: -60px;
+    left: -20px;
 }
 
-.star {
-    bottom: 15%;
-    left: 10%;
-    width: 80px;
-    height: 80px;
-    background-color: #ffda6a;
-    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-    animation-delay: 2s;
-    box-shadow: 0 0 20px #ffda6a;
-}
-
+/* 云朵装饰 */
 .cloud {
-    top: 25%;
-    left: 20%;
-    width: 150px;
-    height: 80px;
+    width: 100px;
+    height: 50px;
     background-color: rgba(255, 255, 255, 0.8);
-    border-radius: 40px;
-    animation-delay: 1s;
+    border-radius: 25px;
+    animation: float 15s ease-in-out infinite;
+    z-index: 1;
 }
 
 .cloud:before,
@@ -169,51 +261,49 @@ body {
 }
 
 .cloud:before {
-    width: 70px;
-    height: 70px;
-    top: -30px;
-    left: 20px;
+    width: 40px;
+    height: 40px;
+    top: -15px;
+    left: 10px;
 }
 
 .cloud:after {
-    width: 90px;
-    height: 90px;
-    top: -40px;
-    right: 20px;
+    width: 50px;
+    height: 50px;
+    top: -20px;
+    right: 10px;
 }
 
-.circle {
-    bottom: 25%;
-    right: 15%;
-    width: 100px;
-    height: 100px;
-    background-color: #b5ead7;
-    border-radius: 50%;
-    animation-delay: 3s;
+/* 星星闪烁动画 */
+@keyframes twinkle {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+        box-shadow: 0 0 15px #ffda6a;
+    }
 }
 
-.rainbow {
-    bottom: 5%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 200px;
-    height: 100px;
-    border-radius: 100px 100px 0 0;
-    background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
-    opacity: 0.3;
-    animation-delay: 1.5s;
+/* 钟摆摇摆动画 */
+@keyframes pendulum {
+    0%, 100% {
+        transform: rotate(-5deg);
+    }
+    50% {
+        transform: rotate(5deg);
+    }
 }
 
 /* 浮动动画 */
 @keyframes float {
-
-    0%,
-    100% {
-        transform: translateY(0) rotate(0deg);
+    0%, 100% {
+        transform: translateY(0);
     }
-
     50% {
-        transform: translateY(-20px) rotate(5deg);
+        transform: translateY(-20px);
     }
 }
 
@@ -229,6 +319,30 @@ body {
     z-index: 1;
     border: 3px solid #ffd6e0;
     overflow: hidden;
+}
+
+/* 清除缓存按钮 */
+.clear-cache-btn {
+    position: absolute !important;
+    top: 15px;
+    right: 15px;
+    padding: 8px 16px;
+    font-size: 14px;
+    border-radius: 20px;
+    z-index: 100;
+    background: linear-gradient(135deg, #ff6b8b 0%, #ff8fab 100%);
+    color: white;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 6px 15px rgba(255, 107, 139, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.clear-cache-btn .btn-icon {
+    font-size: 16px;
 }
 
 /* 卡片装饰 */
@@ -466,6 +580,95 @@ body {
     .game-btn {
         padding: 12px 16px;
         font-size: 16px;
+    }
+}
+
+/* 通知弹窗 */
+.notification-overlay {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2000;
+    animation: fadeIn 0.3s ease;
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px 25px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    animation: slideIn 0.3s ease;
+    max-width: 400px;
+}
+
+.notification-content.success {
+    background: linear-gradient(45deg, #66bb6a, #43a047);
+    color: white;
+}
+
+.notification-content.error {
+    background: linear-gradient(45deg, #ef5350, #e53935);
+    color: white;
+}
+
+.notification-content.info {
+    background: linear-gradient(45deg, #42a5f5, #1e88e5);
+    color: white;
+}
+
+.notification-icon {
+    font-size: 1.5rem;
+}
+
+.notification-message {
+    flex: 1;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.close-notification-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.close-notification-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
     }
 }
 </style>

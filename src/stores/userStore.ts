@@ -1,15 +1,39 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 
-// 定义任务类型
-interface Task {
+// 定义计划类型
+interface Plan {
   id: string
   subject: 'chinese' | 'math' | 'english'
   subjectName: string
   date: string
-  completionLevel: 'low' | 'medium' | 'high' | null
+  type: 'daily' | 'weekly'
+  dailyType?: 'specific' | 'everyday'
+  weeklyType?: 'everyweek' | 'specific'
+  selectedWeek?: string
+  frequency: 'once' | 'daily' | 'weekly'
+  targetCount: number
+  completedCount: number
+  timeRange: string
+  completionLevel: boolean
   points: number
   description: string
+  icon?: string
+}
+
+// 定义行为类型
+interface Behavior {
+  id: string
+  name: string
+  description: string
+  icon: string
+  frequency: 'daily' | 'weekly' | 'custom'
+  targetCount: number
+  points: number
+  type: 'positive' | 'negative'
+  currentCount: number
+  completed: boolean
+  lastRecordDate: string | null
 }
 
 // 定义抽奖记录类型
@@ -98,7 +122,8 @@ export const useUserStore = defineStore(
     // 状态
     const isLoggedIn = ref(false)
     const currentPoints = ref(0)
-    const tasks = ref<Task[]>([])
+    const plans = ref<Plan[]>([])
+    const behaviors = ref<Behavior[]>([])
     const pointRecords = ref<PointRecord[]>([])
     const exchangeItems = ref<ExchangeItem[]>([
       { id: '1', name: '零食', points: 20, description: '美味零食一包' },
@@ -132,8 +157,36 @@ export const useUserStore = defineStore(
     const lastCompletionDate = ref<string | null>(null)
     // 新增成就相关状态
     const achievements = ref<Achievement[]>([
+      // 初次登录类成就
       {
         id: 'achievement-1',
+        name: '初次登录',
+        description: '首次登录学习系统',
+        icon: '👋',
+        unlocked: false,
+        condition: 'special',
+        target: 1,
+        current: 0,
+        category: 'special',
+        isNew: true,
+        progressDescription: '已登录{{current}}次',
+      },
+      {
+        id: 'achievement-2',
+        name: '早起鸟儿',
+        description: '在早上9点前完成学习任务',
+        icon: '🌅',
+        unlocked: false,
+        condition: 'special',
+        target: 1,
+        current: 0,
+        category: 'special',
+        isNew: true,
+        progressDescription: '已早起学习{{current}}次',
+      },
+      // 学习任务类成就
+      {
+        id: 'achievement-3',
         name: '学习新手',
         description: '完成第一个学习任务',
         icon: '📚',
@@ -146,7 +199,7 @@ export const useUserStore = defineStore(
         progressDescription: '已完成{{current}}个任务',
       },
       {
-        id: 'achievement-2',
+        id: 'achievement-4',
         name: '学习达人',
         description: '完成10个学习任务',
         icon: '🎓',
@@ -159,7 +212,7 @@ export const useUserStore = defineStore(
         progressDescription: '已完成{{current}}个任务',
       },
       {
-        id: 'achievement-3',
+        id: 'achievement-5',
         name: '学习大师',
         description: '完成50个学习任务',
         icon: '🏆',
@@ -172,7 +225,21 @@ export const useUserStore = defineStore(
         progressDescription: '已完成{{current}}个任务',
       },
       {
-        id: 'achievement-4',
+        id: 'achievement-6',
+        name: '学习传奇',
+        description: '完成100个学习任务',
+        icon: '👑',
+        unlocked: false,
+        condition: 'task',
+        target: 100,
+        current: 0,
+        category: 'task',
+        isNew: true,
+        progressDescription: '已完成{{current}}个任务',
+      },
+      // 积分类成就
+      {
+        id: 'achievement-7',
         name: '积分新手',
         description: '累计获得100积分',
         icon: '✨',
@@ -185,7 +252,7 @@ export const useUserStore = defineStore(
         progressDescription: '已获得{{current}}积分',
       },
       {
-        id: 'achievement-5',
+        id: 'achievement-8',
         name: '积分达人',
         description: '累计获得500积分',
         icon: '💎',
@@ -198,7 +265,7 @@ export const useUserStore = defineStore(
         progressDescription: '已获得{{current}}积分',
       },
       {
-        id: 'achievement-6',
+        id: 'achievement-9',
         name: '积分大师',
         description: '累计获得1000积分',
         icon: '🌟',
@@ -211,7 +278,21 @@ export const useUserStore = defineStore(
         progressDescription: '已获得{{current}}积分',
       },
       {
-        id: 'achievement-7',
+        id: 'achievement-10',
+        name: '积分富豪',
+        description: '累计获得5000积分',
+        icon: '💰',
+        unlocked: false,
+        condition: 'points',
+        target: 5000,
+        current: 0,
+        category: 'points',
+        isNew: true,
+        progressDescription: '已获得{{current}}积分',
+      },
+      // 连续学习类成就
+      {
+        id: 'achievement-11',
         name: '连续学习',
         description: '连续学习3天',
         icon: '🏆',
@@ -224,7 +305,7 @@ export const useUserStore = defineStore(
         progressDescription: '已连续学习{{current}}天',
       },
       {
-        id: 'achievement-8',
+        id: 'achievement-12',
         name: '一周达人',
         description: '连续学习7天',
         icon: '🌟',
@@ -237,7 +318,7 @@ export const useUserStore = defineStore(
         progressDescription: '已连续学习{{current}}天',
       },
       {
-        id: 'achievement-9',
+        id: 'achievement-13',
         name: '坚持达人',
         description: '连续学习14天',
         icon: '🔥',
@@ -250,7 +331,7 @@ export const useUserStore = defineStore(
         progressDescription: '已连续学习{{current}}天',
       },
       {
-        id: 'achievement-10',
+        id: 'achievement-14',
         name: '学霸养成',
         description: '连续学习30天',
         icon: '🎖️',
@@ -263,7 +344,21 @@ export const useUserStore = defineStore(
         progressDescription: '已连续学习{{current}}天',
       },
       {
-        id: 'achievement-11',
+        id: 'achievement-15',
+        name: '学习圣者',
+        description: '连续学习60天',
+        icon: '👼',
+        unlocked: false,
+        condition: 'streak',
+        target: 60,
+        current: 0,
+        category: 'streak',
+        isNew: true,
+        progressDescription: '已连续学习{{current}}天',
+      },
+      // 特殊成就
+      {
+        id: 'achievement-16',
         name: '完美一周',
         description: '一周内完成所有学习任务',
         icon: '🌈',
@@ -276,7 +371,7 @@ export const useUserStore = defineStore(
         progressDescription: '已完成{{current}}天任务',
       },
       {
-        id: 'achievement-12',
+        id: 'achievement-17',
         name: '多才多艺',
         description: '完成所有科目的学习任务',
         icon: '🎨',
@@ -289,7 +384,7 @@ export const useUserStore = defineStore(
         progressDescription: '已完成{{current}}个科目',
       },
       {
-        id: 'achievement-13',
+        id: 'achievement-18',
         name: '抽奖幸运儿',
         description: '抽中5次稀有物品',
         icon: '🎰',
@@ -300,6 +395,85 @@ export const useUserStore = defineStore(
         category: 'special',
         isNew: true,
         progressDescription: '已抽中{{current}}次稀有物品',
+      },
+      // 行为相关成就
+      {
+        id: 'achievement-19',
+        name: '行为典范',
+        description: '连续7天完成所有行为记录',
+        icon: '🎯',
+        unlocked: false,
+        condition: 'behavior-streak',
+        target: 7,
+        current: 0,
+        category: 'behavior',
+        isNew: true,
+        progressDescription: '已连续{{current}}天完成行为记录',
+      },
+      {
+        id: 'achievement-20',
+        name: '行为新手',
+        description: '完成第一个行为记录',
+        icon: '🌟',
+        unlocked: false,
+        condition: 'behavior',
+        target: 1,
+        current: 0,
+        category: 'behavior',
+        isNew: true,
+        progressDescription: '已完成{{current}}个行为记录',
+      },
+      {
+        id: 'achievement-21',
+        name: '行为达人',
+        description: '完成10个行为记录',
+        icon: '✨',
+        unlocked: false,
+        condition: 'behavior',
+        target: 10,
+        current: 0,
+        category: 'behavior',
+        isNew: true,
+        progressDescription: '已完成{{current}}个行为记录',
+      },
+      {
+        id: 'achievement-22',
+        name: '行为大师',
+        description: '完成50个行为记录',
+        icon: '🏆',
+        unlocked: false,
+        condition: 'behavior',
+        target: 50,
+        current: 0,
+        category: 'behavior',
+        isNew: true,
+        progressDescription: '已完成{{current}}个行为记录',
+      },
+      {
+        id: 'achievement-23',
+        name: '习惯养成',
+        description: '连续30天完成行为记录',
+        icon: '🔥',
+        unlocked: false,
+        condition: 'behavior-streak',
+        target: 30,
+        current: 0,
+        category: 'behavior',
+        isNew: true,
+        progressDescription: '已连续{{current}}天完成行为记录',
+      },
+      {
+        id: 'achievement-24',
+        name: '学科专家',
+        description: '在单个学科完成30个任务',
+        icon: '🔬',
+        unlocked: false,
+        condition: 'special',
+        target: 30,
+        current: 0,
+        category: 'special',
+        isNew: true,
+        progressDescription: '已完成{{current}}个单一学科任务',
       },
     ])
     // 新增背包物品状态
@@ -322,6 +496,10 @@ export const useUserStore = defineStore(
         { id: 'user-9', nickname: '小雪花', avatar: '❄️', points: 620, level: 5 },
         { id: 'user-10', nickname: '小薄荷', avatar: '🍃', points: 550, level: 4 },
     ])
+
+    // 功能开关状态
+    const enableReminders = ref(false)
+    const enableLottery = ref(false)
 
     // 新增抽奖池配置
     const lotteryItems = ref<LotteryItem[]>([
@@ -416,16 +594,27 @@ export const useUserStore = defineStore(
     const lotteryCost = 10
 
     // 计算属性
-    const todayTasks = computed(() => {
+    const todayPlans = computed(() => {
       const today = new Date().toISOString().slice(0, 10)
-      return tasks.value.filter((task) => task.date === today)
+      return plans.value.filter((plan) => plan.date === today)
     })
 
     const todayPoints = computed(() => {
       const today = new Date().toISOString().slice(0, 10)
-      return tasks.value
-        .filter((task) => task.date === today && task.completionLevel !== null)
-        .reduce((sum, task) => sum + task.points, 0)
+      return plans.value
+        .filter((plan) => plan.date === today && plan.completionLevel)
+        .reduce((sum, plan) => sum + plan.points, 0)
+    })
+
+    const todayBehaviors = computed(() => {
+      const today = new Date().toISOString().slice(0, 10)
+      return behaviors.value.filter((behavior) => {
+        if (behavior.frequency === 'daily') {
+          return true
+        }
+        // 可以根据需要添加其他频率的逻辑
+        return false
+      })
     })
 
     // 添加缺失的计算属性
@@ -465,17 +654,11 @@ export const useUserStore = defineStore(
           let shouldUnlock = false
 
           switch (achievement.condition) {
-            case 'task-completion':
-              achievement.current = tasks.value.filter(
-                (task) => task.completionLevel !== null,
-              ).length
-              shouldUnlock = achievement.current >= achievement.target
-              break
-            case 'total-task-completion':
+            case 'task':
               achievement.current = totalTaskCompletions.value
               shouldUnlock = achievement.current >= achievement.target
               break
-            case 'total-points':
+            case 'points':
               achievement.current = currentPoints.value
               shouldUnlock = achievement.current >= achievement.target
               break
@@ -483,7 +666,29 @@ export const useUserStore = defineStore(
               achievement.current = studyStreak.value
               shouldUnlock = achievement.current >= achievement.target
               break
-            // 可以添加更多条件类型
+            case 'special':
+              // 特殊成就的逻辑可以根据需要添加
+              break
+            case 'lottery':
+              // 抽奖相关成就逻辑
+              achievement.current = lotteryRecords.value.filter(record => 
+                record.itemRarity === ItemRarity.Rare || 
+                record.itemRarity === ItemRarity.Epic || 
+                record.itemRarity === ItemRarity.Legendary
+              ).length
+              shouldUnlock = achievement.current >= achievement.target
+              break
+            case 'behavior':
+              // 行为相关成就逻辑 - 计算已完成的行为数量
+              achievement.current = behaviors.value.filter(behavior => behavior?.completed === true).length
+              shouldUnlock = achievement.current >= achievement.target
+              break
+            case 'behavior-streak':
+              // 行为连续记录成就逻辑 - 这里需要实现连续天数的计算
+              // 简化实现：使用学习连续天数作为行为连续天数
+              achievement.current = studyStreak.value
+              shouldUnlock = achievement.current >= achievement.target
+              break
           }
 
           if (shouldUnlock) {
@@ -492,8 +697,19 @@ export const useUserStore = defineStore(
             achievement.isNew = true
             newlyUnlocked = true
 
-            // 解锁成就时奖励积分
-            adjustPoints(10, `解锁成就: ${achievement.name}`)
+            // 根据稀有度奖励不同积分
+            const rarity = achievement.target >= 100 ? 'legendary' : 
+                          achievement.target >= 50 ? 'epic' : 
+                          achievement.target >= 10 ? 'rare' : 'common'
+            
+            const pointsMap = {
+              common: 10,
+              rare: 50,
+              epic: 150,
+              legendary: 300
+            }
+            
+            adjustPoints(pointsMap[rarity], `解锁成就: ${achievement.name}`)
 
             // 这里可以触发动画或通知
             console.log(`🎉 恭喜解锁成就: ${achievement.name}!`)
@@ -515,6 +731,36 @@ export const useUserStore = defineStore(
         localStorage.setItem('isLoggedIn', 'true')
         // 记录登录日期，用于计算连续登录
         lastLoginDate.value = new Date().toISOString().slice(0, 10)
+        
+        // 检查并解锁初次登录成就
+        const firstLoginAchievement = achievements.value.find(a => a.id === 'achievement-1')
+        if (firstLoginAchievement && !firstLoginAchievement.unlocked) {
+          firstLoginAchievement.current = 1
+          firstLoginAchievement.unlocked = true
+          firstLoginAchievement.unlockedAt = new Date().toISOString()
+          firstLoginAchievement.isNew = true
+          
+          // 奖励积分
+          adjustPoints(10, '解锁成就: 初次登录')
+          console.log('🎉 恭喜解锁成就: 初次登录!')
+        }
+        
+        // 检查早起鸟儿成就（如果当前时间早于9点）
+        const now = new Date()
+        if (now.getHours() < 9) {
+          const earlyBirdAchievement = achievements.value.find(a => a.id === 'achievement-2')
+          if (earlyBirdAchievement && !earlyBirdAchievement.unlocked) {
+            earlyBirdAchievement.current = 1
+            earlyBirdAchievement.unlocked = true
+            earlyBirdAchievement.unlockedAt = new Date().toISOString()
+            earlyBirdAchievement.isNew = true
+            
+            // 奖励积分
+            adjustPoints(20, '解锁成就: 早起鸟儿')
+            console.log('🎉 恭喜解锁成就: 早起鸟儿!')
+          }
+        }
+        
         return true
       }
       return false
@@ -526,52 +772,341 @@ export const useUserStore = defineStore(
       localStorage.removeItem('isLoggedIn')
     }
 
-    // 初始化今日任务
-    function initializeTodayTasks() {
+    // 初始化今日计划
+    function initializeTodayPlans() {
       const today = new Date().toISOString().slice(0, 10)
 
-      // 检查是否已经初始化了今日任务
-      if (tasks.value.some((task) => task.date === today)) {
+      // 检查是否已经初始化了今日计划
+      if (plans.value.some((plan) => plan.date === today)) {
         return
       }
 
-      // 添加今日的三个学科任务，包含默认描述
-      tasks.value.push(
+      // 检查是否存在今日计划的标记，避免在用户删除后重新添加
+      const todayPlanFlag = localStorage.getItem(`todayPlansInitialized-${today}`)
+      if (todayPlanFlag) {
+        return
+      }
+
+      // 添加今日的三个学科计划，包含默认描述和新增的字段
+      plans.value.push(
         {
           id: `chinese-${today}`,
           subject: 'chinese',
           subjectName: '语文',
           date: today,
-          completionLevel: null,
+          type: 'daily',
+          dailyType: 'specific',
+          weeklyType: 'everyweek',
+          selectedWeek: '',
+          frequency: 'once',
+          targetCount: 1,
+          completedCount: 0,
+          timeRange: '',
+          completionLevel: false,
           points: 0,
-          description: '今日语文任务',
+          description: '今日语文计划',
         },
         {
           id: `math-${today}`,
           subject: 'math',
           subjectName: '数学',
           date: today,
-          completionLevel: null,
+          type: 'daily',
+          dailyType: 'specific',
+          weeklyType: 'everyweek',
+          selectedWeek: '',
+          frequency: 'once',
+          targetCount: 1,
+          completedCount: 0,
+          timeRange: '',
+          completionLevel: false,
           points: 0,
-          description: '今日数学任务',
+          description: '今日数学计划',
         },
         {
           id: `english-${today}`,
           subject: 'english',
           subjectName: '英语',
           date: today,
-          completionLevel: null,
+          type: 'daily',
+          dailyType: 'specific',
+          weeklyType: 'everyweek',
+          selectedWeek: '',
+          frequency: 'once',
+          targetCount: 1,
+          completedCount: 0,
+          timeRange: '',
+          completionLevel: false,
           points: 0,
-          description: '今日英语任务',
+          description: '今日英语计划',
         },
       )
+
+      // 添加本周的计划作为默认数据
+      const now = new Date()
+      const weekStart = new Date(now)
+      weekStart.setDate(now.getDate() - now.getDay() + 1) // 调整到周一
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekStart.getDate() + 6) // 周日
+      const weekRange = `${weekStart.toISOString().slice(0, 10)}-${weekEnd.toISOString().slice(0, 10)}`
+
+      plans.value.push(
+        {
+          id: `weekly-${today}`,
+          subject: 'chinese',
+          subjectName: '本周阅读计划',
+          date: weekStart.toISOString().slice(0, 10), // 使用周一开始日期
+          type: 'weekly',
+          dailyType: 'specific',
+          weeklyType: 'everyweek',
+          selectedWeek: weekRange,
+          frequency: 'weekly',
+          targetCount: 3,
+          completedCount: 0,
+          timeRange: '',
+          completionLevel: false,
+          points: 0,
+          description: '本周完成3次阅读任务',
+        }
+      )
+
+      // 标记今日计划已初始化
+      localStorage.setItem(`todayPlansInitialized-${today}`, 'true')
     }
 
-    // 修改任务描述
-    function updateTaskDescription(taskId: string, description: string) {
-      const task = tasks.value.find((t) => t.id === taskId)
-      if (task) {
-        task.description = description
+    // 初始化默认行为
+    function initializeDefaultBehaviors() {
+      // 检查是否已经初始化了行为
+      if (behaviors.value.length > 0) {
+        return
+      }
+
+      // 添加默认行为
+      const defaultBehaviors: Behavior[] = [
+        {
+          id: 'behavior-1',
+          name: '整理房间',
+          description: '保持房间整洁',
+          icon: '🏠',
+          frequency: 'daily',
+          targetCount: 1,
+          points: 1,
+          type: 'positive',
+          currentCount: 0,
+          completed: false,
+          lastRecordDate: null
+        },
+        {
+          id: 'behavior-2',
+          name: '早睡',
+          description: '晚上10点前睡觉',
+          icon: '🌙',
+          frequency: 'daily',
+          targetCount: 1,
+          points: 2,
+          type: 'positive',
+          currentCount: 0,
+          completed: false,
+          lastRecordDate: null
+        },
+        {
+          id: 'behavior-3',
+          name: '多喝水',
+          description: '一天喝够8杯水',
+          icon: '💧',
+          frequency: 'daily',
+          targetCount: 3,
+          points: 0.5,
+          type: 'positive',
+          currentCount: 0,
+          completed: false,
+          lastRecordDate: null
+        },
+        {
+          id: 'behavior-4',
+          name: '阅读学习',
+          description: '阅读30分钟',
+          icon: '📚',
+          frequency: 'daily',
+          targetCount: 1,
+          points: 1,
+          type: 'positive',
+          currentCount: 0,
+          completed: false,
+          lastRecordDate: null
+        },
+        {
+          id: 'behavior-5',
+          name: '9点前完成作业',
+          description: '晚上9点前完成所有作业',
+          icon: '✏️',
+          frequency: 'daily',
+          targetCount: 1,
+          points: 3,
+          type: 'positive',
+          currentCount: 0,
+          completed: false,
+          lastRecordDate: null
+        },
+        {
+          id: 'behavior-6',
+          name: '作业不认真扣分',
+          description: '作业乱做、漏做、错很多',
+          icon: '❌',
+          frequency: 'daily',
+          targetCount: 1,
+          points: -3,
+          type: 'negative',
+          currentCount: 0,
+          completed: false,
+          lastRecordDate: null
+        },
+        {
+          id: 'behavior-7',
+          name: '迟到扣分',
+          description: '上学或上课迟到',
+          icon: '⏰',
+          frequency: 'daily',
+          targetCount: 1,
+          points: -2,
+          type: 'negative',
+          currentCount: 0,
+          completed: false,
+          lastRecordDate: null
+        },
+        {
+          id: 'behavior-8',
+          name: '挑食扣分',
+          description: '吃饭挑食、浪费食物',
+          icon: '🥗',
+          frequency: 'daily',
+          targetCount: 1,
+          points: -1,
+          type: 'negative',
+          currentCount: 0,
+          completed: false,
+          lastRecordDate: null
+        }
+      ]
+
+      behaviors.value = defaultBehaviors
+    }
+
+    // 记录行为
+    function recordBehavior(behaviorId: string) {
+      const behavior = behaviors.value.find((b) => b.id === behaviorId)
+      if (behavior) {
+        const today = new Date().toISOString().slice(0, 10)
+        
+        // 检查是否已经记录过今天的行为
+        if (behavior.lastRecordDate === today && behavior.completed) {
+          return false
+        }
+
+        // 增加当前计数
+        behavior.currentCount++
+        behavior.lastRecordDate = today
+
+        // 检查是否完成目标
+        if (behavior.currentCount >= behavior.targetCount) {
+          behavior.completed = true
+          // 添加积分
+          currentPoints.value += behavior.points
+
+          // 记录积分变动
+          const record: PointRecord = {
+            id: `record-${Date.now()}`,
+            date: new Date().toISOString(),
+            description: `${behavior.name}${behavior.type === 'positive' ? '完成' : '发生'}`,
+            points: behavior.points,
+            type: 'task'
+          }
+          pointRecords.value.push(record)
+        }
+
+        return true
+      }
+      return false
+    }
+
+    // 取消行为记录
+    function cancelBehaviorRecord(behaviorId: string) {
+      const behavior = behaviors.value.find((b) => b.id === behaviorId)
+      if (behavior && behavior.lastRecordDate === new Date().toISOString().slice(0, 10)) {
+        // 减少当前计数
+        behavior.currentCount = Math.max(0, behavior.currentCount - 1)
+        
+        // 如果之前已完成，现在取消后不再完成
+        if (behavior.completed) {
+          behavior.completed = false
+          // 扣除积分
+          currentPoints.value = Math.max(0, currentPoints.value - behavior.points)
+
+          // 记录积分变动
+          const record: PointRecord = {
+            id: `record-${Date.now()}`,
+            date: new Date().toISOString(),
+            description: `取消${behavior.name}${behavior.type === 'positive' ? '完成' : '发生'}`,
+            points: -behavior.points,
+            type: 'task'
+          }
+          pointRecords.value.push(record)
+        }
+
+        return true
+      }
+      return false
+    }
+
+    // 添加行为
+    function addBehavior(behavior: Omit<Behavior, 'id' | 'currentCount' | 'completed' | 'lastRecordDate'>) {
+      const newBehavior: Behavior = {
+        ...behavior,
+        id: `behavior-${Date.now()}`,
+        currentCount: 0,
+        completed: false,
+        lastRecordDate: null
+      }
+      behaviors.value.push(newBehavior)
+      return newBehavior
+    }
+
+    // 更新行为
+    function updateBehavior(behaviorId: string, updates: Partial<Omit<Behavior, 'id' | 'currentCount' | 'completed' | 'lastRecordDate'>>) {
+      const behavior = behaviors.value.find((b) => b.id === behaviorId)
+      if (behavior) {
+        Object.assign(behavior, updates)
+        return true
+      }
+      return false
+    }
+
+    // 删除行为
+    function removeBehavior(behaviorId: string) {
+      const index = behaviors.value.findIndex((b) => b.id === behaviorId)
+      if (index !== -1) {
+        behaviors.value.splice(index, 1)
+        return true
+      }
+      return false
+    }
+
+    // 重置每日行为状态
+    function resetDailyBehaviors() {
+      const today = new Date().toISOString().slice(0, 10)
+      behaviors.value.forEach((behavior) => {
+        if (behavior.frequency === 'daily' && behavior.lastRecordDate !== today) {
+          behavior.currentCount = 0
+          behavior.completed = false
+        }
+      })
+    }
+
+    // 修改计划描述
+    function updatePlanDescription(planId: string, description: string) {
+      const plan = plans.value.find((p) => p.id === planId)
+      if (plan) {
+        plan.description = description
       }
     }
 
@@ -600,23 +1135,46 @@ export const useUserStore = defineStore(
       lastCompletionDate.value = today ?? null
     }
 
-    function updateTaskCompletion(taskId: string, level: 'low' | 'medium' | 'high') {
-      const task = tasks.value.find((t) => t.id === taskId)
-      if (task) {
+    function updatePlanCompletion(planId: string, completed: boolean) {
+      const plan = plans.value.find((p) => p.id === planId)
+      if (plan) {
+        // 保存之前的完成状态
+        const wasCompleted = plan.completionLevel
+        
         // 移除之前的积分
-        if (task.completionLevel !== null) {
-          currentPoints.value -= task.points
+        if (wasCompleted) {
+          currentPoints.value -= plan.points
         }
 
-        // 更新任务完成度和积分
-        task.completionLevel = level
-        task.points = level === 'low' ? 1 : level === 'medium' ? 2 : 3
+        // 更新计划完成度和积分
+        if (plan.type === 'weekly') {
+          // 对于周计划，更新完成次数
+          if (completed && plan.completedCount < plan.targetCount) {
+            plan.completedCount++
+            // 检查是否达到目标次数
+            plan.completionLevel = plan.completedCount >= plan.targetCount
+            plan.points = plan.completionLevel ? 3 : 0
+          } else if (!completed && plan.completedCount > 0) {
+            plan.completedCount--
+            plan.completionLevel = plan.completedCount >= plan.targetCount
+            plan.points = plan.completionLevel ? 3 : 0
+          }
+        } else {
+          // 对于日计划，直接设置完成状态
+          plan.completionLevel = completed
+          plan.points = completed ? 3 : 0
+        }
+
+        // 触发响应式更新
+        plans.value = [...plans.value]
 
         // 添加新积分
-        currentPoints.value += task.points
+        if (completed && !wasCompleted) {
+          currentPoints.value += plan.points
+        }
 
-        // 增加总任务完成数
-        if (task.completionLevel === null) {
+        // 增加总计划完成数
+        if (completed && !wasCompleted) {
           totalTaskCompletions.value++
         }
 
@@ -624,8 +1182,8 @@ export const useUserStore = defineStore(
         const record: PointRecord = {
           id: `record-${Date.now()}`,
           date: new Date().toISOString(),
-          description: `${task.subjectName}任务完成（${level === 'low' ? '低' : level === 'medium' ? '中' : '高'}）`,
-          points: task.points,
+          description: `${plan.subjectName}计划${completed ? '完成' : '取消完成'}`,
+          points: completed ? plan.points : -plan.points,
           type: 'task',
         }
         pointRecords.value.push(record)
@@ -637,38 +1195,54 @@ export const useUserStore = defineStore(
       }
     }
 
-    // 取消任务完成度
-    function cancelTaskCompletion(taskId: string) {
-      const task = tasks.value.find((t) => t.id === taskId)
-      if (task && task.completionLevel !== null) {
+    // 取消计划完成度
+    function cancelPlanCompletion(planId: string) {
+      const plan = plans.value.find((p) => p.id === planId)
+      if (plan && plan.completionLevel) {
         // 记录要扣除的积分
-        const pointsToDeduct = task.points
+        const pointsToDeduct = plan.points
 
         // 移除之前的积分
         currentPoints.value -= pointsToDeduct
 
-        // 更新任务完成度和积分
-        task.completionLevel = null
-        task.points = 0
+        // 更新计划完成度和积分
+        if (plan.type === 'weekly') {
+          // 对于周计划，减少完成次数
+          if (plan.completedCount > 0) {
+            plan.completedCount--
+            plan.completionLevel = plan.completedCount >= plan.targetCount
+            plan.points = plan.completionLevel ? 3 : 0
+          }
+        } else {
+          // 对于日计划，直接设置完成状态为 false
+          plan.completionLevel = false
+          plan.points = 0
+        }
+
+        // 减少总计划完成数
+        totalTaskCompletions.value = Math.max(0, totalTaskCompletions.value - 1)
+
+        // 触发响应式更新
+        plans.value = [...plans.value]
 
         // 记录积分变动
         const record: PointRecord = {
           id: `record-${Date.now()}`,
           date: new Date().toISOString(),
-          description: `${task.subjectName}任务取消完成`,
+          description: `${plan.subjectName}计划取消完成`,
           points: -pointsToDeduct,
           type: 'task',
         }
         pointRecords.value.push(record)
 
-        // 检查当天是否还有其他已完成的任务
+        // 检查当天是否还有其他已完成的计划
         const today = new Date().toISOString().split('T')[0]
-        const hasCompletedTasksToday = tasks.value.some(
-          (t) => t.date === today && t.completionLevel !== null,
+        const hasCompletedPlansToday = plans.value.some(
+          (p) => p.date === today && p.completionLevel,
         )
 
-        // 如果当天没有已完成的任务，重置连续完成天数和最后完成日期
-        if (!hasCompletedTasksToday) {
+        // 如果当天没有已完成的计划，重置连续完成天数和最后完成日期
+        if (!hasCompletedPlansToday) {
           studyStreak.value = 0
           lastCompletionDate.value = null
         }
@@ -676,6 +1250,11 @@ export const useUserStore = defineStore(
         return pointsToDeduct
       }
       return 0
+    }
+
+    // 撤销计划完成
+    function undoPlanCompletion(planId: string) {
+      return cancelPlanCompletion(planId)
     }
 
     // 兑换物品（修改以支持背包）
@@ -885,6 +1464,353 @@ export const useUserStore = defineStore(
       userInfo.value.password = newPassword
     }
 
+    // 清除今日计划初始化标记
+    function clearTodayPlansFlag() {
+      const today = new Date().toISOString().slice(0, 10)
+      localStorage.removeItem(`todayPlansInitialized-${today}`)
+    }
+
+    // 重置所有数据
+    function resetAllData() {
+      // 重置状态
+      currentPoints.value = 0
+      plans.value = []
+      behaviors.value = []
+      pointRecords.value = []
+      backpackItems.value = []
+      lotteryRecords.value = []
+      totalTaskCompletions.value = 0
+      studyStreak.value = 0
+      lastCompletionDate.value = null
+      lastLoginDate.value = ''
+      
+      // 重置成就数据
+      achievements.value = [
+        // 初次登录类成就
+        {
+          id: 'achievement-1',
+          name: '初次登录',
+          description: '首次登录学习系统',
+          icon: '👋',
+          unlocked: false,
+          condition: 'special',
+          target: 1,
+          current: 0,
+          category: 'special',
+          isNew: true,
+          progressDescription: '已登录{{current}}次',
+        },
+        {
+          id: 'achievement-2',
+          name: '早起鸟儿',
+          description: '在早上9点前完成学习任务',
+          icon: '🌅',
+          unlocked: false,
+          condition: 'special',
+          target: 1,
+          current: 0,
+          category: 'special',
+          isNew: true,
+          progressDescription: '已早起学习{{current}}次',
+        },
+        // 学习任务类成就
+        {
+          id: 'achievement-3',
+          name: '学习新手',
+          description: '完成第一个学习任务',
+          icon: '📚',
+          unlocked: false,
+          condition: 'task',
+          target: 1,
+          current: 0,
+          category: 'task',
+          isNew: true,
+          progressDescription: '已完成{{current}}个任务',
+        },
+        {
+          id: 'achievement-4',
+          name: '学习达人',
+          description: '完成10个学习任务',
+          icon: '🎓',
+          unlocked: false,
+          condition: 'task',
+          target: 10,
+          current: 0,
+          category: 'task',
+          isNew: true,
+          progressDescription: '已完成{{current}}个任务',
+        },
+        {
+          id: 'achievement-5',
+          name: '学习大师',
+          description: '完成50个学习任务',
+          icon: '🏆',
+          unlocked: false,
+          condition: 'task',
+          target: 50,
+          current: 0,
+          category: 'task',
+          isNew: true,
+          progressDescription: '已完成{{current}}个任务',
+        },
+        {
+          id: 'achievement-6',
+          name: '学习传奇',
+          description: '完成100个学习任务',
+          icon: '👑',
+          unlocked: false,
+          condition: 'task',
+          target: 100,
+          current: 0,
+          category: 'task',
+          isNew: true,
+          progressDescription: '已完成{{current}}个任务',
+        },
+        // 积分类成就
+        {
+          id: 'achievement-7',
+          name: '积分新手',
+          description: '累计获得100积分',
+          icon: '✨',
+          unlocked: false,
+          condition: 'points',
+          target: 100,
+          current: 0,
+          category: 'points',
+          isNew: true,
+          progressDescription: '已获得{{current}}积分',
+        },
+        {
+          id: 'achievement-8',
+          name: '积分达人',
+          description: '累计获得500积分',
+          icon: '💎',
+          unlocked: false,
+          condition: 'points',
+          target: 500,
+          current: 0,
+          category: 'points',
+          isNew: true,
+          progressDescription: '已获得{{current}}积分',
+        },
+        {
+          id: 'achievement-9',
+          name: '积分大师',
+          description: '累计获得1000积分',
+          icon: '🌟',
+          unlocked: false,
+          condition: 'points',
+          target: 1000,
+          current: 0,
+          category: 'points',
+          isNew: true,
+          progressDescription: '已获得{{current}}积分',
+        },
+        {
+          id: 'achievement-10',
+          name: '积分富豪',
+          description: '累计获得5000积分',
+          icon: '💰',
+          unlocked: false,
+          condition: 'points',
+          target: 5000,
+          current: 0,
+          category: 'points',
+          isNew: true,
+          progressDescription: '已获得{{current}}积分',
+        },
+        // 连续学习类成就
+        {
+          id: 'achievement-11',
+          name: '连续学习',
+          description: '连续学习3天',
+          icon: '🏆',
+          unlocked: false,
+          condition: 'streak',
+          target: 3,
+          current: 0,
+          category: 'streak',
+          isNew: true,
+          progressDescription: '已连续学习{{current}}天',
+        },
+        {
+          id: 'achievement-12',
+          name: '一周达人',
+          description: '连续学习7天',
+          icon: '🌟',
+          unlocked: false,
+          condition: 'streak',
+          target: 7,
+          current: 0,
+          category: 'streak',
+          isNew: true,
+          progressDescription: '已连续学习{{current}}天',
+        },
+        {
+          id: 'achievement-13',
+          name: '坚持达人',
+          description: '连续学习14天',
+          icon: '🔥',
+          unlocked: false,
+          condition: 'streak',
+          target: 14,
+          current: 0,
+          category: 'streak',
+          isNew: true,
+          progressDescription: '已连续学习{{current}}天',
+        },
+        {
+          id: 'achievement-14',
+          name: '学霸养成',
+          description: '连续学习30天',
+          icon: '🎖️',
+          unlocked: false,
+          condition: 'streak',
+          target: 30,
+          current: 0,
+          category: 'streak',
+          isNew: true,
+          progressDescription: '已连续学习{{current}}天',
+        },
+        {
+          id: 'achievement-15',
+          name: '学习圣者',
+          description: '连续学习60天',
+          icon: '👼',
+          unlocked: false,
+          condition: 'streak',
+          target: 60,
+          current: 0,
+          category: 'streak',
+          isNew: true,
+          progressDescription: '已连续学习{{current}}天',
+        },
+        // 特殊成就
+      {
+        id: 'achievement-16',
+        name: '完美一周',
+        description: '一周内完成所有学习任务',
+        icon: '🌈',
+        unlocked: false,
+        condition: 'special',
+        target: 7,
+        current: 0,
+        category: 'special',
+        isNew: true,
+        progressDescription: '已完成{{current}}天任务',
+      },
+      {
+        id: 'achievement-17',
+        name: '多才多艺',
+        description: '完成所有科目的学习任务',
+        icon: '🎨',
+        unlocked: false,
+        condition: 'special',
+        target: 3,
+        current: 0,
+        category: 'special',
+        isNew: true,
+        progressDescription: '已完成{{current}}个科目',
+      },
+      {
+        id: 'achievement-18',
+        name: '抽奖幸运儿',
+        description: '抽中5次稀有物品',
+        icon: '🎰',
+        unlocked: false,
+        condition: 'lottery',
+        target: 5,
+        current: 0,
+        category: 'special',
+        isNew: true,
+        progressDescription: '已抽中{{current}}次稀有物品',
+      },
+      // 行为相关成就
+      {
+        id: 'achievement-19',
+        name: '行为典范',
+        description: '连续7天完成所有行为记录',
+        icon: '🎯',
+        unlocked: false,
+        condition: 'behavior-streak',
+        target: 7,
+        current: 0,
+        category: 'behavior',
+        isNew: true,
+        progressDescription: '已连续{{current}}天完成行为记录',
+      },
+      {
+        id: 'achievement-20',
+        name: '行为新手',
+        description: '完成第一个行为记录',
+        icon: '🌟',
+        unlocked: false,
+        condition: 'behavior',
+        target: 1,
+        current: 0,
+        category: 'behavior',
+        isNew: true,
+        progressDescription: '已完成{{current}}个行为记录',
+      },
+      {
+        id: 'achievement-21',
+        name: '行为达人',
+        description: '完成10个行为记录',
+        icon: '✨',
+        unlocked: false,
+        condition: 'behavior',
+        target: 10,
+        current: 0,
+        category: 'behavior',
+        isNew: true,
+        progressDescription: '已完成{{current}}个行为记录',
+      },
+      {
+        id: 'achievement-22',
+        name: '行为大师',
+        description: '完成50个行为记录',
+        icon: '🏆',
+        unlocked: false,
+        condition: 'behavior',
+        target: 50,
+        current: 0,
+        category: 'behavior',
+        isNew: true,
+        progressDescription: '已完成{{current}}个行为记录',
+      },
+      {
+        id: 'achievement-23',
+        name: '习惯养成',
+        description: '连续30天完成行为记录',
+        icon: '🔥',
+        unlocked: false,
+        condition: 'behavior-streak',
+        target: 30,
+        current: 0,
+        category: 'behavior',
+        isNew: true,
+        progressDescription: '已连续{{current}}天完成行为记录',
+      },
+      {
+        id: 'achievement-24',
+        name: '学科专家',
+        description: '在单个学科完成30个任务',
+        icon: '🔬',
+        unlocked: false,
+        condition: 'special',
+        target: 30,
+        current: 0,
+        category: 'special',
+        isNew: true,
+        progressDescription: '已完成{{current}}个单一学科任务',
+      },
+      ]
+      
+      // 清除本地存储
+      localStorage.clear()
+      sessionStorage.clear()
+    }
+
     // 新增获取排行榜数据的方法
     function getLeaderboardData() {
       // 排序用户数据
@@ -902,7 +1828,8 @@ export const useUserStore = defineStore(
       // 状态
       isLoggedIn,
       currentPoints,
-      tasks,
+      plans,
+      behaviors,
       pointRecords,
       exchangeItems,
       backpackItems,
@@ -915,9 +1842,12 @@ export const useUserStore = defineStore(
       lotteryItems,
       lotteryCost,
       userInfo,
+      enableReminders,
+      enableLottery,
       // 计算属性
-      todayTasks,
+      todayPlans,
       todayPoints,
+      todayBehaviors,
       unlockedAchievements,
       lockedAchievements,
       sortedBackpackItems,
@@ -925,20 +1855,30 @@ export const useUserStore = defineStore(
       // 方法
       login,
       logout,
-      initializeTodayTasks,
-      updateTaskCompletion,
-      cancelTaskCompletion,
+      initializeTodayPlans,
+      initializeDefaultBehaviors,
+      recordBehavior,
+      cancelBehaviorRecord,
+      addBehavior,
+      updateBehavior,
+      removeBehavior,
+      resetDailyBehaviors,
+      updatePlanCompletion,
+      cancelPlanCompletion,
+      undoPlanCompletion,
       exchangeItem,
       adjustPoints,
       updateExchangeItem,
       addExchangeItem,
       removeExchangeItem,
-      updateTaskDescription,
+      updatePlanDescription,
       useItemFromBackpack,
       checkAchievements,
       drawLottery,
       updateUserInfo,
       updatePassword,
+      clearTodayPlansFlag,
+      resetAllData,
       getLeaderboardData,
       leaderboardUsers,
       ItemRarity,

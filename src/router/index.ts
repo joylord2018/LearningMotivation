@@ -10,9 +10,15 @@ const router = createRouter({
       component: () => import('../views/LoginView.vue'),
     },
     {
-      path: '/tasks',
-      name: 'tasks',
-      component: () => import('../views/TaskView.vue'),
+    path: '/plans',
+    name: 'plans',
+    component: () => import('../views/PlanView.vue'),
+    meta: { requiresAuth: true },
+  },
+    {
+      path: '/behavior',
+      name: 'behavior',
+      component: () => import('../views/BehaviorView.vue'),
       meta: { requiresAuth: true },
     },
     {

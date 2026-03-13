@@ -129,7 +129,9 @@ const myRank = computed(() => {
 // 退出登录
 function handleLogout() {
     // 退出登录逻辑
-    router.push('/login')
+    store.logout()
+    localStorage.removeItem('isLoggedIn')
+    router.push('/')
 }
 </script>
 

@@ -2,9 +2,14 @@
     <div class="statistics-container">
         <!-- 装饰元素 -->
         <div class="decorations">
-            <div class="decoration heart"></div>
-            <div class="decoration star"></div>
-            <div class="decoration circle"></div>
+            <!-- 闪烁的星星装饰 -->
+            <div v-for="i in 15" :key="'star-' + i" class="decoration star" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%', animationDelay: Math.random() * 4 + 's' }"></div>
+            
+            <!-- 旋转的爱心装饰 -->
+            <div v-for="i in 6" :key="'heart-' + i" class="decoration heart" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%', animationDelay: Math.random() * 3 + 's' }"></div>
+            
+            <!-- 浮动的圆形装饰 -->
+            <div v-for="i in 4" :key="'circle-' + i" class="decoration circle" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%', animationDelay: Math.random() * 5 + 's' }"></div>
         </div>
 
         <header class="statistics-header">
@@ -39,6 +44,13 @@
                         <div class="card-label">解锁成就</div>
                     </div>
                 </div>
+                <div class="overview-card">
+                    <div class="card-icon">✨</div>
+                    <div class="card-content">
+                        <div class="card-value">{{ completedBehaviorsCount }}</div>
+                        <div class="card-label">累计完成行为</div>
+                    </div>
+                </div>
             </div>
 
             <!-- 时间范围选择器 -->
@@ -58,8 +70,11 @@
                     <div class="chart-container">
                         <div class="chart-bar-container">
                             <div v-for="(data, index) in chartData.pointsData" :key="index" class="bar-item">
-                                <div class="bar"
-                                    :style="{ height: `${data.value * 3}px`, backgroundColor: getBarColor(data.value) }">
+                                <div class="bar-wrapper">
+                                    <div class="bar"
+                                        :style="{ height: `${Math.min(data.value * 3, 200)}px`, backgroundColor: getBarColor(data.value) }">
+                                    </div>
+                                    <div class="bar-value">{{ data.value }}</div>
                                 </div>
                                 <div class="bar-label">{{ data.label }}</div>
                             </div>
@@ -99,6 +114,27 @@
                     </div>
                 </div>
 
+                <!-- 行为完成情况 -->
+                <div class="chart-card">
+                    <h3>🎯 行为表现</h3>
+                    <div class="behavior-stats">
+                        <div v-for="behavior in behaviorStats" :key="behavior.id" class="behavior-stat">
+                            <div class="behavior-icon">{{ behavior.icon }}</div>
+                            <div class="behavior-info">
+                                <div class="behavior-name">{{ behavior.name }}</div>
+                                <div class="behavior-progress">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" 
+                                            :style="{ width: `${behavior.completionRate}%`, backgroundColor: behavior.type === 'positive' ? '#4caf50' : '#ff6b81' }">
+                                        </div>
+                                    </div>
+                                    <div class="progress-text">{{ behavior.completionRate }}%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 学习历史记录 -->
                 <div class="history-section">
                     <h3>📋 最近学习记录</h3>
@@ -115,6 +151,28 @@
                                 </div>
                             </div>
                             <div class="history-points">+{{ record.points }}分</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 最近行为记录 -->
+                <div class="history-section">
+                    <h3>📋 最近行为记录</h3>
+                    <div class="history-list">
+                        <div v-for="(record, index) in recentBehaviorRecords" :key="index" class="history-item">
+                            <div class="history-date">{{ formatDate(record.lastRecordDate) }}</div>
+                            <div class="history-info">
+                                <div class="history-subject">{{ record.name }}</div>
+                                <div class="history-status">
+                                    状态：
+                                    <span :class="record.completed ? 'level-high' : ''">
+                                        {{ record.completed ? '完成' : '未完成' }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="history-points" :class="record.type === 'negative' ? 'negative' : ''">
+                                {{ record.points > 0 ? '+' : '' }}{{ record.points }}分
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -163,6 +221,16 @@ interface Suggestion {
     text: string;
 }
 
+interface BehaviorStat {
+    id: string;
+    name: string;
+    icon: string;
+    type: 'positive' | 'negative';
+    completionRate: number;
+    totalTasks: number;
+    completedTasks: number;
+}
+
 const timeRanges: TimeRange[] = [
     { label: '今日', value: 'day' },
     { label: '本周', value: 'week' },
@@ -176,7 +244,10 @@ function formatDate(dateString: string): string {
 }
 
 // 获取完成度样式类
-function getCompletionClass(level: string | null): string {
+function getCompletionClass(level: string | boolean | null): string {
+    if (typeof level === 'boolean') {
+        return level ? 'level-high' : ''
+    }
     switch (level) {
         case 'low': return 'level-low'
         case 'medium': return 'level-medium'
@@ -186,7 +257,10 @@ function getCompletionClass(level: string | null): string {
 }
 
 // 获取完成度文本
-function getCompletionText(level: string | null): string {
+function getCompletionText(level: string | boolean | null): string {
+    if (typeof level === 'boolean') {
+        return level ? '完成' : '未完成'
+    }
     switch (level) {
         case 'low': return '低'
         case 'medium': return '中'
@@ -225,13 +299,13 @@ const chartData = computed<ChartData>(() => {
     ];
 
     // 根据选择的时间范围过滤任务
-    let filteredTasks: typeof store.tasks = [];
+    let filteredTasks: typeof store.plans = [];
     const now = new Date();
     const today = now.toISOString().slice(0, 10);
 
     switch (selectedRange.value) {
         case 'day':
-            filteredTasks = store.tasks.filter(task => task?.date === today);
+            filteredTasks = store.plans.filter(task => task?.date === today);
             pointsData.push({
                 label: '今日',
                 value: store.todayPoints || 0
@@ -245,7 +319,7 @@ const chartData = computed<ChartData>(() => {
                 const dateStr = date.toISOString().slice(0, 10);
                 const dayName = ['日', '一', '二', '三', '四', '五', '六'][date.getDay()];
 
-                const dayTasks = store.tasks.filter(task => task?.date === dateStr);
+                const dayTasks = store.plans.filter(task => task?.date === dateStr);
                 const dayPoints = dayTasks.reduce((sum, task) => sum + (task.points || 0), 0);
 
                 pointsData.push({
@@ -253,7 +327,7 @@ const chartData = computed<ChartData>(() => {
                     value: dayPoints
                 });
             }
-            filteredTasks = store.tasks.filter(task => {
+            filteredTasks = store.plans.filter(task => {
                 const taskDate = task?.date ? new Date(task.date) : new Date(0);
                 const weekAgo = new Date(now);
                 weekAgo.setDate(weekAgo.getDate() - 7);
@@ -268,7 +342,7 @@ const chartData = computed<ChartData>(() => {
                 const weekEnd = new Date(now);
                 weekEnd.setDate(weekEnd.getDate() - (i * 7));
 
-                const weekTasks = store.tasks.filter(task => {
+                const weekTasks = store.plans.filter(task => {
                     const taskDate = task?.date ? new Date(task.date) : new Date(0);
                     return taskDate >= weekStart && taskDate <= weekEnd;
                 });
@@ -279,7 +353,7 @@ const chartData = computed<ChartData>(() => {
                     value: weekPoints
                 });
             }
-            filteredTasks = store.tasks.filter(task => {
+            filteredTasks = store.plans.filter(task => {
                 const taskDate = task?.date ? new Date(task.date) : new Date(0);
                 const monthAgo = new Date(now);
                 monthAgo.setMonth(monthAgo.getMonth() - 1);
@@ -297,8 +371,8 @@ const chartData = computed<ChartData>(() => {
             if (subjectIndex !== -1 && subjectStats[subjectIndex]) {
                 // 安全地更新totalTasks
                 subjectStats[subjectIndex].totalTasks = (subjectStats[subjectIndex].totalTasks || 0) + 1;
-                // 确保task.completionLevel存在且不为null
-                if (task.completionLevel !== null) {
+                // 确保task.completionLevel存在且不为null，并且是true（完成状态）
+                if (task.completionLevel !== null && task.completionLevel === true) {
                     // 安全地更新completedTasks
                     subjectStats[subjectIndex].completedTasks = (subjectStats[subjectIndex].completedTasks || 0) + 1;
                 }
@@ -306,15 +380,17 @@ const chartData = computed<ChartData>(() => {
         }
     });
 
-    // 计算完成率 - 修复类型错误
+    // 计算总完成任务数
+    const totalCompletedTasks = subjectStats.reduce((sum, subject) => sum + (subject.completedTasks || 0), 0);
+
+    // 计算完成率 - 改为占总完成任务数的比例
     subjectStats.forEach((subject, index) => {
         // 确保subject存在
         if (subject) {
-            // 安全地计算完成率
-            const total = subject.totalTasks || 0;
+            // 安全地计算完成率（占总完成任务数的比例）
             const completed = subject.completedTasks || 0;
-            subject.completionRate = total > 0
-                ? Math.round((completed / total) * 100)
+            subject.completionRate = totalCompletedTasks > 0
+                ? Math.round((completed / totalCompletedTasks) * 100)
                 : 0;
         }
     });
@@ -326,16 +402,93 @@ const chartData = computed<ChartData>(() => {
     };
 });
 
-// 最近任务记录
+// 最近任务记录 - 根据选择的时间范围显示
 const recentTaskRecords = computed(() => {
-    return store.tasks
-        .filter(task => task?.completionLevel !== null)
+    const now = new Date()
+    let startDate = new Date(now)
+    
+    // 根据选择的时间范围设置起始日期
+    switch (selectedRange.value) {
+        case 'day':
+            startDate.setHours(0, 0, 0, 0)
+            break
+        case 'week':
+            startDate.setDate(startDate.getDate() - 7)
+            break
+        case 'month':
+            startDate.setMonth(startDate.getMonth() - 1)
+            break
+    }
+    
+    return store.plans
+        .filter(task => {
+            if (!task || task.completionLevel !== true) return false
+            const taskDate = new Date(task.date)
+            return taskDate >= startDate
+        })
         .sort((a, b) => {
-            const dateA = a?.date ? new Date(a.date).getTime() : 0
-            const dateB = b?.date ? new Date(b.date).getTime() : 0
+            const dateA = a.date ? new Date(a.date).getTime() : 0
+            const dateB = b.date ? new Date(b.date).getTime() : 0
             return dateB - dateA
         })
-        .slice(0, 5)
+})
+
+// 累计完成行为数量
+const completedBehaviorsCount = computed(() => {
+    return store.behaviors.filter(behavior => behavior && behavior.completed === true).length
+})
+
+// 行为统计数据
+const behaviorStats = computed<BehaviorStat[]>(() => {
+    // 计算总完成行为数
+    const totalCompletedBehaviors = store.behaviors.reduce((sum, behavior) => sum + (behavior.currentCount || 0), 0);
+    
+    return store.behaviors.map(behavior => {
+        const completionRate = totalCompletedBehaviors > 0 
+            ? Math.round(((behavior.currentCount || 0) / totalCompletedBehaviors) * 100)
+            : 0
+        
+        return {
+            id: behavior.id,
+            name: behavior.name,
+            icon: behavior.icon,
+            type: behavior.type,
+            completionRate: completionRate,
+            totalTasks: behavior.targetCount,
+            completedTasks: behavior.currentCount
+        }
+    })
+})
+
+// 最近行为记录 - 根据选择的时间范围显示
+const recentBehaviorRecords = computed(() => {
+    const now = new Date()
+    let startDate = new Date(now)
+    
+    // 根据选择的时间范围设置起始日期
+    switch (selectedRange.value) {
+        case 'day':
+            startDate.setHours(0, 0, 0, 0)
+            break
+        case 'week':
+            startDate.setDate(startDate.getDate() - 7)
+            break
+        case 'month':
+            startDate.setMonth(startDate.getMonth() - 1)
+            break
+    }
+    
+    return store.behaviors
+        .filter(behavior => {
+            if (!behavior || behavior.lastRecordDate === null) return false
+            const recordDate = new Date(behavior.lastRecordDate)
+            return recordDate >= startDate
+        })
+        .sort((a, b) => {
+            const dateA = a.lastRecordDate ? new Date(a.lastRecordDate).getTime() : 0
+            const dateB = b.lastRecordDate ? new Date(b.lastRecordDate).getTime() : 0
+            return dateB - dateA
+        })
 })
 
 // 学习建议
@@ -344,22 +497,67 @@ const learningSuggestions = computed<Suggestion[]>(() => {
     const subjectStats = chartData.value.subjectStats
     const completedTasks = store.totalTaskCompletions || 0
     const streak = store.studyStreak || 0
+    const recentTasks = recentTaskRecords.value
+    const recentBehaviors = recentBehaviorRecords.value
 
     // 根据学科表现给出建议
     subjectStats.forEach(subject => {
-        if (subject.completionRate < 60) {
+        if (subject.completionRate < 30) {
             suggestions.push({
                 icon: '🎯',
-                text: `${subject.name}学科需要加强哦，建议多安排一些时间练习！`
+                text: `${subject.name}学科表现较差，建议制定详细的学习计划，每天安排固定时间进行练习！`
+            })
+        } else if (subject.completionRate < 60) {
+            suggestions.push({
+                icon: '📈',
+                text: `${subject.name}学科表现一般，建议针对性地加强薄弱环节，提高学习效率！`
+            })
+        } else if (subject.completionRate < 85) {
+            suggestions.push({
+                icon: '🌟',
+                text: `${subject.name}学科表现良好，继续保持并争取更上一层楼！`
+            })
+        } else if (subject.completionRate >= 85) {
+            suggestions.push({
+                icon: '🏆',
+                text: `${subject.name}学科表现优秀，继续保持！可以尝试挑战更高难度的内容！`
             })
         }
     })
 
-    // 根据连续学习天数给出建议
-    if (streak >= 7) {
+    // 根据最近学习记录给出建议
+    if (recentTasks.length < 2) {
+        suggestions.push({
+            icon: '📚',
+            text: `最近学习记录较少，建议增加学习频率，保持学习的连续性！`
+        })
+    } else if (recentTasks.length < 5) {
+        suggestions.push({
+            icon: '💪',
+            text: `最近学习记录有所增加，继续保持这个良好的势头！`
+        })
+    } else if (recentTasks.length >= 7) {
         suggestions.push({
             icon: '🔥',
-            text: `太棒了！你已经连续学习${streak}天了，继续保持！`
+            text: `最近学习记录丰富，学习状态很好！继续保持这种学习热情！`
+        })
+    }
+
+    // 根据连续学习天数给出建议
+    if (streak >= 30) {
+        suggestions.push({
+            icon: '👑',
+            text: `太厉害了！你已经连续学习${streak}天了，这是一个非常了不起的成就！`
+        })
+    } else if (streak >= 14) {
+        suggestions.push({
+            icon: '🌟',
+            text: `很棒！你已经连续学习${streak}天了，这是一个非常棒的习惯！`
+        })
+    } else if (streak >= 7) {
+        suggestions.push({
+            icon: '🔥',
+            text: `不错！你已经连续学习${streak}天了，继续保持这个良好的学习习惯！`
         })
     } else if (streak < 3) {
         suggestions.push({
@@ -369,10 +567,64 @@ const learningSuggestions = computed<Suggestion[]>(() => {
     }
 
     // 根据任务完成情况给出建议
-    if (completedTasks >= 20) {
+    if (completedTasks >= 100) {
+        suggestions.push({
+            icon: '🎖️',
+            text: `你已经完成了${completedTasks}个任务，真的很优秀！可以尝试制定更具挑战性的学习目标！`
+        })
+    } else if (completedTasks >= 50) {
+        suggestions.push({
+            icon: '🏆',
+            text: `你已经完成了${completedTasks}个任务，很棒！继续保持这个进度！`
+        })
+    } else if (completedTasks >= 20) {
         suggestions.push({
             icon: '🌟',
-            text: `你已经完成了${completedTasks}个任务，真厉害！可以尝试挑战更高难度的任务。`
+            text: `你已经完成了${completedTasks}个任务，真厉害！继续保持！`
+        })
+    }
+
+    // 根据行为记录给出建议
+    if (recentBehaviors.length > 0) {
+        const completedBehaviors = recentBehaviors.filter(behavior => behavior.completed).length
+        const completionRate = completedBehaviors / recentBehaviors.length
+        
+        if (completionRate >= 0.9) {
+            suggestions.push({
+                icon: '🎯',
+                text: `你的行为习惯表现非常好，继续保持这些良好的习惯！`
+            })
+        } else if (completionRate >= 0.7) {
+            suggestions.push({
+                icon: '🌟',
+                text: `你的行为习惯表现不错，继续努力！`
+            })
+        } else if (completionRate < 0.5) {
+            suggestions.push({
+                icon: '💪',
+                text: `建议加强行为习惯的培养，良好的习惯有助于提高学习效果！`
+            })
+        }
+    }
+
+    // 根据学科平衡情况给出建议
+    const subjectCompletionRates = subjectStats.map(s => s.completionRate)
+    const averageRate = subjectCompletionRates.reduce((sum, rate) => sum + rate, 0) / subjectCompletionRates.length
+    const maxRate = Math.max(...subjectCompletionRates)
+    const minRate = Math.min(...subjectCompletionRates)
+    
+    if (maxRate - minRate > 50) {
+        const weakSubject = subjectStats.find(s => s.completionRate === minRate)
+        if (weakSubject) {
+            suggestions.push({
+                icon: '⚖️',
+                text: `你的学科表现不够平衡，建议加强${weakSubject.name}学科的学习！`
+            })
+        }
+    } else if (averageRate >= 70) {
+        suggestions.push({
+            icon: '🎓',
+            text: `你的各学科表现比较均衡，继续保持这种全面发展的状态！`
         })
     }
 
@@ -384,13 +636,14 @@ const learningSuggestions = computed<Suggestion[]>(() => {
         })
     }
 
-    return suggestions
+    // 限制建议数量，最多显示5条
+    return suggestions.slice(0, 5)
 })
 
 // 页面加载时初始化
 onMounted(() => {
     // 确保今日任务已初始化
-    store.initializeTodayTasks()
+    store.initializeTodayPlans()
 })
 </script>
 
@@ -416,79 +669,108 @@ onMounted(() => {
 
 .decoration {
     position: absolute;
-    opacity: 0.1;
+    pointer-events: none;
 }
 
+/* 闪烁的星星装饰 */
+.star {
+    width: 12px;
+    height: 12px;
+    background-color: #ff9ff3;
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    animation: pulse 3s ease-in-out infinite;
+    box-shadow: 0 0 6px #ff9ff3;
+}
+
+/* 旋转的爱心装饰 */
 .heart {
-    width: 80px;
-    height: 80px;
-    background: #ff6b81;
+    width: 25px;
+    height: 25px;
+    background-color: #ff6b81;
     transform: rotate(45deg);
-    top: 10%;
-    right: 10%;
+    animation: rotateHeart 6s linear infinite;
 }
 
 .heart:before,
 .heart:after {
     content: '';
-    width: 80px;
-    height: 80px;
-    background: #ff6b81;
-    border-radius: 50%;
     position: absolute;
+    width: 25px;
+    height: 25px;
+    background-color: #ff6b81;
+    border-radius: 50%;
 }
 
 .heart:before {
-    top: -40px;
+    top: -12px;
     left: 0;
 }
 
 .heart:after {
     top: 0;
-    left: -40px;
+    left: -12px;
 }
 
-.star {
-    width: 0;
-    height: 0;
-    border-left: 50px solid transparent;
-    border-right: 50px solid transparent;
-    border-bottom: 86px solid #ff9ff3;
-    transform: rotate(35deg);
-    bottom: 20%;
-    left: 5%;
-}
-
-.star:before,
-.star:after {
-    content: '';
-    width: 0;
-    height: 0;
-    position: absolute;
-    border-left: 50px solid transparent;
-    border-right: 50px solid transparent;
-    border-bottom: 86px solid #ff9ff3;
-}
-
-.star:before {
-    transform: rotate(-70deg);
-    top: 10px;
-    left: -55px;
-}
-
-.star:after {
-    transform: rotate(-70deg);
-    top: 10px;
-    left: -45px;
-}
-
+/* 浮动的圆形装饰 */
 .circle {
-    width: 100px;
-    height: 100px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
-    background: #54a0ff;
-    bottom: 10%;
-    right: 20%;
+    background: rgba(84, 160, 255, 0.3);
+    animation: floatCircle 8s ease-in-out infinite;
+    box-shadow: 0 0 15px rgba(84, 160, 255, 0.5);
+}
+
+/* 星星脉冲动画 */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+        box-shadow: 0 0 10px #ff9ff3;
+    }
+}
+
+/* 爱心旋转动画 */
+@keyframes rotateHeart {
+    0% {
+        transform: rotate(45deg) scale(1);
+    }
+    25% {
+        transform: rotate(45deg) scale(1.1);
+    }
+    50% {
+        transform: rotate(45deg) scale(1);
+    }
+    75% {
+        transform: rotate(45deg) scale(0.9);
+    }
+    100% {
+        transform: rotate(45deg) scale(1);
+    }
+}
+
+/* 圆形浮动动画 */
+@keyframes floatCircle {
+    0%, 100% {
+        transform: translateY(0) translateX(0);
+        opacity: 0.3;
+    }
+    25% {
+        transform: translateY(-20px) translateX(10px);
+        opacity: 0.6;
+    }
+    50% {
+        transform: translateY(-10px) translateX(20px);
+        opacity: 0.8;
+    }
+    75% {
+        transform: translateY(-15px) translateX(5px);
+        opacity: 0.5;
+    }
 }
 
 /* 头部样式 */
@@ -661,6 +943,14 @@ onMounted(() => {
     gap: 10px;
 }
 
+.bar-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
 .bar {
     width: 100%;
     min-height: 10px;
@@ -668,6 +958,14 @@ onMounted(() => {
     transition: height 0.5s ease;
     position: relative;
     overflow: hidden;
+}
+
+.bar-value {
+    position: absolute;
+    top: -25px;
+    font-weight: bold;
+    color: #5f27cd;
+    font-size: 14px;
 }
 
 .bar::after {
@@ -722,6 +1020,42 @@ onMounted(() => {
     gap: 15px;
 }
 
+/* 行为统计 */
+.behavior-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.behavior-stat {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 15px;
+}
+
+.behavior-icon {
+    font-size: 36px;
+}
+
+.behavior-info {
+    flex: 1;
+}
+
+.behavior-name {
+    font-weight: bold;
+    color: #5f27cd;
+    margin-bottom: 10px;
+}
+
+.behavior-progress {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
 .progress-bar {
     flex: 1;
     height: 15px;
@@ -750,7 +1084,7 @@ onMounted(() => {
 
 .suggestion-item {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 15px;
     padding: 15px;
     background: linear-gradient(135deg, #fff5f7 0%, #ffe6ec 100%);
@@ -782,6 +1116,28 @@ onMounted(() => {
     display: flex;
     flex-direction: column;
     gap: 15px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+/* 滚动条样式 */
+.history-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.history-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+    background: #ff9ff3;
+    border-radius: 10px;
+}
+
+.history-list::-webkit-scrollbar-thumb:hover {
+    background: #ff6b81;
 }
 
 .history-item {
@@ -822,6 +1178,10 @@ onMounted(() => {
 .history-points {
     font-weight: bold;
     color: #ff6b81;
+}
+
+.history-points.negative {
+    color: #ff9800;
 }
 
 /* 完成度样式 */

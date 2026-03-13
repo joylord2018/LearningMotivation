@@ -124,7 +124,7 @@ const confirmPassword = ref('')
 
 
 // 计算属性获取统计数据
-const totalTasks = computed(() => userStore.tasks.length)
+const totalTasks = computed(() => userStore.plans.length)
 const currentPoints = computed(() => userStore.currentPoints)
 const totalAchievements = computed(() => userStore.achievements.filter(a => a.unlocked).length)
 const longestStreak = computed(() => userStore.longestStreak || 0)

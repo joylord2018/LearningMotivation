@@ -16,7 +16,7 @@
         <header class="points-header">
             <h1>🏆 我的积分王国</h1>
             <div class="header-actions">
-                <button class="lottery-btn" @click="showLotteryPopup = true">
+                <button v-if="store.enableLottery" class="lottery-btn" @click="showLotteryPopup = true">
                     🎰 幸运抽奖
                 </button>
                 <button class="backpack-btn" @click="showBackpackPopup = true">
@@ -208,7 +208,7 @@
         </div>
 
         <!-- 抽奖弹窗 -->
-        <LotteryPopup :visible="showLotteryPopup" @close="showLotteryPopup = false" />
+        <LotteryPopup v-if="store.enableLottery" :visible="showLotteryPopup" @close="showLotteryPopup = false" />
     </div>
 </template>
 
@@ -314,7 +314,7 @@ function getRarityText(rarity?: ItemRarity) {
 // 登出函数
 function handleLogout() {
     store.logout()
-    router.push('/login')
+    router.push('/')
 }
 
 // 积分兑换处理

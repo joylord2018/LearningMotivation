@@ -73,16 +73,28 @@
           <div 
             v-for="(achievement, index) in recentUnlockedAchievements" 
             :key="achievement.id"
-            class="achievement-card achievement-unlocked bounce-in"
+            :class="[
+              'achievement-card', 
+              'achievement-unlocked', 
+              `rarity-${achievement.rarity}`,
+              'bounce-in'
+            ]"
             :style="{ animationDelay: index * 0.1 + 's' }"
             @click="showAchievementDetails(achievement)"
           >
-            <div class="achievement-icon achievement-icon-glow">
+            <div :class="[
+              'achievement-icon', 
+              'achievement-icon-glow',
+              `rarity-icon-${achievement.rarity}`
+            ]">
               {{ achievement.icon }}
             </div>
             <div class="achievement-info">
               <h3 class="achievement-name">{{ achievement.name }}</h3>
               <p class="achievement-date">{{ formatDate(achievement.unlockedDate) }}</p>
+              <div class="achievement-rarity-badge" :class="`rarity-${achievement.rarity}`">
+                {{ getRarityLabel(achievement.rarity) }}
+              </div>
             </div>
             <div class="achievement-badge">
               <span class="badge-text">NEW</span>
@@ -108,6 +120,7 @@
             :class="[
               'achievement-card',
               achievement.unlocked ? 'achievement-unlocked' : 'achievement-locked',
+              achievement.unlocked ? `rarity-${achievement.rarity}` : '',
               'fade-in'
             ]"
             :style="{ animationDelay: index * 0.05 + 's' }"
@@ -115,17 +128,22 @@
           >
             <div :class="[
               'achievement-icon',
-              achievement.unlocked ? 'achievement-icon-glow' : 'achievement-icon-gray'
+              achievement.unlocked ? 'achievement-icon-glow' : 'achievement-icon-gray',
+              achievement.unlocked ? `rarity-icon-${achievement.rarity}` : ''
             ]">
               {{ achievement.icon }}
             </div>
             <div class="achievement-info">
               <h3 class="achievement-name">{{ achievement.name }}</h3>
               <p class="achievement-description">{{ achievement.unlocked ? achievement.description : '???' }}</p>
+              <div v-if="achievement.unlocked" class="achievement-rarity-badge" :class="`rarity-${achievement.rarity}`">
+                {{ getRarityLabel(achievement.rarity) }}
+              </div>
               <div v-if="achievement.progress !== undefined" class="achievement-progress">
                 <div class="progress-bar">
                   <div 
                     class="progress-fill" 
+                    :class="achievement.unlocked ? `rarity-${achievement.rarity}` : ''"
                     :style="{ width: achievement.progress + '%' }"
                   ></div>
                 </div>
@@ -145,11 +163,18 @@
     <div v-if="showDetails" class="achievement-details-overlay" @click="closeAchievementDetails">
       <div class="achievement-details-content" @click.stop>
         <button class="close-btn" @click="closeAchievementDetails">✕</button>
-        <div class="achievement-detail-icon">
+        <div :class="[
+          'achievement-detail-icon',
+          selectedAchievement?.unlocked ? `rarity-icon-${selectedAchievement.rarity}` : ''
+        ]">
           {{ selectedAchievement?.icon }}
         </div>
         <h2 class="achievement-detail-name">{{ selectedAchievement?.name }}</h2>
         <p class="achievement-detail-description">{{ selectedAchievement?.description }}</p>
+        <div v-if="selectedAchievement?.unlocked" class="achievement-detail-rarity" :class="`rarity-${selectedAchievement.rarity}`">
+          <span class="rarity-label">稀有度：</span>
+          <span class="rarity-value">{{ getRarityLabel(selectedAchievement.rarity) }}</span>
+        </div>
         <div v-if="selectedAchievement?.unlocked" class="achievement-detail-date">
           <span class="date-label">解锁日期：</span>
           <span class="date-value">{{ formatDate(selectedAchievement.unlockedDate) }}</span>
@@ -166,77 +191,60 @@
 <script lang="ts" setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/userStore'
 import NavigationTabs from '@/components/NavigationTabs.vue'
 
 const router = useRouter()
+const store = useUserStore()
 
-// 模拟成就数据
+// 成就类型定义
 interface Achievement {
   id: string
   name: string
   description: string
   icon: string
   unlocked: boolean
-  unlockedDate?: string
-  progress?: number
+  unlockedAt?: string
+  condition: string
+  target: number
+  current: number
+  category: string
+  isNew: boolean
+  progressDescription: string
+  rarity?: 'common' | 'rare' | 'epic' | 'legendary'
   points: number
 }
 
-const achievements = ref<Achievement[]>([
-  {
-    id: '1',
-    name: '初次登录',
-    description: '首次登录学习激励系统',
-    icon: '👋',
-    unlocked: true,
-    unlockedDate: '2024-01-15',
-    points: 10
-  },
-  {
-    id: '2', 
-    name: '任务达人',
-    description: '连续完成5个每日任务',
-    icon: '🎯',
-    unlocked: true,
-    unlockedDate: '2024-01-16',
-    points: 50
-  },
-  {
-    id: '3',
-    name: '坚持不懈',
-    description: '连续登录7天',
-    icon: '🔥',
-    unlocked: false,
-    progress: 30,
-    points: 100
-  },
-  {
-    id: '4',
-    name: '学习之星',
-    description: '累计学习时长达到10小时',
-    icon: '⭐',
-    unlocked: false,
-    progress: 45,
-    points: 200
-  },
-  {
-    id: '5',
-    name: '完美主义',
-    description: '一天内完成所有任务',
-    icon: '💯',
-    unlocked: false,
-    points: 150
-  },
-  {
-    id: '6',
-    name: '早起鸟儿',
-    description: '连续3天早上8点前完成第一个任务',
-    icon: '🐦',
-    unlocked: true,
-    unlockedDate: '2024-01-17',
-    points: 80
+// 从store获取成就数据
+const achievements = computed(() => {
+  return store.achievements.map(achievement => ({
+    ...achievement,
+    unlockedDate: achievement.unlockedAt,
+    progress: Math.round((achievement.current / achievement.target) * 100),
+    rarity: getAchievementRarity(achievement),
+    points: getAchievementPoints(achievement)
+  }))
+})
+
+// 根据成就难度和目标获取稀有度
+function getAchievementRarity(achievement: any): 'common' | 'rare' | 'epic' | 'legendary' {
+  if (achievement.target >= 100) return 'legendary'
+  if (achievement.target >= 50) return 'epic'
+  if (achievement.target >= 10) return 'rare'
+  return 'common'
+}
+
+// 根据稀有度获取奖励积分
+function getAchievementPoints(achievement: any): number {
+  const rarity = getAchievementRarity(achievement)
+  const pointsMap = {
+    common: 10,
+    rare: 50,
+    epic: 150,
+    legendary: 300
   }
-])
+  return pointsMap[rarity]
+}
 
 const showDetails = ref(false)
 const selectedAchievement = ref<Achievement | null>(null)
@@ -277,7 +285,20 @@ const showBackpack = () => {
 
 const logout = () => {
   // 实际应用中这里会清除用户登录状态
-  router.push('/login')
+  store.logout()
+  localStorage.removeItem('isLoggedIn')
+  router.push('/')
+}
+
+// 获取稀有度标签
+const getRarityLabel = (rarity?: string): string => {
+  const rarityLabels = {
+    common: '普通',
+    rare: '稀有',
+    epic: '史诗',
+    legendary: '传说'
+  }
+  return rarityLabels[rarity as keyof typeof rarityLabels] || '普通'
 }
 </script>
 
@@ -619,10 +640,11 @@ const logout = () => {
   display: flex;
   gap: 15px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 2px solid #ffd1dc;
   position: relative;
   overflow: hidden;
+  transform-origin: center;
 }
 
 .achievement-card::before {
@@ -641,13 +663,81 @@ const logout = () => {
 }
 
 .achievement-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-5px) scale(1.02);
   box-shadow: 0 12px 30px rgba(255, 107, 139, 0.3);
+}
+
+.achievement-card:active {
+  transform: translateY(-2px) scale(0.98);
+  transition: all 0.1s ease;
+}
+
+/* 成就解锁动画 */
+@keyframes achievement-unlock {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+    box-shadow: 0 0 0 rgba(255, 210, 220, 0);
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(255, 107, 139, 0.6);
+  }
+  70% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 8px 25px rgba(255, 107, 139, 0.2);
+  }
 }
 
 .achievement-unlocked {
   background: linear-gradient(135deg, #fff 0%, #ffe6ea 100%);
   box-shadow: 0 8px 25px rgba(255, 107, 139, 0.2);
+  animation: achievement-unlock 0.6s ease-out;
+}
+
+/* 稀有度解锁动画增强 */
+.rarity-rare.achievement-unlocked {
+  animation: achievement-unlock 0.7s ease-out, glow-pulse-rare 1.5s ease-in-out 0.6s infinite;
+}
+
+.rarity-epic.achievement-unlocked {
+  animation: achievement-unlock 0.8s ease-out, glow-pulse-epic 1.5s ease-in-out 0.8s infinite;
+}
+
+.rarity-legendary.achievement-unlocked {
+  animation: achievement-unlock 0.9s ease-out, glow-pulse-legendary 1.5s ease-in-out 0.9s infinite;
+}
+
+/* 发光脉冲动画 */
+@keyframes glow-pulse-rare {
+  0%, 100% {
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+  }
+  50% {
+    box-shadow: 0 8px 35px rgba(59, 130, 246, 0.4);
+  }
+}
+
+@keyframes glow-pulse-epic {
+  0%, 100% {
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.2);
+  }
+  50% {
+    box-shadow: 0 8px 35px rgba(139, 92, 246, 0.4);
+  }
+}
+
+@keyframes glow-pulse-legendary {
+  0%, 100% {
+    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.2);
+  }
+  50% {
+    box-shadow: 0 8px 35px rgba(245, 158, 11, 0.4);
+  }
 }
 
 .achievement-locked {
@@ -668,6 +758,111 @@ const logout = () => {
 .achievement-icon-gray {
   filter: grayscale(100%);
   opacity: 0.6;
+}
+
+/* 稀有度样式 */
+/* 普通 */
+.rarity-common {
+  border-color: #9ca3af;
+}
+
+.rarity-common::after {
+  background: #9ca3af;
+}
+
+.rarity-icon-common {
+  text-shadow: 0 0 10px rgba(156, 163, 175, 0.8);
+  animation: glow-common 2s ease-in-out infinite;
+}
+
+/* 稀有 */
+.rarity-rare {
+  border-color: #3b82f6;
+}
+
+.rarity-rare::after {
+  background: #3b82f6;
+}
+
+.rarity-icon-rare {
+  text-shadow: 0 0 15px rgba(59, 130, 246, 0.8);
+  animation: glow-rare 2s ease-in-out infinite;
+}
+
+/* 史诗 */
+.rarity-epic {
+  border-color: #8b5cf6;
+}
+
+.rarity-epic::after {
+  background: #8b5cf6;
+}
+
+.rarity-icon-epic {
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.8);
+  animation: glow-epic 2s ease-in-out infinite;
+}
+
+/* 传说 */
+.rarity-legendary {
+  border-color: #f59e0b;
+}
+
+.rarity-legendary::after {
+  background: #f59e0b;
+}
+
+.rarity-icon-legendary {
+  text-shadow: 0 0 25px rgba(245, 158, 11, 0.8);
+  animation: glow-legendary 2s ease-in-out infinite;
+}
+
+/* 稀有度徽章 */
+.achievement-rarity-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  margin-top: 5px;
+  align-self: flex-start;
+}
+
+.rarity-common .achievement-rarity-badge {
+  background: rgba(156, 163, 175, 0.2);
+  color: #6b7280;
+}
+
+.rarity-rare .achievement-rarity-badge {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
+.rarity-epic .achievement-rarity-badge {
+  background: rgba(139, 92, 246, 0.2);
+  color: #8b5cf6;
+}
+
+.rarity-legendary .achievement-rarity-badge {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+
+/* 稀有度进度条 */
+.progress-fill.rarity-common {
+  background: linear-gradient(90deg, #9ca3af, #d1d5db);
+}
+
+.progress-fill.rarity-rare {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+.progress-fill.rarity-epic {
+  background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+}
+
+.progress-fill.rarity-legendary {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
 }
 
 .achievement-info {
@@ -749,8 +944,19 @@ const logout = () => {
   height: 100%;
   background: linear-gradient(90deg, #ff6b8b, #ff8fa3);
   border-radius: 4px;
-  transition: width 0.5s ease;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  transform-origin: left;
+  animation: progress-grow 1.2s ease-out;
+}
+
+@keyframes progress-grow {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
 }
 
 .progress-fill::after {
@@ -869,6 +1075,7 @@ const logout = () => {
   line-height: 1.6;
 }
 
+.achievement-detail-rarity,
 .achievement-detail-date,
 .achievement-detail-reward {
   display: flex;
@@ -877,6 +1084,32 @@ const logout = () => {
   gap: 10px;
   margin-bottom: 15px;
   font-size: 1.1rem;
+}
+
+.achievement-detail-rarity {
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-weight: bold;
+}
+
+.achievement-detail-rarity.rarity-common {
+  background: rgba(156, 163, 175, 0.2);
+  color: #6b7280;
+}
+
+.achievement-detail-rarity.rarity-rare {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
+.achievement-detail-rarity.rarity-epic {
+  background: rgba(139, 92, 246, 0.2);
+  color: #8b5cf6;
+}
+
+.achievement-detail-rarity.rarity-legendary {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
 }
 
 .date-label,
@@ -931,6 +1164,43 @@ const logout = () => {
   }
   50% {
     text-shadow: 0 0 20px rgba(255, 107, 139, 0.8), 0 0 30px rgba(255, 107, 139, 0.5);
+  }
+}
+
+/* 稀有度动画 */
+@keyframes glow-common {
+  0%, 100% {
+    text-shadow: 0 0 10px rgba(156, 163, 175, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(156, 163, 175, 0.8), 0 0 30px rgba(156, 163, 175, 0.5);
+  }
+}
+
+@keyframes glow-rare {
+  0%, 100% {
+    text-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 25px rgba(59, 130, 246, 0.8), 0 0 35px rgba(59, 130, 246, 0.5);
+  }
+}
+
+@keyframes glow-epic {
+  0%, 100% {
+    text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 30px rgba(139, 92, 246, 0.8), 0 0 40px rgba(139, 92, 246, 0.5);
+  }
+}
+
+@keyframes glow-legendary {
+  0%, 100% {
+    text-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 35px rgba(245, 158, 11, 0.8), 0 0 45px rgba(245, 158, 11, 0.5);
   }
 }
 
