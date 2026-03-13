@@ -255,6 +255,36 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 数据导出导入 -->
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h2 class="section-title">💾 数据管理</h2>
+                        <div class="section-decoration"></div>
+                    </div>
+                    <div class="section-content">
+                        <div class="data-management">
+                            <button class="btn export-btn" @click="exportData">
+                                <span class="btn-icon">📤</span>
+                                <span>导出数据</span>
+                            </button>
+                            <input type="file" ref="fileInput" style="display: none" @change="importData" accept=".json" />
+                            <button class="btn import-btn" @click="triggerFileInput">
+                                <span class="btn-icon">📥</span>
+                                <span>导入数据</span>
+                            </button>
+                            <button class="btn reset-btn" @click="confirmResetData">
+                                <span class="btn-icon">🔄</span>
+                                <span>重置所有数据</span>
+                            </button>
+                        </div>
+                        <div class="data-info">
+                            <p class="data-info-text">📝 数据导出将生成包含所有用户数据的JSON文件</p>
+                            <p class="data-info-text">🔒 数据文件包含敏感信息，请妥善保管</p>
+                            <p class="data-info-text">⚠️ 导入数据将覆盖现有数据，请谨慎操作</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -675,6 +705,9 @@ const notificationMessage = ref('')
 const notificationType = ref('success') // success, error, info
 const notificationIcon = ref('')
 
+// 文件输入引用
+const fileInput = ref<HTMLInputElement>()
+
 // 方法
 const authenticate = () => {
     // 实际应用中应该有更安全的认证方式
@@ -1002,6 +1035,112 @@ const logout = () => {
     isAuthenticated.value = false
     router.push('/')
 }
+
+// 数据导出功能
+const exportData = () => {
+    try {
+        // 收集所有需要导出的数据
+        const exportData = {
+            userInfo: store.userInfo,
+            currentPoints: store.currentPoints,
+            plans: store.plans,
+            behaviors: store.behaviors,
+            pointRecords: store.pointRecords,
+            exchangeItems: store.exchangeItems,
+            lotteryRecords: store.lotteryRecords,
+            backpackItems: store.backpackItems,
+            achievements: store.achievements,
+            totalTaskCompletions: store.totalTaskCompletions,
+            studyStreak: store.studyStreak,
+            lastCompletionDate: store.lastCompletionDate,
+            lastLoginDate: store.lastLoginDate,
+            enableReminders: store.enableReminders,
+            enableLottery: store.enableLottery
+        }
+
+        // 转换为JSON字符串
+        const jsonString = JSON.stringify(exportData, null, 2)
+        
+        // 创建Blob对象
+        const blob = new Blob([jsonString], { type: 'application/json' })
+        
+        // 创建下载链接
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `learning-motivation-data-${new Date().toISOString().slice(0, 10)}.json`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        
+        showNotificationMessage('数据导出成功！', 'success', '✅')
+    } catch (error) {
+        console.error('导出数据失败:', error)
+        showNotificationMessage('导出数据失败，请重试', 'error', '❌')
+    }
+}
+
+// 触发文件选择
+const triggerFileInput = () => {
+    fileInput.value?.click()
+}
+
+// 数据导入功能
+const importData = (event: Event) => {
+    const target = event.target as HTMLInputElement
+    const file = target.files?.[0]
+    
+    if (!file) return
+    
+    const reader = new FileReader()
+    reader.onload = (e) => {
+        try {
+            const jsonString = e.target?.result as string
+            const importedData = JSON.parse(jsonString)
+            
+            // 确认是否覆盖现有数据
+            if (confirm('确定要导入数据吗？这将覆盖所有现有数据！')) {
+                // 导入数据到store
+                if (importedData.userInfo) store.userInfo = importedData.userInfo
+                if (importedData.currentPoints !== undefined) store.currentPoints = importedData.currentPoints
+                if (importedData.plans) store.plans = importedData.plans
+                if (importedData.behaviors) store.behaviors = importedData.behaviors
+                if (importedData.pointRecords) store.pointRecords = importedData.pointRecords
+                if (importedData.exchangeItems) store.exchangeItems = importedData.exchangeItems
+                if (importedData.lotteryRecords) store.lotteryRecords = importedData.lotteryRecords
+                if (importedData.backpackItems) store.backpackItems = importedData.backpackItems
+                if (importedData.achievements) store.achievements = importedData.achievements
+                if (importedData.totalTaskCompletions !== undefined) store.totalTaskCompletions = importedData.totalTaskCompletions
+                if (importedData.studyStreak !== undefined) store.studyStreak = importedData.studyStreak
+                if (importedData.lastCompletionDate) store.lastCompletionDate = importedData.lastCompletionDate
+                if (importedData.lastLoginDate) store.lastLoginDate = importedData.lastLoginDate
+                if (importedData.enableReminders !== undefined) store.enableReminders = importedData.enableReminders
+                if (importedData.enableLottery !== undefined) store.enableLottery = importedData.enableLottery
+                
+                showNotificationMessage('数据导入成功！', 'success', '✅')
+            }
+        } catch (error) {
+            console.error('导入数据失败:', error)
+            showNotificationMessage('导入数据失败，请检查文件格式', 'error', '❌')
+        }
+    }
+    reader.onerror = () => {
+        showNotificationMessage('读取文件失败，请重试', 'error', '❌')
+    }
+    reader.readAsText(file)
+    
+    // 重置文件输入
+    target.value = ''
+}
+
+// 确认重置数据
+const confirmResetData = () => {
+    if (confirm('确定要重置所有数据吗？此操作不可恢复！')) {
+        store.resetAllData()
+        showNotificationMessage('数据重置成功！', 'success', '✅')
+    }
+}
 </script>
 
 <style scoped>
@@ -1237,6 +1376,18 @@ const logout = () => {
     background: linear-gradient(45deg, #95a5a6, #7f8c8d);
 }
 
+.export-btn {
+    background: linear-gradient(45deg, #48dbfb, #1287a5);
+}
+
+.import-btn {
+    background: linear-gradient(45deg, #1dd1a1, #10ac84);
+}
+
+.reset-btn {
+    background: linear-gradient(45deg, #ff9ff3, #f368e0);
+}
+
 /* 管理功能区域 */
 .admin-sections {
     position: relative;
@@ -1342,6 +1493,28 @@ const logout = () => {
 .time-separator {
     font-weight: bold;
     color: #666;
+}
+
+/* 数据管理样式 */
+.data-management {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.data-info {
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 15px;
+    padding: 20px;
+    border: 2px solid #ffd1dc;
+}
+
+.data-info-text {
+    margin: 10px 0;
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.4;
 }
 
 /* 必填项红星样式 */
@@ -2123,18 +2296,21 @@ input:checked + .toggle-slider:before {
     }
 
     .tasks-list,
-    .rewards-list {
+    .rewards-list,
+    .behaviors-list {
         grid-template-columns: 1fr;
     }
 
     .task-item,
-    .reward-item {
+    .reward-item,
+    .behavior-item {
         flex-direction: column;
         align-items: stretch;
     }
 
     .task-actions,
-    .reward-actions {
+    .reward-actions,
+    .behavior-actions {
         justify-content: center;
     }
 
