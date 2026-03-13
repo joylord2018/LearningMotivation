@@ -85,8 +85,8 @@
                 <div v-else>
                     <div v-for="(plans, subject) in plansBySubject" :key="subject" class="subject-section">
                         <div class="subject-header">
-                            <span class="subject-icon">{{ getPlanIconBySubject(subject) }}</span>
-                            <h3>{{ getPlanNameBySubject(subject) }}</h3>
+                            <span class="subject-icon">{{ getPlanIconBySubject(String(subject)) }}</span>
+                            <h3>{{ getPlanNameBySubject(String(subject)) }}</h3>
                         </div>
                         <div class="plans-list">
                             <div v-for="plan in plans" :key="plan.id" class="plan-item game-card"
@@ -375,10 +375,11 @@ const selectedDatePlans = computed(() => {
 const plansBySubject = computed(() => {
     const grouped: { [key: string]: any[] } = {}
     selectedDatePlans.value.forEach(plan => {
-        if (!grouped[plan.subject]) {
-            grouped[plan.subject] = []
+        const subjectKey = String(plan.subject)
+        if (!grouped[subjectKey]) {
+            grouped[subjectKey] = []
         }
-        grouped[plan.subject].push(plan)
+        grouped[subjectKey].push(plan)
     })
     return grouped
 })
