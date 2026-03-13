@@ -12,12 +12,7 @@
             <div v-for="(pos, index) in cloudPositions" :key="'cloud-' + index" class="decoration cloud" :style="{ left: pos.left, top: pos.top, animationDelay: pos.animationDelay }"></div>
             
             <!-- 爱心装饰 -->
-            <div v-for="i in 5" :key="'heart-' + i" class="decoration-with-string" :style="{ left: (i * 20 - 10) + '%' }">
-                <template v-for="j in 1" :key="'heart-pos-' + i">
-                    <div class="connection-string" :style="{ height: heartTop[i-1] + 'px' }"></div>
-                    <div class="decoration heart" :style="{ top: heartTop[i-1] + 'px', animationDelay: Math.random() * 3 + 's' }"></div>
-                </template>
-            </div>
+            <div v-for="(pos, index) in heartPositions" :key="'heart-' + index" class="decoration heart" :style="{ left: pos.left, top: pos.top, '--rotation': pos.rotation, animationDelay: pos.animationDelay }"></div>
         </div>
 
         <div class="login-card">
@@ -79,11 +74,12 @@ interface Position {
   left: string;
   top: string;
   animationDelay: string;
+  rotation?: string;
 }
 
 const starPositions = ref<Position[]>([])
 const cloudPositions = ref<Position[]>([])
-const heartTop = ref<number[]>([])
+const heartPositions = ref<Position[]>([])
 const error = ref('')
 
 // 初始化装饰元素位置
@@ -102,8 +98,13 @@ onMounted(() => {
         animationDelay: Math.random() * 5 + 's'
     }))
     
-    // 生成爱心位置
-    heartTop.value = Array.from({ length: 5 }, () => 200 + Math.random() * 150)
+    // 生成爱心位置和旋转角度
+    heartPositions.value = Array.from({ length: 5 }, () => ({
+        left: Math.random() * 100 + '%',
+        top: Math.random() * 100 + '%',
+        animationDelay: Math.random() * 3 + 's',
+        rotation: Math.random() * 360 + 'deg'
+    }))
 })
 
 // 通知相关
@@ -195,37 +196,17 @@ body {
     box-shadow: 0 0 10px #ffda6a;
 }
 
-/* 带连接线的装饰元素容器 */
-.decoration-with-string {
-    position: absolute;
-    top: 0;
-    width: 100px;
-    height: 300px;
-    pointer-events: none;
-    transform-origin: top center;
-    animation: pendulum 4s ease-in-out infinite;
-}
 
-/* 连接线 */
-.connection-string {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 2px;
-    height: 200px;
-    background-color: rgba(255, 107, 139, 0.3);
-    transform-origin: top center;
-}
 
 /* 爱心装饰 */
 .heart {
     position: absolute;
-    left: 50%;
-    transform: translateX(-50%) rotate(45deg);
     width: 40px;
     height: 40px;
     background-color: #ff6b8b;
     z-index: 3;
+    transform: rotate(var(--rotation, 0deg));
+    animation: heartPulse 3s ease-in-out infinite;
 }
 
 .heart:before,
@@ -293,15 +274,7 @@ body {
     }
 }
 
-/* 钟摆摇摆动画 */
-@keyframes pendulum {
-    0%, 100% {
-        transform: rotate(-5deg);
-    }
-    50% {
-        transform: rotate(5deg);
-    }
-}
+
 
 /* 浮动动画 */
 @keyframes float {
@@ -310,6 +283,16 @@ body {
     }
     50% {
         transform: translateY(-20px);
+    }
+}
+
+/* 爱心放大缩小动画 */
+@keyframes heartPulse {
+    0%, 100% {
+        transform: rotate(var(--rotation, 0deg)) scale(1);
+    }
+    50% {
+        transform: rotate(var(--rotation, 0deg)) scale(1.2);
     }
 }
 

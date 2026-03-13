@@ -2,18 +2,14 @@
   <div class="achievements-container">
     <!-- 装饰元素 -->
     <div class="decorations">
-      <div class="heart heart-1"></div>
-      <div class="heart heart-2"></div>
-      <div class="heart heart-3"></div>
-      <div class="star star-1"></div>
-      <div class="star star-2"></div>
-      <div class="star star-3"></div>
-      <div class="star star-4"></div>
-      <div class="cloud cloud-1"></div>
-      <div class="cloud cloud-2"></div>
-      <div class="rainbow"></div>
-      <div class="gift-box gift-box-1"></div>
-      <div class="gift-box gift-box-2"></div>
+      <!-- 静态星星装饰 -->
+      <div v-for="i in 25" :key="'star-' + i" class="decoration star" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%' }"></div>
+      
+      <!-- 静态爱心装饰 -->
+      <div v-for="i in 8" :key="'heart-' + i" class="decoration heart" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%' }"></div>
+      
+      <!-- 静态云朵装饰 -->
+      <div v-for="i in 4" :key="'cloud-' + i" class="decoration cloud" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 50 + '%' }"></div>
     </div>
 
     <!-- 页面头部 -->
@@ -314,131 +310,85 @@ const getRarityLabel = (rarity?: string): string => {
 
 /* 装饰元素 */
 .decorations {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   pointer-events: none;
-  z-index: 1;
-  overflow: hidden;
-}
-
-/* 心形装饰 */
-.heart {
-  position: absolute;
-  font-size: 24px;
-  animation: float 6s ease-in-out infinite;
-  opacity: 0.7;
-}
-
-.heart-1 {
-  top: 10%;
-  left: 5%;
-  color: #ff6b8b;
-  animation-duration: 7s;
-}
-
-.heart-2 {
-  top: 30%;
-  right: 8%;
-  color: #ff8fa3;
-  animation-duration: 8s;
-  animation-delay: 1s;
-}
-
-.heart-3 {
-  bottom: 15%;
-  left: 12%;
-  color: #ffb3c1;
-  animation-duration: 6s;
-  animation-delay: 2s;
-}
-
-/* 星星装饰 */
-.star {
-  position: absolute;
-  font-size: 20px;
-  animation: twinkle 4s ease-in-out infinite;
-}
-
-.star-1 {
-  top: 20%;
-  right: 15%;
-  color: #ffd700;
-  animation-delay: 0.5s;
-}
-
-.star-2 {
-  top: 50%;
-  left: 8%;
-  color: #ffec3d;
-  animation-delay: 1.2s;
-}
-
-.star-3 {
-  bottom: 25%;
-  right: 10%;
-  color: #fff48c;
-  animation-delay: 0.8s;
-}
-
-.star-4 {
-  bottom: 10%;
-  left: 20%;
-  color: #ffee9c;
-  animation-delay: 1.5s;
-}
-
-/* 云朵装饰 */
-.cloud {
-  position: absolute;
-  font-size: 40px;
-  animation: float 10s ease-in-out infinite;
-  opacity: 0.8;
-}
-
-.cloud-1 {
-  top: 15%;
-  left: 20%;
-  animation-duration: 15s;
-}
-
-.cloud-2 {
-  bottom: 20%;
-  right: 25%;
-  animation-duration: 18s;
-  animation-delay: 2s;
-}
-
-/* 彩虹装饰 */
-.rainbow {
-  position: absolute;
-  top: -50px;
-  right: -100px;
-  font-size: 150px;
-  transform: rotate(45deg);
-  opacity: 0.3;
   z-index: 0;
 }
 
-/* 礼物盒装饰 */
-.gift-box {
+.decoration {
   position: absolute;
-  font-size: 30px;
-  animation: bounce 5s ease-in-out infinite;
+  pointer-events: none;
 }
 
-.gift-box-1 {
-  top: 35%;
-  left: 15%;
-  animation-delay: 1s;
+/* 静态星星装饰 */
+.star {
+  width: 15px;
+  height: 15px;
+  background-color: #ffda6a;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  box-shadow: 0 0 8px #ffda6a;
 }
 
-.gift-box-2 {
-  bottom: 10%;
-  right: 15%;
-  animation-delay: 2s;
+/* 静态爱心装饰 */
+.heart {
+  width: 30px;
+  height: 30px;
+  background-color: #ff6b8b;
+  transform: rotate(45deg);
+}
+
+.heart:before,
+.heart:after {
+  content: '';
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  background-color: #ff6b8b;
+  border-radius: 50%;
+}
+
+.heart:before {
+  top: -15px;
+  left: 0;
+}
+
+.heart:after {
+  top: 0;
+  left: -15px;
+}
+
+/* 静态云朵装饰 */
+.cloud {
+  width: 80px;
+  height: 40px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+}
+
+.cloud:before,
+.cloud:after {
+  content: '';
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+}
+
+.cloud:before {
+  width: 30px;
+  height: 30px;
+  top: -12px;
+  left: 8px;
+}
+
+.cloud:after {
+  width: 40px;
+  height: 40px;
+  top: -16px;
+  right: 8px;
 }
 
 /* 页面头部 */

@@ -2,11 +2,14 @@
   <div class="behavior-container">
     <!-- 装饰元素 -->
     <div class="decorations">
-      <div class="decoration heart"></div>
-      <div class="decoration star"></div>
-      <div class="decoration cloud"></div>
-      <div class="decoration circle"></div>
-      <div class="decoration rainbow"></div>
+      <!-- 静态星星装饰 -->
+      <div v-for="i in 25" :key="'star-' + i" class="decoration star" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%' }"></div>
+      
+      <!-- 静态爱心装饰 -->
+      <div v-for="i in 8" :key="'heart-' + i" class="decoration heart" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%' }"></div>
+      
+      <!-- 静态云朵装饰 -->
+      <div v-for="i in 4" :key="'cloud-' + i" class="decoration cloud" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 50 + '%' }"></div>
     </div>
 
     <!-- 头部 -->
@@ -243,113 +246,74 @@ onMounted(() => {
 
 .decoration {
   position: absolute;
-  opacity: 0.6;
-  animation: float 10s ease-in-out infinite;
+  pointer-events: none;
 }
 
+/* 静态星星装饰 */
+.star {
+  width: 15px;
+  height: 15px;
+  background-color: #ffda6a;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  box-shadow: 0 0 8px #ffda6a;
+}
+
+/* 静态爱心装饰 */
 .heart {
-  top: 10%;
-  right: 15%;
-  width: 120px;
-  height: 120px;
-  background-color: #ffb6c1;
+  width: 30px;
+  height: 30px;
+  background-color: #ff6b8b;
   transform: rotate(45deg);
-  animation-delay: 0s;
 }
 
 .heart:before,
 .heart:after {
   content: '';
   position: absolute;
-  width: 120px;
-  height: 120px;
-  background-color: #ffb6c1;
+  width: 30px;
+  height: 30px;
+  background-color: #ff6b8b;
   border-radius: 50%;
 }
 
 .heart:before {
-  top: -60px;
+  top: -15px;
   left: 0;
 }
 
 .heart:after {
   top: 0;
-  left: -60px;
+  left: -15px;
 }
 
-.star {
-  bottom: 15%;
-  left: 10%;
-  width: 80px;
-  height: 80px;
-  background-color: #ffda6a;
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-  animation-delay: 2s;
-  box-shadow: 0 0 20px #ffda6a;
-}
-
+/* 静态云朵装饰 */
 .cloud {
-  top: 25%;
-  left: 20%;
-  width: 150px;
-  height: 80px;
-  background-color: rgba(255, 255, 255, 0.8);
-  border-radius: 40px;
-  animation-delay: 1s;
+  width: 80px;
+  height: 40px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
 }
 
 .cloud:before,
 .cloud:after {
   content: '';
   position: absolute;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.9);
   border-radius: 50%;
 }
 
 .cloud:before {
-  width: 70px;
-  height: 70px;
-  top: -30px;
-  left: 20px;
+  width: 30px;
+  height: 30px;
+  top: -12px;
+  left: 8px;
 }
 
 .cloud:after {
-  width: 90px;
-  height: 90px;
-  top: -40px;
-  right: 20px;
-}
-
-.circle {
-  bottom: 25%;
-  right: 15%;
-  width: 100px;
-  height: 100px;
-  background-color: #b5ead7;
-  border-radius: 50%;
-  animation-delay: 3s;
-}
-
-.rainbow {
-  bottom: 5%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 200px;
-  height: 100px;
-  border-radius: 100px 100px 0 0;
-  background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
-  opacity: 0.3;
-  animation-delay: 1.5s;
-}
-
-/* 浮动动画 */
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-20px) rotate(5deg);
-  }
+  width: 40px;
+  height: 40px;
+  top: -16px;
+  right: 8px;
 }
 
 /* 头部 */

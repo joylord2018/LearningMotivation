@@ -1,15 +1,15 @@
 <template>
     <div class="points-container">
-        <!-- 更丰富的装饰元素 -->
+        <!-- 装饰元素 -->
         <div class="decorations">
-            <div class="decoration heart"></div>
-            <div class="decoration heart small"></div>
-            <div class="decoration star"></div>
-            <div class="decoration star small"></div>
-            <div class="decoration circle"></div>
-            <div class="decoration cloud"></div>
-            <div class="decoration rainbow"></div>
-            <div class="decoration gift-box"></div>
+            <!-- 静态星星装饰 -->
+            <div v-for="i in 25" :key="'star-' + i" class="decoration star" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%' }"></div>
+            
+            <!-- 静态爱心装饰 -->
+            <div v-for="i in 8" :key="'heart-' + i" class="decoration heart" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%' }"></div>
+            
+            <!-- 静态云朵装饰 -->
+            <div v-for="i in 4" :key="'cloud-' + i" class="decoration cloud" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 50 + '%' }"></div>
         </div>
 
         <!-- 游戏化头部 -->
@@ -391,131 +391,87 @@ function formatDate(dateString: string) {
     overflow-x: hidden;
 }
 
-/* 更丰富的装饰元素 */
+/* 装饰元素 */
 .decorations {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    right: 0;
+    bottom: 0;
     pointer-events: none;
     z-index: 0;
 }
 
 .decoration {
     position: absolute;
-    opacity: 0.6;
-    animation: float 8s ease-in-out infinite;
+    pointer-events: none;
 }
 
-.decoration.heart {
-    top: 10%;
-    right: 15%;
-    width: 60px;
-    height: 60px;
-    background-color: #ffb6c1;
-    clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
-    animation-delay: 0s;
-}
-
-.decoration.heart.small {
-    top: 25%;
-    left: 10%;
-    width: 40px;
-    height: 40px;
-    animation-delay: 1s;
-}
-
-.decoration.star {
-    top: 30%;
-    left: 10%;
-    width: 50px;
-    height: 50px;
-    background-color: #ffd700;
+/* 静态星星装饰 */
+.star {
+    width: 15px;
+    height: 15px;
+    background-color: #ffda6a;
     clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-    animation-delay: 2s;
+    box-shadow: 0 0 8px #ffda6a;
 }
 
-.decoration.star.small {
-    bottom: 15%;
-    right: 25%;
+/* 静态爱心装饰 */
+.heart {
     width: 30px;
     height: 30px;
-    animation-delay: 3s;
-}
-
-.decoration.circle {
-    bottom: 15%;
-    right: 20%;
-    width: 70px;
-    height: 70px;
-    background-color: #ffccda;
-    border-radius: 50%;
-    animation-delay: 4s;
-}
-
-.decoration.cloud {
-    top: 5%;
-    left: 15%;
-    width: 80px;
-    height: 50px;
-    background-color: #f8f9fa;
-    border-radius: 50px 50px 0 0;
-    animation-delay: 5s;
-}
-
-.decoration.rainbow {
-    top: 50%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100px;
-    height: 50px;
-    background: linear-gradient(90deg, #ff7eb3, #ff8fab, #ffb344, #ffe566, #a3d9ff, #c2d9ff);
-    border-radius: 100px 100px 0 0;
-    opacity: 0.4;
-    animation-delay: 6s;
-}
-
-.decoration.gift-box {
-    bottom: 20%;
-    left: 20%;
-    width: 60px;
-    height: 60px;
     background-color: #ff6b8b;
-    position: relative;
-    animation-delay: 7s;
+    transform: rotate(45deg);
 }
 
-.decoration.gift-box::before {
+.heart:before,
+.heart:after {
     content: '';
     position: absolute;
-    top: 50%;
+    width: 30px;
+    height: 30px;
+    background-color: #ff6b8b;
+    border-radius: 50%;
+}
+
+.heart:before {
+    top: -15px;
     left: 0;
-    right: 0;
-    height: 10px;
-    background-color: #ff4757;
 }
 
-.decoration.gift-box::after {
+.heart:after {
+    top: 0;
+    left: -15px;
+}
+
+/* 静态云朵装饰 */
+.cloud {
+    width: 80px;
+    height: 40px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+}
+
+.cloud:before,
+.cloud:after {
     content: '';
     position: absolute;
-    left: 50%;
-    top: 0;
-    bottom: 0;
-    width: 10px;
-    background-color: #ff4757;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
 }
 
-@keyframes float {
+.cloud:before {
+    width: 30px;
+    height: 30px;
+    top: -12px;
+    left: 8px;
+}
 
-    0%,
-    100% {
-        transform: translateY(0) rotate(0deg);
-    }
-
-    50% {
-        transform: translateY(-20px) rotate(10deg);
-    }
+.cloud:after {
+    width: 40px;
+    height: 40px;
+    top: -16px;
+    right: 8px;
 }
 
 /* 游戏化头部样式 */

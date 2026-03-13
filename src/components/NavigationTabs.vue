@@ -39,6 +39,8 @@ const tabs = [
     box-shadow: 0 10px 25px rgba(255, 138, 171, 0.2);
     border: 3px solid #ffd6e0;
     margin: 20px 0;
+    position: relative;
+    z-index: 10;
 }
 
 /* 标签项 */

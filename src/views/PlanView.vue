@@ -2,14 +2,14 @@
     <div class="plan-container">
         <!-- 可爱的装饰元素 -->
         <div class="decorations">
-            <!-- 一隐一现的星星装饰 -->
-            <div v-for="i in 25" :key="'star-' + i" class="decoration star" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%', animationDelay: Math.random() * 3 + 's' }"></div>
+            <!-- 静态星星装饰 -->
+            <div v-for="i in 25" :key="'star-' + i" class="decoration star" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%' }"></div>
             
-            <!-- 不规则运动的爱心装饰 -->
-            <div v-for="i in 8" :key="'heart-' + i" class="decoration heart" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%', animationDelay: Math.random() * 2 + 's' }"></div>
+            <!-- 静态爱心装饰 -->
+            <div v-for="i in 8" :key="'heart-' + i" class="decoration heart" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%' }"></div>
             
-            <!-- 缓慢浮动的云朵装饰 -->
-            <div v-for="i in 4" :key="'cloud-' + i" class="decoration cloud" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 50 + '%', animationDelay: Math.random() * 4 + 's' }"></div>
+            <!-- 静态云朵装饰 -->
+            <div v-for="i in 4" :key="'cloud-' + i" class="decoration cloud" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 50 + '%' }"></div>
         </div>
 
         <header class="plan-header">
@@ -78,59 +78,66 @@
                     </div>
                 </div>
 
-                <div class="plans-list">
-                    <div v-for="plan in selectedDatePlans" :key="plan.id" class="plan-item game-card"
-                        :class="{ completed: plan.completionLevel }">
-                        <div class="plan-header-info">
-                            <div class="plan-title">
-                                <span class="plan-icon">{{ getPlanIconBySubject(plan.subject) }}</span>
-                                {{ plan.subjectName }} - {{ getPlanNameBySubject(plan.subject) }}
-                            </div>
-                            <div class="plan-badge" :class="{ completed: plan.completionLevel, pending: !plan.completionLevel }">
-                                {{ plan.completionLevel ? '已完成' : '待完成' }}
+                <div v-if="Object.keys(plansBySubject).length === 0" class="no-plans">
+                    <div class="no-plans-icon">📅</div>
+                    <div class="no-plans-text">当前日期暂无计划</div>
+                </div>
+                <div v-else>
+                    <div v-for="(plans, subject) in plansBySubject" :key="subject" class="subject-section">
+                        <div class="subject-header">
+                            <span class="subject-icon">{{ getPlanIconBySubject(subject) }}</span>
+                            <h3>{{ getPlanNameBySubject(subject) }}</h3>
+                        </div>
+                        <div class="plans-list">
+                            <div v-for="plan in plans" :key="plan.id" class="plan-item game-card"
+                                :class="{ completed: plan.completionLevel }">
+                                <div class="plan-header-info">
+                                    <div class="plan-title">
+                                        {{ plan.subjectName }}
+                                    </div>
+                                    <div class="plan-badge" :class="{ completed: plan.completionLevel, pending: !plan.completionLevel }">
+                                        {{ plan.completionLevel ? '已完成' : '待完成' }}
+                                    </div>
+                                </div>
+
+                                <p class="plan-description">{{ getPlanDescriptionBySubject(plan.subject) }}</p>
+
+                                <!-- 计划详情 -->
+                                <div class="plan-details">
+                                    <div v-if="plan.frequency" class="detail-item">
+                                        <span class="detail-icon">🔄</span>
+                                        <span class="detail-text">本周第{{ plan.frequency }}次</span>
+                                    </div>
+                                    <div v-if="plan.type === 'weekly'" class="detail-item">
+                                        <span class="detail-icon">📊</span>
+                                        <span class="detail-text">进度: {{ plan.completedCount || 0 }}/{{ plan.targetCount || 1 }}</span>
+                                    </div>
+                                    <div v-if="plan.timeRange" class="detail-item">
+                                        <span class="detail-icon">⏰</span>
+                                        <span class="detail-text">{{ plan.timeRange }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="plan-footer">
+                                    <div class="plan-points">
+                                        <span class="point-icon">⭐</span>
+                                        {{ plan.completionLevel ? '已获得 ' + plan.points + ' 积分' : '完成可得 3 积分' }}
+                                    </div>
+
+                                    <div class="plan-actions">
+                                        <button v-if="!plan.completionLevel" @click="startTimer(plan.id)" class="action-btn start-timer">
+                                            <span class="btn-icon">⏱️</span> 开始计时
+                                        </button>
+                                        <button v-if="!plan.completionLevel" @click="quickComplete(plan.id)" class="action-btn quick-complete">
+                                            <span class="btn-icon">✓</span> 快速完成
+                                        </button>
+                                        <button v-if="plan.completionLevel" @click="undoComplete(plan.id)" class="action-btn undo">
+                                            <span class="btn-icon">↩️</span> 撤销
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-
-                        <p class="plan-description">{{ getPlanDescriptionBySubject(plan.subject) }}</p>
-
-                        <!-- 计划详情 -->
-                        <div class="plan-details">
-                            <div v-if="plan.frequency" class="detail-item">
-                                <span class="detail-icon">🔄</span>
-                                <span class="detail-text">本周第{{ plan.frequency }}次</span>
-                            </div>
-                            <div v-if="plan.type === 'weekly'" class="detail-item">
-                                <span class="detail-icon">📊</span>
-                                <span class="detail-text">进度: {{ plan.completedCount || 0 }}/{{ plan.targetCount || 1 }}</span>
-                            </div>
-                            <div v-if="plan.timeRange" class="detail-item">
-                                <span class="detail-icon">⏰</span>
-                                <span class="detail-text">{{ plan.timeRange }}</span>
-                            </div>
-                        </div>
-
-                        <div class="plan-footer">
-                            <div class="plan-points">
-                                <span class="point-icon">⭐</span>
-                                {{ plan.completionLevel ? '已获得 ' + plan.points + ' 积分' : '完成可得 3 积分' }}
-                            </div>
-
-                            <div class="plan-actions">
-                                <button v-if="!plan.completionLevel" @click="startTimer(plan.id)" class="action-btn start-timer">
-                                    <span class="btn-icon">⏱️</span> 开始计时
-                                </button>
-                                <button v-if="!plan.completionLevel" @click="quickComplete(plan.id)" class="action-btn quick-complete">
-                                    <span class="btn-icon">✓</span> 快速完成
-                                </button>
-                                <button v-if="plan.completionLevel" @click="undoComplete(plan.id)" class="action-btn undo">
-                                    <span class="btn-icon">↩️</span> 撤销
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div v-if="selectedDatePlans.length === 0" class="no-plans">
-                        <div class="no-plans-icon">📅</div>
-                        <div class="no-plans-text">当前日期暂无计划</div>
                     </div>
                 </div>
             </div>
@@ -362,6 +369,18 @@ const weekDays = computed(() => {
 // 计算选中日期的计划
 const selectedDatePlans = computed(() => {
     return store.plans.filter(plan => plan.date === selectedDate.value && plan.type !== 'weekly')
+})
+
+// 按学科分组的计划
+const plansBySubject = computed(() => {
+    const grouped: { [key: string]: any[] } = {}
+    selectedDatePlans.value.forEach(plan => {
+        if (!grouped[plan.subject]) {
+            grouped[plan.subject] = []
+        }
+        grouped[plan.subject].push(plan)
+    })
+    return grouped
 })
 
 // 计算剩余计划数
@@ -870,7 +889,6 @@ onMounted(() => {
     height: 15px;
     background-color: #ffda6a;
     clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-    animation: fadeInOut 4s ease-in-out infinite;
     box-shadow: 0 0 8px #ffda6a;
 }
 
@@ -880,7 +898,6 @@ onMounted(() => {
     height: 30px;
     background-color: #ff6b8b;
     transform: rotate(45deg);
-    animation: irregularMotion 8s ease-in-out infinite;
 }
 
 .heart:before,
@@ -909,7 +926,6 @@ onMounted(() => {
     height: 40px;
     background-color: rgba(255, 255, 255, 0.9);
     border-radius: 20px;
-    animation: slowFloat 20s ease-in-out infinite;
 }
 
 .cloud:before,
@@ -932,54 +948,6 @@ onMounted(() => {
     height: 40px;
     top: -16px;
     right: 8px;
-}
-
-/* 一隐一现的星星动画 */
-@keyframes fadeInOut {
-    0%, 100% {
-        opacity: 0;
-        transform: scale(0.5);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1);
-        box-shadow: 0 0 12px #ffda6a;
-    }
-}
-
-/* 不规则运动的爱心动画 */
-@keyframes irregularMotion {
-    0% {
-        transform: rotate(45deg) translate(0, 0) scale(1);
-    }
-    25% {
-        transform: rotate(40deg) translate(10px, -15px) scale(1.1);
-    }
-    50% {
-        transform: rotate(50deg) translate(0, 10px) scale(0.9);
-    }
-    75% {
-        transform: rotate(45deg) translate(-10px, -5px) scale(1.05);
-    }
-    100% {
-        transform: rotate(45deg) translate(0, 0) scale(1);
-    }
-}
-
-/* 缓慢浮动的云朵动画 */
-@keyframes slowFloat {
-    0%, 100% {
-        transform: translateY(0) translateX(0) rotate(0deg);
-    }
-    25% {
-        transform: translateY(-15px) translateX(10px) rotate(2deg);
-    }
-    50% {
-        transform: translateY(-5px) translateX(20px) rotate(0deg);
-    }
-    75% {
-        transform: translateY(-10px) translateX(5px) rotate(-2deg);
-    }
 }
 
 /* 页面头部 */
@@ -1257,6 +1225,41 @@ onMounted(() => {
 /* 计划区域 */
 .plans-section {
     position: relative;
+}
+
+/* 学科分类区域 */
+.subject-section {
+    margin-bottom: 30px;
+    background: linear-gradient(135deg, #ffffff 0%, #fff0f5 100%);
+    border-radius: 20px;
+    border: 2px solid #ffd6e0;
+    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.1);
+    overflow: hidden;
+}
+
+/* 学科标题 */
+.subject-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
+    font-weight: 700;
+}
+
+.subject-header .subject-icon {
+    font-size: 1.5rem;
+}
+
+.subject-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.subject-section .plans-list {
+    padding: 20px;
 }
 
 .section-header {

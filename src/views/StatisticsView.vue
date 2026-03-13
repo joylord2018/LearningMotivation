@@ -2,14 +2,14 @@
     <div class="statistics-container">
         <!-- 装饰元素 -->
         <div class="decorations">
-            <!-- 闪烁的星星装饰 -->
-            <div v-for="i in 15" :key="'star-' + i" class="decoration star" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%', animationDelay: Math.random() * 4 + 's' }"></div>
+            <!-- 静态星星装饰 -->
+            <div v-for="i in 25" :key="'star-' + i" class="decoration star" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%' }"></div>
             
-            <!-- 旋转的爱心装饰 -->
-            <div v-for="i in 6" :key="'heart-' + i" class="decoration heart" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%', animationDelay: Math.random() * 3 + 's' }"></div>
+            <!-- 静态爱心装饰 -->
+            <div v-for="i in 8" :key="'heart-' + i" class="decoration heart" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%' }"></div>
             
-            <!-- 浮动的圆形装饰 -->
-            <div v-for="i in 4" :key="'circle-' + i" class="decoration circle" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%', animationDelay: Math.random() * 5 + 's' }"></div>
+            <!-- 静态云朵装饰 -->
+            <div v-for="i in 4" :key="'cloud-' + i" class="decoration cloud" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 50 + '%' }"></div>
         </div>
 
         <header class="statistics-header">
@@ -672,105 +672,71 @@ onMounted(() => {
     pointer-events: none;
 }
 
-/* 闪烁的星星装饰 */
+/* 静态星星装饰 */
 .star {
-    width: 12px;
-    height: 12px;
-    background-color: #ff9ff3;
+    width: 15px;
+    height: 15px;
+    background-color: #ffda6a;
     clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-    animation: pulse 3s ease-in-out infinite;
-    box-shadow: 0 0 6px #ff9ff3;
+    box-shadow: 0 0 8px #ffda6a;
 }
 
-/* 旋转的爱心装饰 */
+/* 静态爱心装饰 */
 .heart {
-    width: 25px;
-    height: 25px;
-    background-color: #ff6b81;
+    width: 30px;
+    height: 30px;
+    background-color: #ff6b8b;
     transform: rotate(45deg);
-    animation: rotateHeart 6s linear infinite;
 }
 
 .heart:before,
 .heart:after {
     content: '';
     position: absolute;
-    width: 25px;
-    height: 25px;
-    background-color: #ff6b81;
+    width: 30px;
+    height: 30px;
+    background-color: #ff6b8b;
     border-radius: 50%;
 }
 
 .heart:before {
-    top: -12px;
+    top: -15px;
     left: 0;
 }
 
 .heart:after {
     top: 0;
-    left: -12px;
+    left: -15px;
 }
 
-/* 浮动的圆形装饰 */
-.circle {
-    width: 60px;
-    height: 60px;
+/* 静态云朵装饰 */
+.cloud {
+    width: 80px;
+    height: 40px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+}
+
+.cloud:before,
+.cloud:after {
+    content: '';
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.9);
     border-radius: 50%;
-    background: rgba(84, 160, 255, 0.3);
-    animation: floatCircle 8s ease-in-out infinite;
-    box-shadow: 0 0 15px rgba(84, 160, 255, 0.5);
 }
 
-/* 星星脉冲动画 */
-@keyframes pulse {
-    0%, 100% {
-        opacity: 0.3;
-        transform: scale(0.8);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.2);
-        box-shadow: 0 0 10px #ff9ff3;
-    }
+.cloud:before {
+    width: 30px;
+    height: 30px;
+    top: -12px;
+    left: 8px;
 }
 
-/* 爱心旋转动画 */
-@keyframes rotateHeart {
-    0% {
-        transform: rotate(45deg) scale(1);
-    }
-    25% {
-        transform: rotate(45deg) scale(1.1);
-    }
-    50% {
-        transform: rotate(45deg) scale(1);
-    }
-    75% {
-        transform: rotate(45deg) scale(0.9);
-    }
-    100% {
-        transform: rotate(45deg) scale(1);
-    }
-}
-
-/* 圆形浮动动画 */
-@keyframes floatCircle {
-    0%, 100% {
-        transform: translateY(0) translateX(0);
-        opacity: 0.3;
-    }
-    25% {
-        transform: translateY(-20px) translateX(10px);
-        opacity: 0.6;
-    }
-    50% {
-        transform: translateY(-10px) translateX(20px);
-        opacity: 0.8;
-    }
-    75% {
-        transform: translateY(-15px) translateX(5px);
-        opacity: 0.5;
-    }
+.cloud:after {
+    width: 40px;
+    height: 40px;
+    top: -16px;
+    right: 8px;
 }
 
 /* 头部样式 */
