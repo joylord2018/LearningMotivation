@@ -160,7 +160,7 @@
                     <h3>📋 最近行为记录</h3>
                     <div class="history-list">
                         <div v-for="(record, index) in recentBehaviorRecords" :key="index" class="history-item">
-                            <div class="history-date">{{ formatDate(record.lastRecordDate) }}</div>
+                            <div class="history-date">{{ formatDate(record.lastRecordDate || new Date().toISOString()) }}</div>
                             <div class="history-info">
                                 <div class="history-subject">{{ record.name }}</div>
                                 <div class="history-status">

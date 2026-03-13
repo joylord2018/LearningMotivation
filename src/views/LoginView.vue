@@ -70,15 +70,21 @@ import { useUserStore } from '../stores/userStore'
 
 const router = useRouter()
 const store = useUserStore()
-
 const username = ref('')
 const password = ref('')
-const error = ref('')
+const isLoggingIn = ref(false)
 
 // 装饰元素位置
-const starPositions = ref([])
-const cloudPositions = ref([])
-const heartTop = ref([])
+interface Position {
+  left: string;
+  top: string;
+  animationDelay: string;
+}
+
+const starPositions = ref<Position[]>([])
+const cloudPositions = ref<Position[]>([])
+const heartTop = ref<number[]>([])
+const error = ref('')
 
 // 初始化装饰元素位置
 onMounted(() => {

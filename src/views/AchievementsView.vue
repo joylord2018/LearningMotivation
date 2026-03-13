@@ -177,7 +177,7 @@
         </div>
         <div v-if="selectedAchievement?.unlocked" class="achievement-detail-date">
           <span class="date-label">解锁日期：</span>
-          <span class="date-value">{{ formatDate(selectedAchievement.unlockedDate) }}</span>
+          <span class="date-value">{{ formatDate(selectedAchievement.unlockedAt || new Date().toISOString()) }}</span>
         </div>
         <div v-if="selectedAchievement?.points" class="achievement-detail-reward">
           <span class="reward-label">奖励积分：</span>

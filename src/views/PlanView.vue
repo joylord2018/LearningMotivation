@@ -99,9 +99,9 @@
                                 <span class="detail-icon">🔄</span>
                                 <span class="detail-text">本周第{{ plan.frequency }}次</span>
                             </div>
-                            <div v-if="plan.progress" class="detail-item">
+                            <div v-if="plan.type === 'weekly'" class="detail-item">
                                 <span class="detail-icon">📊</span>
-                                <span class="detail-text">进度: {{ plan.progress }}/3</span>
+                                <span class="detail-text">进度: {{ plan.completedCount || 0 }}/{{ plan.targetCount || 1 }}</span>
                             </div>
                             <div v-if="plan.timeRange" class="detail-item">
                                 <span class="detail-icon">⏰</span>

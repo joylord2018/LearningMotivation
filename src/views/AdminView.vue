@@ -268,7 +268,7 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="taskName" class="form-label">计划名称<span class="required">*</span></label>
-                        <input type="text" id="taskName" v-model="currentTask.name" placeholder="输入计划名称..."
+                        <input type="text" id="taskName" v-model="currentTask.subjectName" placeholder="输入计划名称..."
                             class="form-input">
                     </div>
                     <div class="form-group">
@@ -542,7 +542,6 @@ const pointsToAdjust = ref(0)
 // 任务相关
 interface Task {
     id: string
-    name: string
     subject: 'chinese' | 'math' | 'english'
     subjectName: string
     date: string
@@ -552,11 +551,12 @@ interface Task {
     selectedWeek?: string
     frequency: 'once' | 'daily' | 'weekly'
     targetCount: number
+    completedCount: number
     timeRange: string
-    completionLevel: boolean | null
+    completionLevel: boolean
     points: number
     description: string
-    icon: string
+    icon?: string
 }
 
 // 不再使用本地tasks数组，直接使用store.plans
@@ -633,7 +633,6 @@ const endTime = ref('')
 // 当前编辑的任务、兑换项和行为
 const currentTask = reactive<Task>({
     id: '',
-    name: '',
     subject: 'chinese',
     subjectName: '',
     date: new Date().toISOString().slice(0, 10),
@@ -643,8 +642,9 @@ const currentTask = reactive<Task>({
     selectedWeek: '',
     frequency: 'once',
     targetCount: 1,
+    completedCount: 0,
     timeRange: '',
-    completionLevel: null,
+    completionLevel: false,
     points: 0,
     description: '',
     icon: ''
@@ -776,8 +776,8 @@ const editTask = (task: Task) => {
     // 解析时间范围并设置到时间选择器
     if (task.timeRange) {
         const [start, end] = task.timeRange.split('-')
-        startTime.value = start.trim()
-        endTime.value = end.trim()
+        startTime.value = start?.trim() || ''
+        endTime.value = end?.trim() || ''
     } else {
         startTime.value = ''
         endTime.value = ''
@@ -805,7 +805,7 @@ const editBehavior = (behavior: any) => {
 }
 
 const saveTask = () => {
-    if (!currentTask.name || !currentTask.description || currentTask.points <= 0) {
+    if (!currentTask.subjectName || !currentTask.description || currentTask.points <= 0) {
         showNotificationMessage('请填写完整的计划信息', 'error', '❌')
         return
     }
@@ -820,7 +820,7 @@ const saveTask = () => {
     const newTask = {
         id: isEditingTask.value ? currentTask.id : `custom-${Date.now()}`,
         subject: currentTask.subject,
-        subjectName: currentTask.name,
+        subjectName: currentTask.subjectName,
         date: currentTask.date,
         type: currentTask.type,
         dailyType: currentTask.dailyType,
@@ -828,6 +828,7 @@ const saveTask = () => {
         selectedWeek: currentTask.selectedWeek,
         frequency: currentTask.frequency,
         targetCount: currentTask.targetCount,
+        completedCount: currentTask.completedCount || 0,
         timeRange: timeRange,
         completionLevel: currentTask.completionLevel,
         points: currentTask.points,
