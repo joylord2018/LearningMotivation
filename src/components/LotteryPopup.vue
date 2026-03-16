@@ -14,24 +14,27 @@
 
       <!-- 九宫格抽奖 -->
       <div class="lottery-grid-container">
-        <div v-for="index in 9" :key="index" class="lottery-grid-cell">
-          <!-- 纸覆盖层 -->
-          <div class="cell-front" :class="{ 'teared': revealedCell === index }" @click="handleCellClick(index)">
-            <div class="paper-text">🎁 点击抽奖</div>
-          </div>
-          <!-- 奖品内容层 -->
-          <div class="cell-back">
-            <div v-if="revealedCell === index" class="prize-content">
-              <div class="segment-icon">{{ getRarityIcon(gridItems[index - 1]!.rarity) }}</div>
-              {{ gridItems[index - 1]!.name }}
-              <div class="segment-probability">{{ gridItems[index - 1]!.probability }}%</div>
+        <!-- 发光色块 -->
+        <div v-if="isSpinning" class="glowing-block" :style="glowingBlockStyle"></div>
+        
+        <div v-for="index in 9" :key="index" class="lottery-grid-cell" :class="{ 'active': activeCell === index }">
+            <!-- 纸覆盖层 -->
+            <div class="cell-front" :class="{ 'teared': revealedCell === index }" @click="handleCellClick(index)">
+                <div class="paper-text">🎁 点击抽奖</div>
             </div>
-            <div v-else class="placeholder-content">
-              <div class="segment-icon">🎁</div>
-              <div class="segment-name">神秘奖品</div>
-              <div class="segment-probability">???</div>
+            <!-- 奖品内容层 -->
+            <div class="cell-back">
+                <div v-if="revealedCell === index" class="prize-content">
+                    <div class="segment-icon">{{ getRarityIcon(gridItems[index - 1]!.rarity) }}</div>
+                    {{ gridItems[index - 1]!.name }}
+                    <div class="segment-probability">{{ gridItems[index - 1]!.probability }}%</div>
+                </div>
+                <div v-else class="placeholder-content">
+                    <div class="segment-icon">🎁</div>
+                    <div class="segment-name">神秘奖品</div>
+                    <div class="segment-probability">???</div>
+                </div>
             </div>
-          </div>
         </div>
       </div>
 
@@ -111,9 +114,24 @@ const showResult = ref(false)
 const resultItem = ref<BackpackItem | null>(null)
 const revealedCell = ref<number | null>(null)
 const showInsufficientPointsPopup = ref(false)
+const activeCell = ref<number | null>(null)
 
 // 抽奖消耗
 const lotteryCost = 10
+
+// 发光色块样式计算属性
+const glowingBlockStyle = computed(() => {
+    if (!activeCell.value) return { display: 'none' }
+    
+    const row = Math.ceil(activeCell.value / 3) - 1
+    const col = (activeCell.value - 1) % 3
+    
+    return {
+        top: `${row * 33.33}%`,
+        left: `${col * 33.33}%`,
+        transition: 'all 0.2s ease'
+    }
+})
 
 // 计算属性已移除，使用九宫格样式
 // 初始化九宫格奖品数据
@@ -274,36 +292,75 @@ function getRarityText(rarity?: ItemRarity) {
 
 // 格子点击事件处理
 async function handleCellClick(cellIndex: number) {
-  if (isSpinning.value || store.currentPoints < lotteryCost) {
-    if (store.currentPoints < lotteryCost) {
-      showInsufficientPointsPopup.value = true;
+    if (isSpinning.value || store.currentPoints < lotteryCost) {
+        if (store.currentPoints < lotteryCost) {
+            showInsufficientPointsPopup.value = true;
+        }
+        return;
     }
-    return;
-  }
 
-  // 设置抽奖状态
-  isSpinning.value = true;
-  revealedCell.value = cellIndex;
+    // 设置抽奖状态
+    isSpinning.value = true;
+    activeCell.value = 1;
 
-  // 等待纸撕开动画完成
-  await new Promise(resolve => setTimeout(resolve, 1000));
+    // 生成随机的移动路径
+    const path = generateRandomPath();
+    
+    // 执行发光色块移动动画
+    await animateGlowingBlock(path);
 
-  // 获取点击格子对应的奖品
-  const selectedGridItem = gridItems.value[cellIndex - 1]
-  // 执行抽奖并保存记录
-  const drawnItem = store.drawLottery(selectedGridItem)
-  if (drawnItem) {
-    // 设置抽奖结果（不显示弹窗）
-    resultItem.value = drawnItem
-  }
+    // 随机选择一个格子作为中奖格子
+    const winningCell = path[path.length - 1];
+    revealedCell.value = winningCell;
 
-  // 3秒后重置抽奖状态并重新初始化奖品
-  setTimeout(() => {
-    revealedCell.value = null;
-    isSpinning.value = false;
-    showResult.value = false;
-    resetGridItems() // 每次抽奖后重新生成奖品
-  }, 3000);
+    // 等待纸撕开动画完成
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // 获取中奖格子对应的奖品
+    const selectedGridItem = gridItems.value[winningCell - 1]
+    // 执行抽奖并保存记录
+    const drawnItem = store.drawLottery(selectedGridItem)
+    if (drawnItem) {
+        // 设置抽奖结果并显示弹窗
+        resultItem.value = drawnItem;
+        showResult.value = true;
+    }
+
+    // 3秒后重置抽奖状态并重新初始化奖品
+    setTimeout(() => {
+        revealedCell.value = null;
+        isSpinning.value = false;
+        activeCell.value = null;
+        showResult.value = false;
+        resetGridItems() // 每次抽奖后重新生成奖品
+    }, 3000);
+}
+
+// 生成随机移动路径
+function generateRandomPath(): number[] {
+    const path: number[] = [];
+    const cells = [1, 2, 3, 6, 9, 8, 7, 4]; // 顺时针路径
+    
+    // 随机移动3-5圈
+    const circles = Math.floor(Math.random() * 3) + 3;
+    // 随机停止位置
+    const stopIndex = Math.floor(Math.random() * cells.length);
+    
+    for (let i = 0; i < circles * cells.length + stopIndex; i++) {
+        path.push(cells[i % cells.length]);
+    }
+    
+    return path;
+}
+
+// 执行发光色块移动动画
+async function animateGlowingBlock(path: number[]) {
+    for (const cell of path) {
+        activeCell.value = cell;
+        // 逐渐增加延迟，模拟减速效果
+        const delay = Math.min(100 + path.indexOf(cell) * 10, 300);
+        await new Promise(resolve => setTimeout(resolve, delay));
+    }
 }
 </script>
 
@@ -390,6 +447,35 @@ async function handleCellClick(cellIndex: number) {
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
   gap: 8px;
+}
+
+/* 发光色块 */
+.glowing-block {
+  position: absolute;
+  width: calc(33.33% - 8px);
+  height: calc(33.33% - 8px);
+  border-radius: 20px;
+  background: linear-gradient(45deg, #fffb00, #ff00ff);
+  box-shadow: 0 0 20px rgba(255, 251, 0, 0.8);
+  z-index: 5;
+  animation: glowing 1s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+/* 发光动画 */
+@keyframes glowing {
+  from {
+    box-shadow: 0 0 20px rgba(255, 251, 0, 0.8);
+  }
+  to {
+    box-shadow: 0 0 30px rgba(255, 0, 255, 0.8);
+  }
+}
+
+/* 激活的格子 */
+.lottery-grid-cell.active {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
 }
 
 .lottery-grid-cell {

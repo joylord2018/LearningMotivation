@@ -86,6 +86,16 @@ export enum ItemRarity {
   Legendary = 'legendary', // 传说
 }
 
+// 定义物品效果类型
+export enum ItemEffectType {
+  ADD_POINTS_5 = 'add_points_5', // 获得5点积分
+  ADD_POINTS_10 = 'add_points_10', // 获得10点积分
+  ADD_POINTS_20 = 'add_points_20', // 获得20点积分
+  UNLOCK_ACHIEVEMENTS = 'unlock_achievements', // 解锁所有成就进度
+  EXTRA_LOTTERY = 'extra_lottery', // 额外抽奖机会
+  DOUBLE_POINTS = 'double_points', // 双倍积分
+}
+
 // 定义抽奖物品类型
 export interface LotteryItem {
   id: string
@@ -94,6 +104,7 @@ export interface LotteryItem {
   rarity: ItemRarity
   probability: number // 概率（百分比）
   effect?: string // 特殊效果描述
+  effectType?: ItemEffectType // 物品效果类型
   icon: string
 }
 
@@ -106,6 +117,7 @@ export interface BackpackItem {
   acquiredDate: string
   rarity: ItemRarity
   effect?: string // 特殊效果描述
+  effectType?: ItemEffectType // 物品效果类型
   icon: string
 }
 
@@ -539,6 +551,7 @@ export const useUserStore = defineStore(
         rarity: ItemRarity.Rare,
         probability: 10,
         effect: '使用后获得5点积分',
+        effectType: ItemEffectType.ADD_POINTS_5,
         icon: '💡'
       },
       {
@@ -559,6 +572,7 @@ export const useUserStore = defineStore(
         rarity: ItemRarity.Epic,
         probability: 5,
         effect: '使用后获得10点积分',
+        effectType: ItemEffectType.ADD_POINTS_10,
         icon: '🏰'
       },
       {
@@ -568,6 +582,7 @@ export const useUserStore = defineStore(
         rarity: ItemRarity.Epic,
         probability: 3,
         effect: '使用后所有任务获得双倍积分',
+        effectType: ItemEffectType.DOUBLE_POINTS,
         icon: '🧙‍♂️'
       },
 
@@ -579,6 +594,7 @@ export const useUserStore = defineStore(
         rarity: ItemRarity.Legendary,
         probability: 1,
         effect: '使用后获得20点积分和一次额外抽奖机会',
+        effectType: ItemEffectType.ADD_POINTS_20,
         icon: '🌟'
       },
       {
@@ -588,6 +604,7 @@ export const useUserStore = defineStore(
         rarity: ItemRarity.Legendary,
         probability: 1,
         effect: '使用后解锁所有成就进度+1',
+        effectType: ItemEffectType.UNLOCK_ACHIEVEMENTS,
         icon: '🏅'
       },
     ])
@@ -669,7 +686,63 @@ export const useUserStore = defineStore(
               shouldUnlock = achievement.current >= achievement.target
               break
             case 'special':
-              // 特殊成就的逻辑可以根据需要添加
+              // 特殊成就的逻辑
+              if (achievement.id === 'achievement-16') {
+                // 完美一周：一周内完成所有学习任务
+                const now = new Date()
+                const weekStart = new Date(now)
+                weekStart.setDate(now.getDate() - now.getDay() + 1) // 调整到周一
+                const weekEnd = new Date(weekStart)
+                weekEnd.setDate(weekStart.getDate() + 6) // 周日
+                
+                // 计算本周的计划数量
+                const weekPlans = plans.value.filter(plan => {
+                  if (plan.type === 'weekly') return false
+                  const planDate = new Date(plan.date)
+                  return planDate >= weekStart && planDate <= weekEnd
+                })
+                
+                // 计算本周已完成的计划数量
+                const completedWeekPlans = weekPlans.filter(plan => plan.completionLevel)
+                
+                // 更新成就进度
+                achievement.current = completedWeekPlans.length
+                shouldUnlock = achievement.current >= achievement.target
+              } else if (achievement.id === 'achievement-17') {
+                // 多才多艺：完成所有科目的学习任务
+                const subjects = ['chinese', 'math', 'english']
+                const completedSubjects = new Set<string>()
+                
+                plans.value.forEach(plan => {
+                  if (plan.completionLevel && subjects.includes(plan.subject)) {
+                    completedSubjects.add(plan.subject)
+                  }
+                })
+                
+                // 更新成就进度
+                achievement.current = completedSubjects.size
+                shouldUnlock = achievement.current >= achievement.target
+              } else if (achievement.id === 'achievement-24') {
+                // 学科专家：在单个学科完成30个任务
+                const subjectCounts: { [key: string]: number } = {
+                  chinese: 0,
+                  math: 0,
+                  english: 0
+                }
+                
+                plans.value.forEach(plan => {
+                  if (plan.completionLevel && subjectCounts.hasOwnProperty(plan.subject)) {
+                    subjectCounts[plan.subject]++
+                  }
+                })
+                
+                // 找出完成任务最多的学科
+                const maxCount = Math.max(...Object.values(subjectCounts))
+                
+                // 更新成就进度
+                achievement.current = maxCount
+                shouldUnlock = achievement.current >= achievement.target
+              }
               break
             case 'lottery':
               // 抽奖相关成就逻辑
@@ -765,13 +838,15 @@ export const useUserStore = defineStore(
       const today = new Date().toISOString().slice(0, 10)
 
       // 检查是否已经初始化了今日计划
-      if (plans.value.some((plan) => plan.date === today)) {
+      const todayPlans = plans.value.filter((plan) => plan.date === today)
+      if (todayPlans.length > 0) {
         return
       }
 
       // 检查是否存在今日计划的标记，避免在用户删除后重新添加
+      // 但如果当天确实没有计划，应该允许重新初始化
       const todayPlanFlag = localStorage.getItem(`todayPlansInitialized-${today}`)
-      if (todayPlanFlag) {
+      if (todayPlanFlag && todayPlans.length > 0) {
         return
       }
 
@@ -1112,7 +1187,7 @@ export const useUserStore = defineStore(
       const today = new Date().toISOString().split('T')[0]
       if (lastCompletionDate.value) {
         const lastDate = new Date(lastCompletionDate.value)
-        const todayDate = new Date(today ?? '')
+        const todayDate = new Date(today)
         const diffTime = todayDate.getTime() - lastDate.getTime()
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
 
@@ -1128,7 +1203,7 @@ export const useUserStore = defineStore(
         // 第一次完成任务
         studyStreak.value = 1
       }
-      lastCompletionDate.value = today ?? null
+      lastCompletionDate.value = today
     }
 
     function updatePlanCompletion(planId: string, completed: boolean) {
@@ -1144,16 +1219,49 @@ export const useUserStore = defineStore(
 
         // 更新计划完成度和积分
         if (plan.type === 'weekly') {
-          // 对于周计划，更新完成次数
-          if (completed && plan.completedCount < plan.targetCount) {
-            plan.completedCount++
-            // 检查是否达到目标次数
-            plan.completionLevel = plan.completedCount >= plan.targetCount
-            plan.points = plan.completionLevel ? 3 : 0
-          } else if (!completed && plan.completedCount > 0) {
-            plan.completedCount--
-            plan.completionLevel = plan.completedCount >= plan.targetCount
-            plan.points = plan.completionLevel ? 3 : 0
+          // 检查当前日期是否在周计划的日期范围内
+          const today = new Date()
+          let isDateInRange = true
+          
+          if (plan.selectedWeek) {
+            try {
+              // 解析周计划的日期范围（格式：YYYY-MM-DD-YYYY-MM-DD）
+              const parts = plan.selectedWeek.split('-')
+              if (parts.length === 6) {
+                // 格式：YYYY-MM-DD-YYYY-MM-DD
+                const weekStart = `${parts[0]}-${parts[1]}-${parts[2]}`
+                const weekEnd = `${parts[3]}-${parts[4]}-${parts[5]}`
+                
+                // 将日期字符串转换为日期对象进行比较
+                const startDate = new Date(weekStart)
+                const endDate = new Date(weekEnd)
+                
+                // 比较日期
+                isDateInRange = today >= startDate && today <= endDate
+              }
+            } catch (error) {
+              // 如果解析出错，默认认为日期在范围内
+              console.error('解析周计划日期范围失败:', error)
+            }
+          }
+          
+          // 只有在日期范围内才能完成周计划
+          if (isDateInRange) {
+            // 对于周计划，更新完成次数
+            if (completed && plan.completedCount < plan.targetCount) {
+              plan.completedCount++
+              // 检查是否达到目标次数
+              plan.completionLevel = plan.completedCount >= plan.targetCount
+              plan.points = plan.completionLevel ? 3 : 0
+            } else if (!completed && plan.completedCount > 0) {
+              plan.completedCount--
+              plan.completionLevel = plan.completedCount >= plan.targetCount
+              plan.points = plan.completionLevel ? 3 : 0
+            }
+          } else if (completed) {
+            // 如果不在日期范围内，不允许完成
+            console.log('当前日期不在周计划的日期范围内，无法完成计划')
+            return
           }
         } else {
           // 对于日计划，直接设置完成状态
@@ -1239,10 +1347,22 @@ export const useUserStore = defineStore(
           (p) => p.date === today && p.completionLevel,
         )
 
-        // 如果当天没有已完成的计划，重置连续完成天数和最后完成日期
+        // 如果当天没有已完成的计划，更新最后完成日期
+        // 但不直接重置连续天数，而是在下次完成任务时重新计算
         if (!hasCompletedPlansToday) {
-          studyStreak.value = 0
-          lastCompletionDate.value = null
+          // 检查是否有其他天的已完成计划
+          const hasAnyCompletedPlans = plans.value.some(
+            (p) => p.completionLevel,
+          )
+          if (!hasAnyCompletedPlans) {
+            // 如果没有任何已完成计划，重置连续天数
+            studyStreak.value = 0
+            lastCompletionDate.value = null
+          } else {
+            // 否则，只清除当天的完成记录，保持连续天数
+            // 连续天数会在下次完成任务时重新计算
+            lastCompletionDate.value = null
+          }
         }
 
         return pointsToDeduct
@@ -1258,34 +1378,40 @@ export const useUserStore = defineStore(
     // 兑换物品（修改以支持背包）
     function exchangeItem(itemId: string): boolean {
       const item = exchangeItems.value.find((i) => i.id === itemId)
-      if (item && currentPoints.value >= item.points) {
-        // 扣除积分
-        currentPoints.value -= item.points
+      if (item) {
+        if (currentPoints.value >= item.points) {
+          // 扣除积分
+          currentPoints.value -= item.points
 
-        // 记录兑换记录
-        const record: PointRecord = {
-          id: `record-${Date.now()}`,
-          date: new Date().toISOString(),
-          description: `兑换${item.name}`,
-          points: -item.points,
-          type: 'exchange',
+          // 记录兑换记录
+          const record: PointRecord = {
+            id: `record-${Date.now()}`,
+            date: new Date().toISOString(),
+            description: `兑换${item.name}`,
+            points: -item.points,
+            type: 'exchange',
+          }
+          pointRecords.value.push(record)
+
+          // 添加到背包，默认普通稀有度
+          const backpackItem: BackpackItem = {
+            id: `backpack-${Date.now()}`,
+            originalId: item.id,
+            name: item.name,
+            description: item.description,
+            acquiredDate: new Date().toISOString(),
+            rarity: ItemRarity.Common,
+            icon: '🎁'
+          }
+          backpackItems.value.push(backpackItem)
+
+          return true
+        } else {
+          console.log('积分不足，无法兑换该物品')
+          return false
         }
-        pointRecords.value.push(record)
-
-        // 添加到背包，默认普通稀有度
-        const backpackItem: BackpackItem = {
-          id: `backpack-${Date.now()}`,
-          originalId: item.id,
-          name: item.name,
-          description: item.description,
-          acquiredDate: new Date().toISOString(),
-          rarity: ItemRarity.Common,
-          icon: '🎁'
-        }
-        backpackItems.value.push(backpackItem)
-
-        return true
       }
+      console.log('未找到指定的兑换物品')
       return false
     }
 
@@ -1298,7 +1424,41 @@ export const useUserStore = defineStore(
         if (!item) return false // 额外的安全检查
 
         // 执行物品效果
-        if (item.effect) {
+        if (item.effectType) {
+          // 根据物品效果类型执行不同的操作
+          switch (item.effectType) {
+            case ItemEffectType.ADD_POINTS_5:
+              adjustPoints(5, `使用稀有物品${item.name}`)
+              break
+            case ItemEffectType.ADD_POINTS_10:
+              adjustPoints(10, `使用史诗物品${item.name}`)
+              break
+            case ItemEffectType.ADD_POINTS_20:
+              adjustPoints(20, `使用传说物品${item.name}`)
+              // 可以在这里添加额外抽奖机会的逻辑
+              break
+            case ItemEffectType.UNLOCK_ACHIEVEMENTS:
+              // 增加所有成就的进度
+              achievements.value.forEach((achievement) => {
+                if (!achievement.unlocked) {
+                  achievement.current = Math.min(achievement.current + 1, achievement.target)
+                }
+              })
+              checkAchievements() // 检查是否有新解锁的成就
+              break
+            case ItemEffectType.EXTRA_LOTTERY:
+              // 额外抽奖机会逻辑
+              console.log(`使用${item.name}获得额外抽奖机会`)
+              // 这里可以实现额外抽奖机会的逻辑
+              break
+            case ItemEffectType.DOUBLE_POINTS:
+              // 双倍积分逻辑
+              console.log(`使用${item.name}获得双倍积分效果`)
+              // 这里可以实现双倍积分的逻辑
+              break
+          }
+        } else if (item.effect) {
+          // 兼容旧的effect字符串格式
           // 根据物品效果执行不同的操作
           if (item.effect.includes('获得5点积分') && item.rarity === ItemRarity.Rare) {
             adjustPoints(5, `使用稀有物品${item.name}`)
@@ -1343,6 +1503,7 @@ export const useUserStore = defineStore(
     function drawLottery(item?: LotteryItem): BackpackItem | null {
       // 检查积分是否足够
       if (currentPoints.value < lotteryCost) {
+        console.log('积分不足，无法参与抽奖')
         return null
       }
 
@@ -1385,16 +1546,17 @@ export const useUserStore = defineStore(
       })()
 
       // 将抽到的物品添加到背包
-      const backpackItem: BackpackItem = {
-        id: `backpack-${Date.now()}`,
-        originalId: selectedItem.id,
-        name: selectedItem.name,
-        description: selectedItem.description,
-        acquiredDate: new Date().toISOString(),
-        rarity: selectedItem.rarity,
-        effect: selectedItem.effect,
-        icon: selectedItem.icon
-      }
+        const backpackItem: BackpackItem = {
+          id: `backpack-${Date.now()}`,
+          originalId: selectedItem.id,
+          name: selectedItem.name,
+          description: selectedItem.description,
+          acquiredDate: new Date().toISOString(),
+          rarity: selectedItem.rarity,
+          effect: selectedItem.effect,
+          effectType: selectedItem.effectType,
+          icon: selectedItem.icon
+        }
       backpackItems.value.push(backpackItem)
 
       // 添加抽奖记录到lotteryRecords

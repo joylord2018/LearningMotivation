@@ -357,6 +357,63 @@
                     </div>
                 </div>
 
+                <!-- 抽奖管理 -->
+                <div v-if="activeTab === 'lottery'" class="tab-content">
+                    <div class="admin-section">
+                        <div class="section-header">
+                            <h2 class="section-title">🎰 抽奖管理</h2>
+                            <div class="section-decoration"></div>
+                        </div>
+                        <div class="section-content">
+                            <!-- 抽奖消耗设置 -->
+                            <div class="form-group">
+                                <label for="lotteryCost" class="form-label">抽奖一次需要的积分</label>
+                                <el-input-number id="lotteryCost" v-model="lotteryCost" placeholder="输入积分..." :min="1" />
+                                <button class="btn save-btn" @click="saveLotteryCost">
+                                    <span class="btn-icon">💾</span>
+                                    <span>保存设置</span>
+                                </button>
+                            </div>
+                            
+                            <!-- 抽奖物品管理 -->
+                            <button class="btn add-lottery-item-btn" @click="showAddLotteryItemModal">
+                                <span class="btn-icon">➕</span>
+                                <span>添加新抽奖物品</span>
+                            </button>
+                            <div class="lottery-items-list">
+                                <div v-for="(item, index) in store.lotteryItems" :key="item.id" class="lottery-item fade-in" :style="{ animationDelay: index * 0.05 + 's' }">
+                                    <div class="lottery-item-info">
+                                        <div class="lottery-item-header">
+                                            <span class="lottery-item-icon">{{ getRarityIcon(item.rarity) }}</span>
+                                            <h3 class="lottery-item-name">{{ item.name }}</h3>
+                                            <span class="lottery-item-rarity">{{ getRarityText(item.rarity) }}</span>
+                                        </div>
+                                        <p class="lottery-item-description">{{ item.description }}</p>
+                                        <div class="lottery-item-meta">
+                                            <span class="lottery-item-probability">概率: {{ item.probability }}%</span>
+                                            <span class="lottery-item-effect">{{ item.effect }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="lottery-item-actions">
+                                        <button class="btn edit-btn" @click="editLotteryItem(item)">
+                                            <span class="btn-icon">✏️</span>
+                                            <span>编辑</span>
+                                        </button>
+                                        <button class="btn delete-btn" @click="confirmDeleteLotteryItem(item)">
+                                            <span class="btn-icon">🗑️</span>
+                                            <span>删除</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div v-if="store.lotteryItems.length === 0" class="no-lottery-items">
+                                    <p class="no-lottery-items-text">暂无抽奖物品</p>
+                                    <p class="no-lottery-items-hint">点击上方按钮添加新抽奖物品</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 系统设置 -->
                 <div v-if="activeTab === 'settings'" class="tab-content">
                     <!-- 功能开关管理 -->
@@ -679,6 +736,51 @@
             </div>
         </div>
 
+        <!-- 添加/编辑抽奖物品弹窗 -->
+        <div v-if="showLotteryItemModal" class="modal-overlay" @click="closeLotteryItemModal">
+            <div class="modal-content" @click.stop>
+                <div class="modal-header">
+                    <h2 class="modal-title">{{ isEditingLotteryItem ? '✏️ 编辑抽奖物品' : '➕ 添加抽奖物品' }}</h2>
+                    <button class="close-btn" @click="closeLotteryItemModal">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="lotteryItemName" class="form-label">物品名称</label>
+                        <input type="text" id="lotteryItemName" v-model="currentLotteryItem.name" placeholder="输入物品名称..."
+                            class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="lotteryItemDescription" class="form-label">物品描述</label>
+                        <textarea id="lotteryItemDescription" v-model="currentLotteryItem.description" placeholder="输入物品描述..."
+                            class="form-textarea" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="lotteryItemRarity" class="form-label">稀有度</label>
+                        <select id="lotteryItemRarity" v-model="currentLotteryItem.rarity" class="form-input">
+                            <option value="common">普通</option>
+                            <option value="rare">稀有</option>
+                            <option value="epic">史诗</option>
+                            <option value="legendary">传说</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="lotteryItemProbability" class="form-label">概率 (%)</label>
+                        <input type="number" id="lotteryItemProbability" v-model.number="currentLotteryItem.probability" placeholder="输入概率..."
+                            class="form-input" min="1" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="lotteryItemEffect" class="form-label">效果</label>
+                        <input type="text" id="lotteryItemEffect" v-model="currentLotteryItem.effect" placeholder="输入效果（例如：+100 积分）..."
+                            class="form-input">
+                    </div>
+                    <button class="btn save-btn" @click="saveLotteryItem">
+                        <span class="btn-icon">💾</span>
+                        <span>保存</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- 图标选择器弹窗 -->
         <div v-if="showIconSelector" class="modal-overlay" @click="closeIconSelector">
             <div class="modal-content" @click.stop>
@@ -940,16 +1042,32 @@ interface Behavior {
     type: 'positive' | 'negative'
 }
 
+// 抽奖物品相关
+interface LotteryItem {
+    id: string
+    name: string
+    description: string
+    rarity: string
+    probability: number
+    effect: string
+    icon: string
+}
+
 // 模态框相关
 const showTaskModal = ref(false)
 const showRewardModal = ref(false)
 const showBehaviorModal = ref(false)
+const showLotteryItemModal = ref(false)
 const showConfirmModal = ref(false)
 const isEditingTask = ref(false)
 const isEditingReward = ref(false)
 const isEditingBehavior = ref(false)
+const isEditingLotteryItem = ref(false)
 const confirmMessage = ref('')
 const confirmAction = ref(() => { })
+
+// 抽奖消耗设置
+const lotteryCost = ref(10)
 
 // 图标选择相关
 const showIconSelector = ref(false)
@@ -1041,6 +1159,17 @@ const currentBehavior = reactive<Behavior>({
     type: 'positive'
 })
 
+// 当前编辑的抽奖物品
+const currentLotteryItem = reactive<LotteryItem>({
+    id: '',
+    name: '',
+    description: '',
+    rarity: 'common',
+    probability: 10,
+    effect: '',
+    icon: '🎁'
+})
+
 // 标签页相关
 const activeTab = ref('dashboard')
 const tabs = [
@@ -1048,6 +1177,7 @@ const tabs = [
     { id: 'plans', label: '计划管理', icon: '📝' },
     { id: 'behaviors', label: '行为管理', icon: '🎯' },
     { id: 'rewards', label: '兑换项管理', icon: '🎁' },
+    { id: 'lottery', label: '抽奖管理', icon: '🎰' },
     { id: 'settings', label: '系统设置', icon: '⚙️' }
 ]
 
@@ -1478,6 +1608,74 @@ const showAddBehaviorModal = () => {
     showBehaviorModal.value = true
 }
 
+// 抽奖物品相关方法
+const showAddLotteryItemModal = () => {
+    isEditingLotteryItem.value = false
+    Object.assign(currentLotteryItem, {
+        id: '',
+        name: '',
+        description: '',
+        rarity: 'common',
+        probability: 10,
+        effect: '',
+        icon: '🎁'
+    })
+    showLotteryItemModal.value = true
+}
+
+const editLotteryItem = (item: any) => {
+    isEditingLotteryItem.value = true
+    Object.assign(currentLotteryItem, item)
+    showLotteryItemModal.value = true
+}
+
+const saveLotteryItem = () => {
+    if (!currentLotteryItem.name || !currentLotteryItem.description || currentLotteryItem.probability <= 0) {
+        showNotificationMessage('请填写完整的抽奖物品信息', 'error', '❌')
+        return
+    }
+
+    if (isEditingLotteryItem.value) {
+        store.updateLotteryItem(
+            currentLotteryItem.id,
+            currentLotteryItem.name,
+            currentLotteryItem.description,
+            currentLotteryItem.rarity,
+            currentLotteryItem.probability,
+            currentLotteryItem.effect
+        )
+    } else {
+        store.addLotteryItem(
+            currentLotteryItem.name,
+            currentLotteryItem.description,
+            currentLotteryItem.rarity,
+            currentLotteryItem.probability,
+            currentLotteryItem.effect
+        )
+    }
+    showNotificationMessage(isEditingLotteryItem.value ? '抽奖物品更新成功！' : '抽奖物品添加成功！', 'success', '✅')
+    closeLotteryItemModal()
+}
+
+const confirmDeleteLotteryItem = (item: any) => {
+    confirmMessage.value = `确定要删除抽奖物品 "${item.name}" 吗？`
+    confirmAction.value = () => {
+        store.removeLotteryItem(item.id)
+        showNotificationMessage('抽奖物品删除成功！', 'success', '✅')
+        closeConfirmModal()
+    }
+    showConfirmModal.value = true
+}
+
+const saveLotteryCost = () => {
+    if (lotteryCost.value <= 0) {
+        showNotificationMessage('请输入有效的积分数量', 'error', '❌')
+        return
+    }
+    store.setLotteryCost(lotteryCost.value)
+    showNotificationMessage('抽奖消耗设置保存成功！', 'success', '✅')
+}
+
 const editTask = (task: Task) => {
     isEditingTask.value = true
     Object.assign(currentTask, task)
@@ -1677,6 +1875,10 @@ const closeRewardModal = () => {
 
 const closeBehaviorModal = () => {
     showBehaviorModal.value = false
+}
+
+const closeLotteryItemModal = () => {
+    showLotteryItemModal.value = false
 }
 
 const closeConfirmModal = () => {
@@ -3409,6 +3611,115 @@ input:checked + .toggle-slider:before {
         transform: scale(1);
         opacity: 1;
     }
+}
+
+/* 抽奖物品列表 */
+.lottery-items-list {
+    margin-top: 20px;
+}
+
+.lottery-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #fff8fa 0%, #ffedf2 100%);
+    padding: 20px;
+    border-radius: 16px;
+    border: 2px solid #ffedf2;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: visible;
+    margin-bottom: 15px;
+}
+
+.lottery-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(255, 107, 139, 0.2);
+    border-color: #ffb6c1;
+}
+
+.lottery-item-info {
+    flex: 1;
+}
+
+.lottery-item-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.lottery-item-icon {
+    font-size: 24px;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+.lottery-item-name {
+    margin: 0;
+    color: #ff6b8b;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.lottery-item-rarity {
+    background-color: #ff6b81;
+    color: white;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.lottery-item-description {
+    margin: 0 0 10px 0;
+    color: #ff8fab;
+    font-size: 0.9rem;
+}
+
+.lottery-item-meta {
+    display: flex;
+    gap: 20px;
+    font-size: 0.8rem;
+    color: #ffb6c1;
+}
+
+.lottery-item-probability {
+    font-weight: 600;
+}
+
+.lottery-item-effect {
+    font-style: italic;
+}
+
+.lottery-item-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.no-lottery-items {
+    text-align: center;
+    padding: 40px 20px;
+    color: #ffb6c1;
+    background: linear-gradient(135deg, #fff8fa 0%, #ffedf2 100%);
+    border-radius: 16px;
+    border: 2px dashed #ffedf2;
+}
+
+.no-lottery-items-text {
+    margin: 0 0 10px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.no-lottery-items-hint {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #ffd6e0;
+}
+
+.add-lottery-item-btn {
+    margin-bottom: 20px;
 }
 
 /* 响应式设计 */
