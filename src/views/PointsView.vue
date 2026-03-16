@@ -16,10 +16,10 @@
         <header class="points-header">
             <h1>🏆 我的积分王国</h1>
             <div class="header-actions">
-                <button v-if="store.enableLottery" class="lottery-btn" @click="showLotteryPopup = true">
+                <button v-if="store.enableLottery" class="lottery-btn" @click="openLotteryPopup">
                     🎰 幸运抽奖
                 </button>
-                <button class="backpack-btn" @click="showBackpackPopup = true">
+                <button class="backpack-btn" @click="openBackpackPopup">
                     🎒 我的背包 <span v-if="store.backpackItems.length > 0" class="badge">{{ store.backpackItems.length
                         }}</span>
                 </button>
@@ -91,18 +91,18 @@
 
             <!-- 积分记录按钮 -->
             <div class="view-records-section">
-                <button @click="showRecordsPopup = true" class="view-records-btn">
+                <button @click="openRecordsPopup" class="view-records-btn">
                     📊 查看积分记录
                 </button>
             </div>
         </div>
 
         <!-- 积分记录弹窗 -->
-        <div v-if="showRecordsPopup" class="records-popup-overlay" @click="showRecordsPopup = false">
+        <div v-if="showRecordsPopup" class="records-popup-overlay" @click="closeRecordsPopup">
             <div class="records-popup-content" @click.stop>
                 <div class="popup-header">
                     <h2>📊 我的积分记录</h2>
-                    <button class="close-btn" @click="showRecordsPopup = false">✕</button>
+                    <button class="close-btn" @click="closeRecordsPopup">✕</button>
                 </div>
 
                 <!-- 筛选按钮 -->
@@ -136,13 +136,13 @@
                 </div>
 
                 <div class="popup-footer">
-                    <button @click="showRecordsPopup = false" class="close-popup-btn">关闭</button>
+                    <button @click="closeRecordsPopup" class="close-popup-btn">关闭</button>
                 </div>
             </div>
         </div>
 
         <!-- 兑换成功弹窗 -->
-        <div v-if="showExchangePopup" class="custom-popup-overlay" @click="showExchangePopup = false">
+        <div v-if="showExchangePopup" class="custom-popup-overlay" @click="closeExchangePopup">
             <div class="custom-popup-content" @click.stop>
                 <div class="popup-icon">{{ exchangePopupIcon }}</div>
                 <div class="popup-message">{{ exchangePopupMessage }}</div>
@@ -152,16 +152,16 @@
                         {{ pointChangeText }}
                     </div>
                 </transition>
-                <button class="popup-btn" @click="showExchangePopup = false">太棒了！</button>
+                <button class="popup-btn" @click="closeExchangePopup">太棒了！</button>
             </div>
         </div>
 
         <!-- 背包弹窗 -->
-        <div v-if="showBackpackPopup" class="backpack-popup-overlay" @click="showBackpackPopup = false">
+        <div v-if="showBackpackPopup" class="backpack-popup-overlay" @click="closeBackpackPopup">
             <div class="backpack-popup-content" @click.stop>
                 <div class="popup-header">
                     <h2>🎒 我的背包</h2>
-                    <button class="close-btn" @click="showBackpackPopup = false">✕</button>
+                    <button class="close-btn" @click="closeBackpackPopup">✕</button>
                 </div>
 
                 <div v-if="store.backpackItems.length === 0" class="no-items">
@@ -181,34 +181,34 @@
                             <div v-if="item.effect" class="item-effect">{{ item.effect }}</div>
                             <div class="acquired-date">获得时间: {{ formatDate(item.acquiredDate) }}</div>
                         </div>
-                        <button class="use-item-btn" @click="showUseConfirm = true; selectedItem = item">
+                        <button class="use-item-btn" @click="openUseConfirm(item)">
                             使用
                         </button>
                     </div>
                 </div>
 
                 <div class="popup-footer">
-                    <button @click="showBackpackPopup = false" class="close-popup-btn">关闭</button>
+                    <button @click="closeBackpackPopup" class="close-popup-btn">关闭</button>
                 </div>
             </div>
         </div>
 
         <!-- 使用物品确认弹窗 -->
-        <div v-if="showUseConfirm" class="confirm-popup-overlay" @click="showUseConfirm = false">
+        <div v-if="showUseConfirm" class="confirm-popup-overlay" @click="closeUseConfirm">
             <div class="confirm-popup-content" @click.stop>
                 <div class="confirm-icon">✨</div>
                 <h3>使用物品确认</h3>
                 <p v-if="selectedItem">是否立即使用「{{ selectedItem.name }}」？</p>
                 <p class="confirm-hint">使用后物品将从背包中移除</p>
                 <div class="confirm-buttons">
-                    <button class="confirm-cancel" @click="showUseConfirm = false">取消</button>
+                    <button class="confirm-cancel" @click="closeUseConfirm">取消</button>
                     <button class="confirm-use" @click="handleUseItem">确认使用</button>
                 </div>
             </div>
         </div>
 
         <!-- 抽奖弹窗 -->
-        <LotteryPopup v-if="store.enableLottery" :visible="showLotteryPopup" @close="showLotteryPopup = false" />
+        <LotteryPopup v-if="store.enableLottery" :visible="showLotteryPopup" @close="closeLotteryPopup" />
     </div>
 </template>
 
@@ -325,6 +325,8 @@ function handleExchange(item: any) {
             exchangePopupIcon.value = '🎉'
             exchangePopupMessage.value = `${item.name}兑换成功！已放入背包`
             showExchangePopup.value = true
+            // 禁止背景页面滚动
+            document.body.style.overflow = 'hidden'
 
             // 显示积分变动动画
             showPointChange.value = true
@@ -342,10 +344,14 @@ function handleUseItem() {
         const success = store.useItemFromBackpack(selectedItem.value.id)
         if (success) {
             showUseConfirm.value = false
+            // 恢复背景页面滚动
+            document.body.style.overflow = 'auto'
             showBackpackPopup.value = false
             exchangePopupIcon.value = '✨'
             exchangePopupMessage.value = `${selectedItem.value.name}使用成功！`
             showExchangePopup.value = true
+            // 禁止背景页面滚动
+            document.body.style.overflow = 'hidden'
             selectedItem.value = null
         }
     }
@@ -377,6 +383,70 @@ function formatDate(dateString: string) {
         hour: '2-digit',
         minute: '2-digit'
     })
+}
+
+// 打开积分记录弹窗
+function openRecordsPopup() {
+    showRecordsPopup.value = true
+    // 禁止背景页面滚动
+    document.body.style.overflow = 'hidden'
+}
+
+// 关闭积分记录弹窗
+function closeRecordsPopup() {
+    showRecordsPopup.value = false
+    // 恢复背景页面滚动
+    document.body.style.overflow = 'auto'
+}
+
+// 打开背包弹窗
+function openBackpackPopup() {
+    showBackpackPopup.value = true
+    // 禁止背景页面滚动
+    document.body.style.overflow = 'hidden'
+}
+
+// 关闭背包弹窗
+function closeBackpackPopup() {
+    showBackpackPopup.value = false
+    // 恢复背景页面滚动
+    document.body.style.overflow = 'auto'
+}
+
+// 打开使用物品确认弹窗
+function openUseConfirm(item: any) {
+    selectedItem.value = item
+    showUseConfirm.value = true
+    // 禁止背景页面滚动
+    document.body.style.overflow = 'hidden'
+}
+
+// 关闭使用物品确认弹窗
+function closeUseConfirm() {
+    showUseConfirm.value = false
+    // 恢复背景页面滚动
+    document.body.style.overflow = 'auto'
+}
+
+// 打开抽奖弹窗
+function openLotteryPopup() {
+    showLotteryPopup.value = true
+    // 禁止背景页面滚动
+    document.body.style.overflow = 'hidden'
+}
+
+// 关闭抽奖弹窗
+function closeLotteryPopup() {
+    showLotteryPopup.value = false
+    // 恢复背景页面滚动
+    document.body.style.overflow = 'auto'
+}
+
+// 关闭兑换成功弹窗
+function closeExchangePopup() {
+    showExchangePopup.value = false
+    // 恢复背景页面滚动
+    document.body.style.overflow = 'auto'
 }
 </script>
 

@@ -173,7 +173,7 @@
         </div>
         <div v-if="selectedAchievement?.unlocked" class="achievement-detail-date">
           <span class="date-label">解锁日期：</span>
-          <span class="date-value">{{ formatDate(selectedAchievement.unlockedAt || new Date().toISOString()) }}</span>
+          <span class="date-value">{{ formatDate(selectedAchievement.unlockedAt) }}</span>
         </div>
         <div v-if="selectedAchievement?.points" class="achievement-detail-reward">
           <span class="reward-label">奖励积分：</span>
@@ -223,7 +223,7 @@ const achievements = computed(() => {
 })
 
 // 根据成就难度和目标获取稀有度
-function getAchievementRarity(achievement: any): 'common' | 'rare' | 'epic' | 'legendary' {
+function getAchievementRarity(achievement: { target: number }): 'common' | 'rare' | 'epic' | 'legendary' {
   if (achievement.target >= 100) return 'legendary'
   if (achievement.target >= 50) return 'epic'
   if (achievement.target >= 10) return 'rare'
@@ -231,7 +231,7 @@ function getAchievementRarity(achievement: any): 'common' | 'rare' | 'epic' | 'l
 }
 
 // 根据稀有度获取奖励积分
-function getAchievementPoints(achievement: any): number {
+function getAchievementPoints(achievement: { target: number }): number {
   const rarity = getAchievementRarity(achievement)
   const pointsMap = {
     common: 10,
@@ -262,11 +262,15 @@ const recentUnlockedAchievements = computed(() =>
 const showAchievementDetails = (achievement: Achievement) => {
   selectedAchievement.value = achievement
   showDetails.value = true
+  // 禁止背景页面滚动
+  document.body.style.overflow = 'hidden'
 }
 
 const closeAchievementDetails = () => {
   showDetails.value = false
   selectedAchievement.value = null
+  // 恢复背景页面滚动
+  document.body.style.overflow = 'auto'
 }
 
 const formatDate = (dateString?: string) => {

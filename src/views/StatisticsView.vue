@@ -380,17 +380,15 @@ const chartData = computed<ChartData>(() => {
         }
     });
 
-    // 计算总完成任务数
-    const totalCompletedTasks = subjectStats.reduce((sum, subject) => sum + (subject.completedTasks || 0), 0);
-
-    // 计算完成率 - 改为占总完成任务数的比例
+    // 计算完成率 - 基于每个学科自己的任务数
     subjectStats.forEach((subject, index) => {
         // 确保subject存在
         if (subject) {
-            // 安全地计算完成率（占总完成任务数的比例）
+            // 安全地计算完成率（基于该学科自己的任务数）
             const completed = subject.completedTasks || 0;
-            subject.completionRate = totalCompletedTasks > 0
-                ? Math.round((completed / totalCompletedTasks) * 100)
+            const total = subject.totalTasks || 0;
+            subject.completionRate = total > 0
+                ? Math.round((completed / total) * 100)
                 : 0;
         }
     });

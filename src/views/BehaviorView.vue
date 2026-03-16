@@ -31,11 +31,11 @@
 
     <!-- 搜索栏 -->
     <div class="search-bar">
-      <input 
+      <el-input 
         v-model="searchQuery" 
-        type="text" 
         placeholder="搜索习惯名称或描述..."
-        class="search-input"
+        prefix-icon="Search"
+        style="width: 100%"
       />
     </div>
 
@@ -102,7 +102,7 @@
               <span class="btn-icon">✓</span> 已完成
             </button>
             <button 
-              v-if="behavior.currentCount > 0 && !behavior.completed" 
+              v-if="behavior.currentCount > 0" 
               class="action-btn cancel-btn" 
               @click="handleCancelBehavior(behavior.id)"
             >
@@ -196,6 +196,8 @@ function showNotificationMessage(message: string, type: string, icon: string) {
   notificationType.value = type
   notificationIcon.value = icon
   showNotification.value = true
+  // 禁止背景页面滚动
+  document.body.style.overflow = 'hidden'
 
   setTimeout(() => {
     closeNotification()
@@ -205,6 +207,8 @@ function showNotificationMessage(message: string, type: string, icon: string) {
 // 关闭通知
 function closeNotification() {
   showNotification.value = false
+  // 恢复背景页面滚动
+  document.body.style.overflow = 'auto'
 }
 
 // 组件挂载时初始化

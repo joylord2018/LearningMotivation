@@ -100,7 +100,7 @@
                                     </div>
                                 </div>
 
-                                <p class="plan-description">{{ getPlanDescriptionBySubject(plan.subject) }}</p>
+                                <p class="plan-description">{{ plan.description || getPlanDescriptionBySubject(plan.subject) }}</p>
 
                                 <!-- 计划详情 -->
                                 <div class="plan-details">
@@ -368,7 +368,20 @@ const weekDays = computed(() => {
 
 // 计算选中日期的计划
 const selectedDatePlans = computed(() => {
-    return store.plans.filter(plan => plan.date === selectedDate.value && plan.type !== 'weekly')
+    return store.plans.filter(plan => {
+        if (plan.type === 'weekly') return false
+        
+        // 检查是否是特定范围类型的计划
+        if (plan.dailyType === 'dateRange' && plan.startDate && plan.endDate) {
+            const selected = new Date(selectedDate.value)
+            const start = new Date(plan.startDate)
+            const end = new Date(plan.endDate)
+            return selected >= start && selected <= end
+        }
+        
+        // 普通特定日期计划
+        return plan.date === selectedDate.value
+    })
 })
 
 // 按学科分组的计划
@@ -506,13 +519,7 @@ function getPlanNameBySubject(subject: string): string {
 
 // 获取计划描述
 function getPlanDescriptionBySubject(subject: string): string {
-    // 首先尝试从选中日期的计划中获取实际的描述
-    const plan = selectedDatePlans.value.find(p => p.subject === subject);
-    if (plan && plan.description) {
-        return plan.description;
-    }
-
-    // 如果没有从store获取到，使用默认描述
+    // 使用默认描述
     const descriptions: { [key: string]: string } = {
         'chinese': '阅读一篇文章并理解内容',
         'math': '完成几道数学练习题',
@@ -525,8 +532,8 @@ function getPlanDescriptionBySubject(subject: string): string {
 function quickComplete(planId: string) {
     const plan = store.plans.find(p => p.id === planId)
     if (plan && !plan.completionLevel) {
-        const points = 3 // 固定3积分
-        store.updatePlanCompletion(planId, true) // 标记为完成，获得3积分
+        store.updatePlanCompletion(planId, true) // 标记为完成，获得积分
+        const points = plan.points // 使用计划的points属性
 
         // 确保弹窗状态正确更新
         showPopup.value = false
@@ -535,6 +542,8 @@ function quickComplete(planId: string) {
             popupIcon.value = '🎊'
             popupPoints.value = points
             showPopup.value = true
+            // 禁止背景页面滚动
+            document.body.style.overflow = 'hidden'
         }, 50)
 
         // 检查是否完成了所有计划
@@ -560,6 +569,8 @@ function checkAllPlansCompleted() {
                     popupIcon.value = '💰'
                     popupPoints.value = randomPoints
                     showPopup.value = true
+                    // 禁止背景页面滚动
+                    document.body.style.overflow = 'hidden'
                 }, 50)
             }
         }, 2000)
@@ -601,6 +612,8 @@ function undoComplete(planId: string) {
         popupIcon.value = '🔄'
         popupPoints.value = 0
         showPopup.value = true
+        // 禁止背景页面滚动
+        document.body.style.overflow = 'hidden'
     }, 100)
 }
 
@@ -613,6 +626,8 @@ function startTimer(planId: string) {
         timerSeconds.value = 0
         isTimerPaused.value = false
         showTimerPopup.value = true
+        // 禁止背景页面滚动
+        document.body.style.overflow = 'hidden'
         
         // 开始计时
         if (timerInterval.value) {
@@ -640,13 +655,15 @@ function stopTimer() {
     }
     
     showTimerPopup.value = false
+    // 恢复背景页面滚动
+    document.body.style.overflow = 'auto'
     
     // 完成计划
     if (currentTimerPlanId.value) {
         const plan = store.plans.find(p => p.id === currentTimerPlanId.value)
         if (plan && !plan.completionLevel) {
-            const points = 3 // 固定3积分
-            store.updatePlanCompletion(currentTimerPlanId.value, true) // 标记为完成，获得3积分
+            store.updatePlanCompletion(currentTimerPlanId.value, true) // 标记为完成，获得积分
+            const points = plan.points // 使用计划的points属性
 
             // 确保弹窗状态正确更新
             showPopup.value = false
@@ -655,6 +672,8 @@ function stopTimer() {
                 popupIcon.value = '🎊'
                 popupPoints.value = points
                 showPopup.value = true
+                // 禁止背景页面滚动
+                document.body.style.overflow = 'hidden'
             }, 50)
 
             // 检查是否完成了所有计划
@@ -676,6 +695,8 @@ function closeTimerPopup() {
     }
     
     showTimerPopup.value = false
+    // 恢复背景页面滚动
+    document.body.style.overflow = 'auto'
     timerSeconds.value = 0
     currentTimerPlanId.value = ''
     currentTimerPlanName.value = ''
@@ -684,14 +705,16 @@ function closeTimerPopup() {
 // 关闭弹窗
 function closePopup() {
     showPopup.value = false
+    // 恢复背景页面滚动
+    document.body.style.overflow = 'auto'
 }
 
 // 完成周计划
 function completeWeeklyPlan(planId: string) {
     const plan = store.plans.find(p => p.id === planId)
     if (plan && !plan.completionLevel) {
-        const points = 3 // 固定3积分
-        store.updatePlanCompletion(planId, true) // 标记为完成，获得3积分
+        store.updatePlanCompletion(planId, true) // 标记为完成，获得积分
+        const points = plan.points // 使用计划的points属性
 
         // 确保弹窗状态正确更新
         showPopup.value = false
@@ -700,6 +723,8 @@ function completeWeeklyPlan(planId: string) {
             popupIcon.value = '🎊'
             popupPoints.value = points
             showPopup.value = true
+            // 禁止背景页面滚动
+            document.body.style.overflow = 'hidden'
         }, 50)
     }
 }
@@ -708,16 +733,19 @@ function completeWeeklyPlan(planId: string) {
 function undoCompleteWeeklyPlan(planId: string) {
     const plan = store.plans.find(p => p.id === planId)
     if (plan && plan.type === 'weekly' && plan.completedCount > 0) {
+        const currentCount = plan.completedCount
         // 对于周计划，调用 updatePlanCompletion 并传入 false 来减少一次完成次数
         store.updatePlanCompletion(planId, false)
         // 强制更新弹窗状态
         showPopup.value = false
         // 延迟显示撤销弹窗，确保响应式更新完成
         setTimeout(() => {
-            popupMessage.value = `↩️ 已撤销第${plan.completedCount + 1}次完成`
+            popupMessage.value = `↩️ 已撤销第${currentCount}次完成`
             popupIcon.value = '🔄'
             popupPoints.value = 0
             showPopup.value = true
+            // 禁止背景页面滚动
+            document.body.style.overflow = 'hidden'
         }, 100)
     }
 }
@@ -729,10 +757,7 @@ function handleLogout() {
     router.push('/')
 }
 
-// 组件挂载时初始化今日计划
-onMounted(() => {
-    store.initializeTodayPlans()
-})
+
 </script>
 
 <style scoped>

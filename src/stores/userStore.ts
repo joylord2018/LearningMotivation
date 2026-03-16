@@ -8,9 +8,11 @@ interface Plan {
   subjectName: string
   date: string
   type: 'daily' | 'weekly'
-  dailyType?: 'specific' | 'everyday'
+  dailyType?: 'specific' | 'everyday' | 'dateRange'
   weeklyType?: 'everyweek' | 'specific'
   selectedWeek?: string
+  startDate?: string
+  endDate?: string
   frequency: 'once' | 'daily' | 'weekly'
   targetCount: number
   completedCount: number
@@ -697,20 +699,8 @@ export const useUserStore = defineStore(
             achievement.isNew = true
             newlyUnlocked = true
 
-            // 根据稀有度奖励不同积分
-            const rarity = achievement.target >= 100 ? 'legendary' : 
-                          achievement.target >= 50 ? 'epic' : 
-                          achievement.target >= 10 ? 'rare' : 'common'
+            // 移除积分奖励
             
-            const pointsMap = {
-              common: 10,
-              rare: 50,
-              epic: 150,
-              legendary: 300
-            }
-            
-            adjustPoints(pointsMap[rarity], `解锁成就: ${achievement.name}`)
-
             // 这里可以触发动画或通知
             console.log(`🎉 恭喜解锁成就: ${achievement.name}!`)
           }
@@ -740,8 +730,7 @@ export const useUserStore = defineStore(
           firstLoginAchievement.unlockedAt = new Date().toISOString()
           firstLoginAchievement.isNew = true
           
-          // 奖励积分
-          adjustPoints(10, '解锁成就: 初次登录')
+          // 移除积分奖励
           console.log('🎉 恭喜解锁成就: 初次登录!')
         }
         
@@ -755,8 +744,7 @@ export const useUserStore = defineStore(
             earlyBirdAchievement.unlockedAt = new Date().toISOString()
             earlyBirdAchievement.isNew = true
             
-            // 奖励积分
-            adjustPoints(20, '解锁成就: 早起鸟儿')
+            // 移除积分奖励
             console.log('🎉 恭喜解锁成就: 早起鸟儿!')
           }
         }
@@ -1052,6 +1040,14 @@ export const useUserStore = defineStore(
           }
           pointRecords.value.push(record)
         }
+        
+        // 如果计数为0，清除最后记录日期
+        if (behavior.currentCount === 0) {
+          behavior.lastRecordDate = null
+        }
+
+        // 检查成就
+        checkAchievements()
 
         return true
       }
@@ -1173,9 +1169,11 @@ export const useUserStore = defineStore(
           currentPoints.value += plan.points
         }
 
-        // 增加总计划完成数
+        // 增加或减少总计划完成数
         if (completed && !wasCompleted) {
           totalTaskCompletions.value++
+        } else if (!completed && wasCompleted) {
+          totalTaskCompletions.value = Math.max(0, totalTaskCompletions.value - 1)
         }
 
         // 记录积分变动

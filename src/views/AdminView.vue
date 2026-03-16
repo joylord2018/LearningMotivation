@@ -55,233 +55,369 @@
             </div>
 
             <!-- 导航标签 -->
-            <NavigationTabs />
+            <div class="admin-tabs">
+                <button 
+                    v-for="tab in tabs" 
+                    :key="tab.id"
+                    :class="['tab-btn', { active: activeTab === tab.id }]"
+                    @click="activeTab = tab.id"
+                >
+                    <span class="tab-icon">{{ tab.icon }}</span>
+                    <span class="tab-label">{{ tab.label }}</span>
+                </button>
+            </div>
 
             <!-- 管理功能区域 -->
             <div class="admin-sections">
-                <!-- 积分调整区域 -->
-                <div class="admin-section">
-                    <div class="section-header">
-                        <h2 class="section-title">🎯 积分管理</h2>
-                        <div class="section-decoration"></div>
+                <!-- 仪表板 -->
+                <div v-if="activeTab === 'dashboard'" class="tab-content">
+                    <!-- 积分调整区域 -->
+                    <div class="admin-section">
+                        <div class="section-header">
+                            <h2 class="section-title">🎯 积分管理</h2>
+                            <div class="section-decoration"></div>
+                        </div>
+                        <div class="section-content">
+                            <div class="point-controls">
+                                <div class="form-group">
+                        <label for="userId" class="form-label">用户账号</label>
+                        <el-input id="userId" v-model="userId" placeholder="输入用户ID..." />
                     </div>
-                    <div class="section-content">
-                        <div class="point-controls">
-                            <div class="form-group">
-                                <label for="userId" class="form-label">用户账号</label>
-                                <input type="text" id="userId" v-model="userId" placeholder="输入用户ID..."
-                                    class="form-input">
+                    <div class="form-group">
+                        <label for="points" class="form-label">积分数量</label>
+                        <el-input-number id="points" v-model="pointsToAdjust" placeholder="输入积分..." :min="1" />
+                    </div>
+                                <div class="action-buttons">
+                                    <button class="btn add-btn" @click="addPoints">
+                                        <span class="btn-icon">➕</span>
+                                        <span>增加积分</span>
+                                    </button>
+                                    <button class="btn subtract-btn" @click="subtractPoints">
+                                        <span class="btn-icon">➖</span>
+                                        <span>扣除积分</span>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label for="points" class="form-label">积分数量</label>
-                                <input type="number" id="points" v-model.number="pointsToAdjust" placeholder="输入积分..."
-                                    class="form-input">
-                            </div>
-                            <div class="action-buttons">
-                                <button class="btn add-btn" @click="addPoints">
-                                    <span class="btn-icon">➕</span>
-                                    <span>增加积分</span>
-                                </button>
-                                <button class="btn subtract-btn" @click="subtractPoints">
-                                    <span class="btn-icon">➖</span>
-                                    <span>扣除积分</span>
-                                </button>
+                        </div>
+                    </div>
+
+                    <!-- 系统概览 -->
+                    <div class="admin-section">
+                        <div class="section-header">
+                            <h2 class="section-title">� 系统概览</h2>
+                            <div class="section-decoration"></div>
+                        </div>
+                        <div class="section-content">
+                            <div class="dashboard-stats">
+                                <div class="stat-card">
+                                    <div class="stat-icon">📝</div>
+                                    <div class="stat-info">
+                                        <div class="stat-value">{{ store.plans.length }}</div>
+                                        <div class="stat-label">学习计划</div>
+                                    </div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-icon">🎯</div>
+                                    <div class="stat-info">
+                                        <div class="stat-value">{{ store.behaviors.length }}</div>
+                                        <div class="stat-label">行为记录</div>
+                                    </div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-icon">🎁</div>
+                                    <div class="stat-info">
+                                        <div class="stat-value">{{ store.exchangeItems.length }}</div>
+                                        <div class="stat-label">兑换项</div>
+                                    </div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-icon">🏆</div>
+                                    <div class="stat-info">
+                                        <div class="stat-value">{{ store.achievements.length }}</div>
+                                        <div class="stat-label">成就</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 计划管理 -->
-                <div class="admin-section">
-                    <div class="section-header">
-                        <h2 class="section-title">📝 计划管理</h2>
-                        <div class="section-decoration"></div>
-                    </div>
-                    <div class="section-content">
-                        <button class="btn add-task-btn" @click="showAddTaskModal">
-                            <span class="btn-icon">➕</span>
-                            <span>添加新计划</span>
-                        </button>
-                        <div class="tasks-list">
-                            <div v-for="(task, index) in store.plans" :key="task.id" class="task-item fade-in"
-                                :style="{ animationDelay: index * 0.05 + 's' }">
-                                <div class="task-info">
-                                    <div class="task-header">
-                                        <span class="task-icon">{{ task.icon || '📝' }}</span>
-                                        <h3 class="task-name">{{ task.subjectName }}</h3>
-                                        <span class="task-points">{{ task.points }} 🎯</span>
-                                    </div>
-                                    <p class="task-description">{{ task.description }}</p>
-                                    <div class="task-meta">
-                                        <span class="task-date">{{ task.date }}</span>
-                                        <span class="task-subject">{{ task.subject }}</span>
-                                    </div>
-                                </div>
-                                <div class="task-actions">
-                                    <button class="btn edit-btn" @click="editTask(task)">
-                                        <span class="btn-icon">✏️</span>
-                                        <span>编辑</span>
-                                    </button>
-                                    <button class="btn delete-btn" @click="confirmDeleteTask(task)">
-                                        <span class="btn-icon">🗑️</span>
-                                        <span>删除</span>
-                                    </button>
-                                </div>
-                            </div>
-                            <div v-if="store.plans.length === 0" class="no-tasks">
-                                <p class="no-tasks-text">暂无计划</p>
-                                <p class="no-tasks-hint">点击上方按钮添加新计划</p>
-                            </div>
+                <div v-if="activeTab === 'plans'" class="tab-content">
+                    <div class="admin-section">
+                        <div class="section-header">
+                            <h2 class="section-title">📝 计划管理</h2>
+                            <div class="section-decoration"></div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- 功能开关管理 -->
-                <div class="admin-section">
-                    <div class="section-header">
-                        <h2 class="section-title">⚙️ 功能开关</h2>
-                        <div class="section-decoration"></div>
-                    </div>
-                    <div class="section-content">
-                        <div class="feature-toggle">
-                            <div class="toggle-item">
-                                <div class="toggle-info">
-                                    <h3 class="toggle-name">🔔 学习提醒</h3>
-                                    <p class="toggle-description">启用学习提醒功能</p>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" v-model="store.enableReminders">
-                                    <span class="toggle-slider"></span>
-                                </label>
+                        <div class="section-content">
+                            <div class="action-buttons-row">
+                                <button class="btn add-task-btn" @click="showAddTaskModal">
+                                    <span class="btn-icon">➕</span>
+                                    <span>添加新计划</span>
+                                </button>
+                                <button class="btn quick-setup-btn" @click="openQuickSetupDrawer">
+                                    <span class="btn-icon">⚡</span>
+                                    <span>便捷设置</span>
+                                </button>
                             </div>
-                            <div class="toggle-item">
-                                <div class="toggle-info">
-                                    <h3 class="toggle-name">🎰 抽奖功能</h3>
-                                    <p class="toggle-description">启用积分抽奖功能</p>
+                            
+                            <!-- 筛选按钮 -->
+                            <div class="filter-buttons">
+                                <button 
+                                    class="filter-btn" 
+                                    :class="{ active: selectedFilters.includes('all') }"
+                                    @click="toggleFilter('all')"
+                                >
+                                    全部
+                                </button>
+                                <button 
+                                    class="filter-btn" 
+                                    :class="{ active: selectedFilters.includes('chinese') }"
+                                    @click="toggleFilter('chinese')"
+                                >
+                                    📚 语文
+                                </button>
+                                <button 
+                                    class="filter-btn" 
+                                    :class="{ active: selectedFilters.includes('math') }"
+                                    @click="toggleFilter('math')"
+                                >
+                                    🔢 数学
+                                </button>
+                                <button 
+                                    class="filter-btn" 
+                                    :class="{ active: selectedFilters.includes('english') }"
+                                    @click="toggleFilter('english')"
+                                >
+                                    🗣️ 英语
+                                </button>
+                                <button 
+                                    class="filter-btn" 
+                                    :class="{ active: selectedFilters.includes('dateRange') }"
+                                    @click="toggleFilter('dateRange')"
+                                >
+                                    📅 范围
+                                </button>
+                                <button 
+                                    class="filter-btn" 
+                                    :class="{ active: selectedFilters.includes('weekly') }"
+                                    @click="toggleFilter('weekly')"
+                                >
+                                    📋 周计划
+                                </button>
+                            </div>
+                            
+                            <!-- 日期范围选择 -->
+                            <div v-if="selectedFilters.includes('dateRange')" class="date-range-filter">
+                                <div class="form-group">
+                                    <label class="form-label">日期范围</label>
+                                    <el-date-picker
+                                        v-model="dateRange"
+                                        type="daterange"
+                                        range-separator="至"
+                                        start-placeholder="开始日期"
+                                        end-placeholder="结束日期"
+                                        style="width: 100%"
+                                    />
                                 </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" v-model="store.enableLottery">
-                                    <span class="toggle-slider"></span>
-                                </label>
+                            </div>
+                            
+                            <div v-if="Object.keys(filteredPlansBySubject).length === 0" class="no-tasks">
+                                <p class="no-tasks-text">暂无符合条件的计划</p>
+                                <p class="no-tasks-hint">请调整筛选条件或添加新计划</p>
+                            </div>
+                            <div v-else>
+                                <div v-for="(plans, subject) in filteredPlansBySubject" :key="subject" class="subject-section">
+                                    <div class="subject-header">
+                                        <span class="subject-icon">{{ getPlanIconBySubject(String(subject)) }}</span>
+                                        <h3>{{ getPlanNameBySubject(String(subject)) }}</h3>
+                                    </div>
+                                    <div class="tasks-list">
+                                        <div v-for="(task, index) in plans" :key="task.id" class="task-item fade-in"
+                                            :style="{ animationDelay: index * 0.05 + 's' }">
+                                            <div class="task-info">
+                                                <div class="task-header">
+                                                    <span class="task-icon">{{ task.icon || '📝' }}</span>
+                                                    <h3 class="task-name">{{ task.subjectName }}</h3>
+                                                    <span class="task-points">{{ task.points }} 🎯</span>
+                                                </div>
+                                                <p class="task-description">{{ task.description }}</p>
+                                                <div class="task-meta">
+                                                    <span class="task-date">{{ task.date }}</span>
+                                                    <span class="task-subject">{{ task.subject }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="task-actions">
+                                                <button class="btn edit-btn" @click="editTask(task)">
+                                                    <span class="btn-icon">✏️</span>
+                                                    <span>编辑</span>
+                                                </button>
+                                                <button class="btn delete-btn" @click="confirmDeleteTask(task)">
+                                                    <span class="btn-icon">🗑️</span>
+                                                    <span>删除</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 行为管理 -->
-                <div class="admin-section">
-                    <div class="section-header">
-                        <h2 class="section-title">🎯 行为管理</h2>
-                        <div class="section-decoration"></div>
-                    </div>
-                    <div class="section-content">
-                        <button class="btn add-behavior-btn" @click="showAddBehaviorModal">
-                            <span class="btn-icon">➕</span>
-                            <span>添加新行为</span>
-                        </button>
-                        <div class="behaviors-list">
-                            <div v-for="(behavior, index) in store.behaviors" :key="behavior.id"
-                                class="behavior-item fade-in" :style="{ animationDelay: index * 0.05 + 's' }">
-                                <div class="behavior-info">
-                                    <div class="behavior-header">
-                                        <span class="behavior-icon">{{ behavior.icon }}</span>
-                                        <h3 class="behavior-name">{{ behavior.name }}</h3>
-                                        <span class="behavior-points" :class="{ 'negative': behavior.type === 'negative' }">
-                                            {{ behavior.points > 0 ? '+' : '' }}{{ behavior.points }}分
-                                        </span>
+                <div v-if="activeTab === 'behaviors'" class="tab-content">
+                    <div class="admin-section">
+                        <div class="section-header">
+                            <h2 class="section-title">🎯 行为管理</h2>
+                            <div class="section-decoration"></div>
+                        </div>
+                        <div class="section-content">
+                            <button class="btn add-behavior-btn" @click="showAddBehaviorModal">
+                                <span class="btn-icon">➕</span>
+                                <span>添加新行为</span>
+                            </button>
+                            <div class="behaviors-list">
+                                <div v-for="(behavior, index) in store.behaviors" :key="behavior.id"
+                                    class="behavior-item fade-in" :style="{ animationDelay: index * 0.05 + 's' }">
+                                    <div class="behavior-info">
+                                        <div class="behavior-header">
+                                            <span class="behavior-icon">{{ behavior.icon }}</span>
+                                            <h3 class="behavior-name">{{ behavior.name }}</h3>
+                                            <span class="behavior-points" :class="{ 'negative': behavior.type === 'negative' }">
+                                                {{ behavior.points > 0 ? '+' : '' }}{{ behavior.points }}分
+                                            </span>
+                                        </div>
+                                        <p class="behavior-description">{{ behavior.description }}</p>
+                                        <div class="behavior-meta">
+                                            <span class="behavior-frequency">{{ behavior.frequency === 'daily' ? '每日' : behavior.frequency === 'weekly' ? '每周' : '自定义' }} {{ behavior.targetCount }}次</span>
+                                            <span class="behavior-type">{{ behavior.type === 'positive' ? '积极' : '消极' }}</span>
+                                        </div>
                                     </div>
-                                    <p class="behavior-description">{{ behavior.description }}</p>
-                                    <div class="behavior-meta">
-                                        <span class="behavior-frequency">{{ behavior.frequency === 'daily' ? '每日' : behavior.frequency === 'weekly' ? '每周' : '自定义' }} {{ behavior.targetCount }}次</span>
-                                        <span class="behavior-type">{{ behavior.type === 'positive' ? '积极' : '消极' }}</span>
+                                    <div class="behavior-actions">
+                                        <button class="btn edit-btn" @click="editBehavior(behavior)">
+                                            <span class="btn-icon">✏️</span>
+                                            <span>编辑</span>
+                                        </button>
+                                        <button class="btn delete-btn" @click="confirmDeleteBehavior(behavior)">
+                                            <span class="btn-icon">🗑️</span>
+                                            <span>删除</span>
+                                        </button>
                                     </div>
                                 </div>
-                                <div class="behavior-actions">
-                                    <button class="btn edit-btn" @click="editBehavior(behavior)">
-                                        <span class="btn-icon">✏️</span>
-                                        <span>编辑</span>
-                                    </button>
-                                    <button class="btn delete-btn" @click="confirmDeleteBehavior(behavior)">
-                                        <span class="btn-icon">🗑️</span>
-                                        <span>删除</span>
-                                    </button>
+                                <div v-if="store.behaviors.length === 0" class="no-behaviors">
+                                    <p class="no-behaviors-text">暂无行为</p>
+                                    <p class="no-behaviors-hint">点击上方按钮添加新行为</p>
                                 </div>
-                            </div>
-                            <div v-if="store.behaviors.length === 0" class="no-behaviors">
-                                <p class="no-behaviors-text">暂无行为</p>
-                                <p class="no-behaviors-hint">点击上方按钮添加新行为</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 兑换项管理 -->
-                <div class="admin-section">
-                    <div class="section-header">
-                        <h2 class="section-title">🎁 兑换项管理</h2>
-                        <div class="section-decoration"></div>
-                    </div>
-                    <div class="section-content">
-                        <button class="btn add-reward-btn" @click="showAddRewardModal">
-                            <span class="btn-icon">➕</span>
-                            <span>添加新兑换项</span>
-                        </button>
-                        <div class="rewards-list">
-                            <div v-for="(reward, index) in store.exchangeItems" :key="reward.id"
-                                class="reward-item fade-in" :style="{ animationDelay: index * 0.05 + 's' }">
-                                <div class="reward-info">
-                                    <div class="reward-header">
-                                        <span class="reward-icon">🎁</span> <!-- 使用固定图标或从store中获取 -->
-                                        <h3 class="reward-name">{{ reward.name }}</h3>
-                                        <span class="reward-cost">{{ reward.points }} 🎯</span> <!-- 修改为points -->
+                <div v-if="activeTab === 'rewards'" class="tab-content">
+                    <div class="admin-section">
+                        <div class="section-header">
+                            <h2 class="section-title">🎁 兑换项管理</h2>
+                            <div class="section-decoration"></div>
+                        </div>
+                        <div class="section-content">
+                            <button class="btn add-reward-btn" @click="showAddRewardModal">
+                                <span class="btn-icon">➕</span>
+                                <span>添加新兑换项</span>
+                            </button>
+                            <div class="rewards-list">
+                                <div v-for="(reward, index) in store.exchangeItems" :key="reward.id"
+                                    class="reward-item fade-in" :style="{ animationDelay: index * 0.05 + 's' }">
+                                    <div class="reward-info">
+                                        <div class="reward-header">
+                                            <span class="reward-icon">🎁</span> <!-- 使用固定图标或从store中获取 -->
+                                            <h3 class="reward-name">{{ reward.name }}</h3>
+                                            <span class="reward-cost">{{ reward.points }} 🎯</span> <!-- 修改为points -->
+                                        </div>
+                                        <p class="reward-description">{{ reward.description }}</p>
                                     </div>
-                                    <p class="reward-description">{{ reward.description }}</p>
+                                    <div class="reward-actions">
+                                        <button class="btn edit-btn" @click="editReward(reward)">
+                                            <span class="btn-icon">✏️</span>
+                                            <span>编辑</span>
+                                        </button>
+                                        <button class="btn delete-btn" @click="confirmDeleteReward(reward)">
+                                            <span class="btn-icon">🗑️</span>
+                                            <span>删除</span>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="reward-actions">
-                                    <button class="btn edit-btn" @click="editReward(reward)">
-                                        <span class="btn-icon">✏️</span>
-                                        <span>编辑</span>
-                                    </button>
-                                    <button class="btn delete-btn" @click="confirmDeleteReward(reward)">
-                                        <span class="btn-icon">🗑️</span>
-                                        <span>删除</span>
-                                    </button>
+                                <div v-if="store.exchangeItems.length === 0" class="no-rewards">
+                                    <p class="no-rewards-text">暂无兑换项</p>
+                                    <p class="no-rewards-hint">点击上方按钮添加新兑换项</p>
                                 </div>
-                            </div>
-                            <div v-if="store.exchangeItems.length === 0" class="no-rewards">
-                                <p class="no-rewards-text">暂无兑换项</p>
-                                <p class="no-rewards-hint">点击上方按钮添加新兑换项</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 数据导出导入 -->
-                <div class="admin-section">
-                    <div class="section-header">
-                        <h2 class="section-title">💾 数据管理</h2>
-                        <div class="section-decoration"></div>
-                    </div>
-                    <div class="section-content">
-                        <div class="data-management">
-                            <button class="btn export-btn" @click="exportData">
-                                <span class="btn-icon">📤</span>
-                                <span>导出数据</span>
-                            </button>
-                            <input type="file" ref="fileInput" style="display: none" @change="importData" accept=".json" />
-                            <button class="btn import-btn" @click="triggerFileInput">
-                                <span class="btn-icon">📥</span>
-                                <span>导入数据</span>
-                            </button>
-                            <button class="btn reset-btn" @click="confirmResetData">
-                                <span class="btn-icon">🔄</span>
-                                <span>重置所有数据</span>
-                            </button>
+                <!-- 系统设置 -->
+                <div v-if="activeTab === 'settings'" class="tab-content">
+                    <!-- 功能开关管理 -->
+                    <div class="admin-section">
+                        <div class="section-header">
+                            <h2 class="section-title">⚙️ 功能开关</h2>
+                            <div class="section-decoration"></div>
                         </div>
-                        <div class="data-info">
-                            <p class="data-info-text">📝 数据导出将生成包含所有用户数据的JSON文件</p>
-                            <p class="data-info-text">🔒 数据文件包含敏感信息，请妥善保管</p>
-                            <p class="data-info-text">⚠️ 导入数据将覆盖现有数据，请谨慎操作</p>
+                        <div class="section-content">
+                            <div class="feature-toggle">
+                                <div class="toggle-item">
+                                    <div class="toggle-info">
+                                        <h3 class="toggle-name">🔔 学习提醒</h3>
+                                        <p class="toggle-description">启用学习提醒功能</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" v-model="store.enableReminders">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="toggle-item">
+                                    <div class="toggle-info">
+                                        <h3 class="toggle-name">🎰 抽奖功能</h3>
+                                        <p class="toggle-description">启用积分抽奖功能</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" v-model="store.enableLottery">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 数据导出导入 -->
+                    <div class="admin-section">
+                        <div class="section-header">
+                            <h2 class="section-title">💾 数据管理</h2>
+                            <div class="section-decoration"></div>
+                        </div>
+                        <div class="section-content">
+                            <div class="data-management">
+                                <button class="btn export-btn" @click="exportData">
+                                    <span class="btn-icon">📤</span>
+                                    <span>导出数据</span>
+                                </button>
+                                <input type="file" ref="fileInput" style="display: none" @change="importData" accept=".json" />
+                                <button class="btn import-btn" @click="triggerFileInput">
+                                    <span class="btn-icon">📥</span>
+                                    <span>导入数据</span>
+                                </button>
+                                <button class="btn reset-btn" @click="confirmResetData">
+                                    <span class="btn-icon">🔄</span>
+                                    <span>重置所有数据</span>
+                                </button>
+                            </div>
+                            <div class="data-info">
+                                <p class="data-info-text">📝 数据导出将生成包含所有用户数据的JSON文件</p>
+                                <p class="data-info-text">🔒 数据文件包含敏感信息，请妥善保管</p>
+                                <p class="data-info-text">⚠️ 导入数据将覆盖现有数据，请谨慎操作</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -298,96 +434,120 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="taskName" class="form-label">计划名称<span class="required">*</span></label>
-                        <input type="text" id="taskName" v-model="currentTask.subjectName" placeholder="输入计划名称..."
-                            class="form-input">
+                        <el-input id="taskName" v-model="currentTask.subjectName" placeholder="输入计划名称..." />
                     </div>
                     <div class="form-group">
                         <label for="taskSubject" class="form-label">学科</label>
-                        <select id="taskSubject" v-model="currentTask.subject" class="form-input">
-                            <option value="chinese">语文</option>
-                            <option value="math">数学</option>
-                            <option value="english">英语</option>
-                        </select>
+                        <el-select id="taskSubject" v-model="currentTask.subject">
+                            <el-option value="chinese">语文</el-option>
+                            <el-option value="math">数学</el-option>
+                            <el-option value="english">英语</el-option>
+                        </el-select>
                     </div>
                     <div class="form-group">
                         <label for="taskType" class="form-label">计划类型</label>
-                        <select id="taskType" v-model="currentTask.type" class="form-input">
-                            <option value="daily">日计划</option>
-                            <option value="weekly">周计划</option>
-                        </select>
+                        <el-select id="taskType" v-model="currentTask.type">
+                            <el-option value="daily">日计划</el-option>
+                            <el-option value="weekly">周计划</el-option>
+                        </el-select>
                     </div>
                     
                     <!-- 日计划选项 -->
                     <div v-if="currentTask.type === 'daily'" class="form-group">
                         <label for="dailyType" class="form-label">日计划类型</label>
-                        <select id="dailyType" v-model="currentTask.dailyType" class="form-input">
-                            <option value="specific">特定日期</option>
-                            <option value="everyday">每天</option>
-                        </select>
+                        <el-select id="dailyType" v-model="currentTask.dailyType">
+                            <el-option value="specific">特定日期</el-option>
+                            <el-option value="everyday">每天</el-option>
+                            <el-option value="dateRange">特定范围</el-option>
+                        </el-select>
+                    </div>
+                    
+                    <!-- 特定范围日期选择 -->
+                    <div v-if="currentTask.type === 'daily' && currentTask.dailyType === 'dateRange'" class="form-group">
+                        <label class="form-label">日期范围</label>
+                        <el-date-picker
+                            v-model="taskDateRange"
+                            type="daterange"
+                            range-separator="至"
+                            start-placeholder="开始日期"
+                            end-placeholder="结束日期"
+                            style="width: 100%"
+                        />
                     </div>
                     
                     <!-- 特定日期选择 -->
                     <div v-if="currentTask.type === 'daily' && currentTask.dailyType === 'specific'" class="form-group">
                         <label for="taskDate" class="form-label">日期</label>
-                        <input type="date" id="taskDate" v-model="currentTask.date" class="form-input">
+                        <el-date-picker
+                            id="taskDate"
+                            v-model="currentTask.date"
+                            type="date"
+                            placeholder="选择日期"
+                            style="width: 100%"
+                        />
                     </div>
                     
                     <!-- 周计划选项 -->
                     <div v-if="currentTask.type === 'weekly'" class="form-group">
                         <label for="weeklyType" class="form-label">周计划类型</label>
-                        <select id="weeklyType" v-model="currentTask.weeklyType" class="form-input">
-                            <option value="everyweek">每周</option>
-                            <option value="specific">特定周</option>
-                        </select>
+                        <el-select id="weeklyType" v-model="currentTask.weeklyType">
+                            <el-option value="everyweek">每周</el-option>
+                            <el-option value="specific">特定周</el-option>
+                        </el-select>
                     </div>
                     
                     <!-- 特定周选择 -->
                     <div v-if="currentTask.type === 'weekly' && currentTask.weeklyType === 'specific'" class="form-group">
                         <label for="weekSelect" class="form-label">选择周</label>
-                        <select id="weekSelect" v-model="currentTask.selectedWeek" class="form-input">
-                            <option v-for="week in availableWeeks" :key="week.value" :value="week.value">
+                        <el-select id="weekSelect" v-model="currentTask.selectedWeek">
+                            <el-option v-for="week in availableWeeks" :key="week.value" :value="week.value">
                                 {{ week.label }}
-                            </option>
-                        </select>
+                            </el-option>
+                        </el-select>
                     </div>
                     <div class="form-group">
                         <label for="taskTargetCount" class="form-label">目标次数</label>
-                        <input type="number" id="taskTargetCount" v-model.number="currentTask.targetCount" placeholder="输入目标次数..."
-                            class="form-input" min="1">
+                        <el-input-number id="taskTargetCount" v-model="currentTask.targetCount" placeholder="输入目标次数..." :min="1" />
                     </div>
                     <div class="form-group">
                         <label class="form-label">时间限制</label>
-                        <div class="time-range-input">
-                            <input type="time" v-model="startTime" class="form-input time-input">
-                            <span class="time-separator">至</span>
-                            <input type="time" v-model="endTime" class="form-input time-input">
-                        </div>
+                        <el-time-picker
+                            v-model="timeRange"
+                            type="timerange"
+                            range-separator="至"
+                            start-placeholder="开始时间"
+                            end-placeholder="结束时间"
+                            style="width: 100%"
+                        />
                     </div>
                     <div class="form-group">
                         <label for="taskDescription" class="form-label">计划描述<span class="required">*</span></label>
-                        <textarea id="taskDescription" v-model="currentTask.description" placeholder="输入计划描述..."
-                            class="form-textarea" rows="3"></textarea>
+                        <el-input
+                            id="taskDescription"
+                            v-model="currentTask.description"
+                            type="textarea"
+                            placeholder="输入计划描述..."
+                            :rows="3"
+                        />
                     </div>
                     <div class="form-group">
                         <label for="taskPoints" class="form-label">奖励积分<span class="required">*</span></label>
-                        <input type="number" id="taskPoints" v-model.number="currentTask.points" placeholder="输入积分..."
-                            class="form-input">
+                        <el-input-number id="taskPoints" v-model="currentTask.points" placeholder="输入积分..." :min="0" />
                     </div>
                     <div class="form-group">
                         <label class="form-label">计划图标</label>
                         <div class="icon-input-group">
-                            <input type="text" v-model="currentTask.icon" placeholder="输入图标（例如：📝）..."
-                                class="form-input">
-                            <button type="button" class="btn icon-select-btn" @click="openIconSelector('task')">
+                            <el-input v-model="currentTask.icon" placeholder="输入图标（例如：📝）..." />
+                            <el-button type="primary" @click="openIconSelector('task')">
                                 <span class="btn-icon">🎨</span>
                                 <span>选择图标</span>
-                            </button>
+                            </el-button>
                         </div>
                     </div>
-                    <button class="btn save-btn" @click="saveTask">
+                    <el-button type="primary" @click="saveTask" style="width: 100%">
                         <span class="btn-icon">💾</span>
                         <span>保存</span>
-                    </button>
+                    </el-button>
                 </div>
             </div>
         </div>
@@ -549,6 +709,151 @@
                 <button class="close-notification-btn" @click="closeNotification">✕</button>
             </div>
         </div>
+
+        <!-- 便捷设置抽屉 -->
+        <div v-if="showQuickSetupDrawer" class="drawer-overlay" @click="closeQuickSetupDrawer">
+            <div class="drawer-content" @click.stop>
+                <div class="drawer-header">
+                    <h2 class="drawer-title">⚡ 便捷设置</h2>
+                    <button class="close-btn" @click="closeQuickSetupDrawer">✕</button>
+                </div>
+                <div class="drawer-body">
+                    <!-- 标签页 -->
+                    <div class="drawer-tabs">
+                        <button 
+                            class="drawer-tab-btn" 
+                            :class="{ active: quickSetupTab === 'single' }"
+                            @click="quickSetupTab = 'single'"
+                        >
+                            单日设置
+                        </button>
+                        <button 
+                            class="drawer-tab-btn" 
+                            :class="{ active: quickSetupTab === 'batch' }"
+                            @click="quickSetupTab = 'batch'"
+                        >
+                            批量设置
+                        </button>
+                    </div>
+
+                    <!-- 单日设置 -->
+                    <div v-if="quickSetupTab === 'single'" class="tab-content">
+                        <div class="form-group">
+                            <label class="form-label">日期</label>
+                            <input type="date" v-model="quickSetupDate" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">名称筛选</label>
+                            <input type="text" v-model="nameFilter" placeholder="输入计划名称..." class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">描述筛选</label>
+                            <input type="text" v-model="descriptionFilter" placeholder="输入计划描述..." class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">科目筛选</label>
+                            <select v-model="subjectFilter" class="form-input">
+                                <option value="">全部科目</option>
+                                <option value="chinese">语文</option>
+                                <option value="math">数学</option>
+                                <option value="english">英语</option>
+                            </select>
+                        </div>
+                        <div class="plans-list">
+                            <div v-for="plan in filteredQuickSetupPlans" :key="plan.id" class="plan-checkbox-item">
+                                <input 
+                                    type="checkbox" 
+                                    :id="'plan-' + plan.id"
+                                    :checked="isPlanSelectedForDate(plan.id, quickSetupDate)"
+                                    @change="togglePlanForDate(plan.id, quickSetupDate)"
+                                >
+                                <label :for="'plan-' + plan.id" class="plan-checkbox-label">
+                                    <div class="plan-info">
+                                        <div class="plan-name">{{ plan.subjectName }}</div>
+                                        <div class="plan-description">{{ plan.description }}</div>
+                                        <div class="plan-subject">{{ getPlanNameBySubject(plan.subject) }}</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="pagination">
+                            <button class="btn pagination-btn" @click="currentPage > 1 && (currentPage--)" :disabled="currentPage === 1">
+                                上一页
+                            </button>
+                            <span class="page-info">第 {{ currentPage }} 页</span>
+                            <button class="btn pagination-btn" @click="currentPage < totalPages && (currentPage++)" :disabled="currentPage === totalPages">
+                                下一页
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 批量设置 -->
+                    <div v-if="quickSetupTab === 'batch'" class="tab-content">
+                        <div class="form-group">
+                            <label class="form-label">日期范围</label>
+                            <div class="date-range-input">
+                                <input type="date" v-model="batchStartDate" class="form-input date-input">
+                                <span class="date-separator">至</span>
+                                <input type="date" v-model="batchEndDate" class="form-input date-input">
+                            </div>
+                        </div>
+                        <div class="plans-list">
+                            <div v-for="plan in filteredQuickSetupPlans" :key="plan.id" class="plan-checkbox-item">
+                                <input 
+                                    type="checkbox" 
+                                    :id="'batch-plan-' + plan.id"
+                                    v-model="selectedBatchPlans"
+                                    :value="plan.id"
+                                >
+                                <label :for="'batch-plan-' + plan.id" class="plan-checkbox-label">
+                                    <div class="plan-info">
+                                        <div class="plan-name">{{ plan.subjectName }}</div>
+                                        <div class="plan-description">{{ plan.description }}</div>
+                                        <div class="plan-subject">{{ getPlanNameBySubject(plan.subject) }}</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <button class="btn batch-setup-btn" @click="openBatchConfirmModal" :disabled="!batchStartDate || !batchEndDate || selectedBatchPlans.length === 0">
+                            <span class="btn-icon">📅</span>
+                            <span>设置</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 批量设置确认弹窗 -->
+        <div v-if="showBatchConfirmModal" class="modal-overlay" @click="closeBatchConfirmModal">
+            <div class="modal-content" @click.stop>
+                <div class="modal-header">
+                    <h2 class="modal-title">⚠️ 确认批量设置</h2>
+                    <button class="close-btn" @click="closeBatchConfirmModal">✕</button>
+                </div>
+                <div class="modal-body">
+                    <p class="confirm-message">是否确认为 {{ batchStartDate }} 至 {{ batchEndDate }} 添加以下计划：</p>
+                    <div class="batch-plan-list">
+                        <div v-for="planId in selectedBatchPlans" :key="planId" class="batch-plan-item">
+                            <span class="plan-icon">{{ getPlanIconBySubject(getPlanById(planId)?.subject || '') }}</span>
+                            <div class="plan-details">
+                                <div class="plan-name">{{ getPlanById(planId)?.subjectName }}</div>
+                                <div class="plan-description">{{ getPlanById(planId)?.description }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="confirm-actions">
+                        <button class="btn cancel-btn" @click="closeBatchConfirmModal">
+                            <span class="btn-icon">❌</span>
+                            <span>取消</span>
+                        </button>
+                        <button class="btn confirm-btn" @click="confirmBatchSetup">
+                            <span class="btn-icon">✅</span>
+                            <span>确认</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -565,6 +870,27 @@ const isAuthenticated = ref(false)
 const adminPassword = ref('')
 const authError = ref('')
 
+// 检查认证状态
+const checkAuthStatus = () => {
+    const authData = localStorage.getItem('adminAuth')
+    if (authData) {
+        try {
+            const { token, expiresAt } = JSON.parse(authData)
+            const now = Date.now()
+            if (now < expiresAt) {
+                isAuthenticated.value = true
+            } else {
+                localStorage.removeItem('adminAuth')
+            }
+        } catch (error) {
+            localStorage.removeItem('adminAuth')
+        }
+    }
+}
+
+// 初始化时检查认证状态
+checkAuthStatus()
+
 // 积分调整相关
 const userId = ref('')
 const pointsToAdjust = ref(0)
@@ -576,9 +902,11 @@ interface Task {
     subjectName: string
     date: string
     type: 'daily' | 'weekly'
-    dailyType?: 'specific' | 'everyday'
+    dailyType?: 'specific' | 'everyday' | 'dateRange'
     weeklyType?: 'everyweek' | 'specific'
     selectedWeek?: string
+    startDate?: string
+    endDate?: string
     frequency: 'once' | 'daily' | 'weekly'
     targetCount: number
     completedCount: number
@@ -657,8 +985,9 @@ const availableWeeks = computed(() => {
 })
 
 // 时间选择器变量
-const startTime = ref('')
-const endTime = ref('')
+const timeRange = ref<string[]>([])
+const startTime = computed(() => timeRange.value[0] || '')
+const endTime = computed(() => timeRange.value[1] || '')
 
 // 当前编辑的任务、兑换项和行为
 const currentTask = reactive<Task>({
@@ -670,6 +999,8 @@ const currentTask = reactive<Task>({
     dailyType: 'specific',
     weeklyType: 'everyweek',
     selectedWeek: '',
+    startDate: new Date().toISOString().slice(0, 10),
+    endDate: new Date().toISOString().slice(0, 10),
     frequency: 'once',
     targetCount: 1,
     completedCount: 0,
@@ -678,6 +1009,17 @@ const currentTask = reactive<Task>({
     points: 0,
     description: '',
     icon: ''
+})
+
+// 日期范围计算属性
+const taskDateRange = computed({
+    get: () => [currentTask.startDate, currentTask.endDate],
+    set: (value: string[]) => {
+        if (value && value.length === 2) {
+            currentTask.startDate = value[0]
+            currentTask.endDate = value[1]
+        }
+    }
 })
 
 const currentReward = reactive<Reward>({
@@ -699,6 +1041,329 @@ const currentBehavior = reactive<Behavior>({
     type: 'positive'
 })
 
+// 标签页相关
+const activeTab = ref('dashboard')
+const tabs = [
+    { id: 'dashboard', label: '仪表板', icon: '📊' },
+    { id: 'plans', label: '计划管理', icon: '📝' },
+    { id: 'behaviors', label: '行为管理', icon: '🎯' },
+    { id: 'rewards', label: '兑换项管理', icon: '🎁' },
+    { id: 'settings', label: '系统设置', icon: '⚙️' }
+]
+
+// 便捷设置相关
+const showQuickSetupDrawer = ref(false)
+const quickSetupTab = ref('single')
+const quickSetupDate = ref(new Date().toISOString().slice(0, 10))
+const nameFilter = ref('')
+const descriptionFilter = ref('')
+const subjectFilter = ref('')
+const currentPage = ref(1)
+const itemsPerPage = 10
+
+// 批量设置相关
+const batchStartDate = ref('')
+const batchEndDate = ref('')
+const selectedBatchPlans = ref<string[]>([])
+const showBatchConfirmModal = ref(false)
+
+// 筛选相关
+const selectedFilters = ref<string[]>(['all'])
+const dateRange = ref<string[]>([])
+const filterStartDate = computed(() => dateRange.value[0] || '')
+const filterEndDate = computed(() => dateRange.value[1] || '')
+
+// 切换筛选条件
+function toggleFilter(filter: string) {
+    if (filter === 'all') {
+        // 点击"全部"时，清除所有其他筛选条件
+        selectedFilters.value = ['all']
+    } else {
+        // 如果当前有"全部"，先移除
+        if (selectedFilters.value.includes('all')) {
+            selectedFilters.value = []
+        }
+        
+        // 切换当前筛选条件
+        const index = selectedFilters.value.indexOf(filter)
+        if (index > -1) {
+            selectedFilters.value.splice(index, 1)
+        } else {
+            selectedFilters.value.push(filter)
+        }
+        
+        // 如果没有任何筛选条件，默认选择"全部"
+        if (selectedFilters.value.length === 0) {
+            selectedFilters.value = ['all']
+        }
+    }
+}
+
+// 筛选计划
+const filteredPlans = computed(() => {
+    return store.plans.filter(plan => {
+        // 如果选择了"全部"，直接返回所有计划
+        if (selectedFilters.value.includes('all')) {
+            return true
+        }
+        
+        // 学科筛选
+        const subjectFilters = ['chinese', 'math', 'english']
+        const selectedSubjects = selectedFilters.value.filter(f => subjectFilters.includes(f))
+        if (selectedSubjects.length > 0 && !selectedSubjects.includes(plan.subject)) {
+            return false
+        }
+        
+        // 周计划筛选
+        if (selectedFilters.value.includes('weekly') && plan.type !== 'weekly') {
+            return false
+        }
+        
+        // 日期范围筛选
+        if (selectedFilters.value.includes('dateRange') && filterStartDate.value && filterEndDate.value) {
+            const planDate = new Date(plan.date)
+            const startDate = new Date(filterStartDate.value)
+            const endDate = new Date(filterEndDate.value)
+            if (planDate < startDate || planDate > endDate) {
+                return false
+            }
+        }
+        
+        return true
+    })
+})
+
+// 按学科分组的计划
+const plansBySubject = computed(() => {
+    const grouped: { [key: string]: any[] } = {}
+    store.plans.forEach(plan => {
+        const subjectKey = String(plan.subject)
+        if (!grouped[subjectKey]) {
+            grouped[subjectKey] = []
+        }
+        grouped[subjectKey].push(plan)
+    })
+    return grouped
+})
+
+// 按学科分组的筛选后计划
+const filteredPlansBySubject = computed(() => {
+    const grouped: { [key: string]: any[] } = {}
+    filteredPlans.value.forEach(plan => {
+        const subjectKey = String(plan.subject)
+        if (!grouped[subjectKey]) {
+            grouped[subjectKey] = []
+        }
+        grouped[subjectKey].push(plan)
+    })
+    return grouped
+})
+
+// 获取计划图标
+function getPlanIconBySubject(subject: string): string {
+    const icons: { [key: string]: string } = {
+        'chinese': '📚',
+        'math': '🔢',
+        'english': '🗣️'
+    }
+    return icons[subject] || '📝'
+}
+
+// 获取计划名称
+function getPlanNameBySubject(subject: string): string {
+    const names: { [key: string]: string } = {
+        'chinese': '语文计划',
+        'math': '数学计划',
+        'english': '英语计划'
+    }
+    return names[subject] || '学习计划'
+}
+
+// 便捷设置方法
+function openQuickSetupDrawer() {
+    showQuickSetupDrawer.value = true
+    // 禁止背景页面滚动
+    document.body.style.overflow = 'hidden'
+}
+
+function closeQuickSetupDrawer() {
+    showQuickSetupDrawer.value = false
+    // 恢复背景页面滚动
+    document.body.style.overflow = 'auto'
+}
+
+// 获取唯一的计划模板（去重）
+const planTemplates = computed(() => {
+    const seen = new Set<string>()
+    return store.plans.filter(plan => {
+        const key = `${plan.subject}-${plan.subjectName}-${plan.description}`
+        if (seen.has(key)) {
+            return false
+        }
+        seen.add(key)
+        return true
+    })
+})
+
+// 筛选后的计划模板
+const filteredQuickSetupPlans = computed(() => {
+    let plans = planTemplates.value
+    
+    // 名称筛选
+    if (nameFilter.value) {
+        plans = plans.filter(plan => plan.subjectName.toLowerCase().includes(nameFilter.value.toLowerCase()))
+    }
+    
+    // 描述筛选
+    if (descriptionFilter.value) {
+        plans = plans.filter(plan => plan.description.toLowerCase().includes(descriptionFilter.value.toLowerCase()))
+    }
+    
+    // 科目筛选
+    if (subjectFilter.value) {
+        plans = plans.filter(plan => plan.subject === subjectFilter.value)
+    }
+    
+    // 分页
+    const start = (currentPage.value - 1) * itemsPerPage
+    const end = start + itemsPerPage
+    return plans.slice(start, end)
+})
+
+// 总页数
+const totalPages = computed(() => {
+    let plans = planTemplates.value
+    
+    // 应用筛选
+    if (nameFilter.value) {
+        plans = plans.filter(plan => plan.subjectName.toLowerCase().includes(nameFilter.value.toLowerCase()))
+    }
+    if (descriptionFilter.value) {
+        plans = plans.filter(plan => plan.description.toLowerCase().includes(descriptionFilter.value.toLowerCase()))
+    }
+    if (subjectFilter.value) {
+        plans = plans.filter(plan => plan.subject === subjectFilter.value)
+    }
+    
+    return Math.ceil(plans.length / itemsPerPage)
+})
+
+// 检查计划在指定日期是否已添加
+function isPlanSelectedForDate(planId: string, date: string): boolean {
+    const templatePlan = store.plans.find(p => p.id === planId)
+    if (!templatePlan) return false
+    
+    // 检查是否有相同内容的计划在指定日期
+    return store.plans.some(p => 
+        p.id !== planId &&
+        p.subject === templatePlan.subject &&
+        p.subjectName === templatePlan.subjectName &&
+        p.description === templatePlan.description &&
+        p.date === date
+    )
+}
+
+// 切换计划在指定日期的添加状态
+function togglePlanForDate(planId: string, date: string) {
+    const templatePlan = store.plans.find(p => p.id === planId)
+    if (!templatePlan) return
+    
+    // 检查是否已存在
+    const existingPlan = store.plans.find(p => 
+        p.id !== planId &&
+        p.subject === templatePlan.subject &&
+        p.subjectName === templatePlan.subjectName &&
+        p.description === templatePlan.description &&
+        p.date === date
+    )
+    
+    if (existingPlan) {
+        // 移除计划
+        store.plans = store.plans.filter(p => p.id !== existingPlan.id)
+        showNotificationMessage('计划已移除！', 'success', '✅')
+    } else {
+        // 添加计划
+        const newPlan = {
+            ...templatePlan,
+            id: `custom-${Date.now()}`,
+            date: date,
+            completedCount: 0,
+            completionLevel: false
+        }
+        store.plans.push(newPlan)
+        showNotificationMessage('计划已添加！', 'success', '✅')
+    }
+}
+
+// 根据ID获取计划
+function getPlanById(planId: string) {
+    return store.plans.find(p => p.id === planId)
+}
+
+// 显示批量设置确认弹窗
+function openBatchConfirmModal() {
+    if (!batchStartDate.value || !batchEndDate.value || selectedBatchPlans.value.length === 0) {
+        showNotificationMessage('请选择日期范围和计划', 'error', '❌')
+        return
+    }
+    showBatchConfirmModal.value = true
+}
+
+// 关闭批量设置确认弹窗
+function closeBatchConfirmModal() {
+    showBatchConfirmModal.value = false
+}
+
+// 确认批量设置
+function confirmBatchSetup() {
+    if (!batchStartDate.value || !batchEndDate.value || selectedBatchPlans.value.length === 0) return
+    
+    const startDate = new Date(batchStartDate.value)
+    const endDate = new Date(batchEndDate.value)
+    
+    // 生成日期范围内的所有日期
+    const dates = []
+    let currentDate = new Date(startDate)
+    while (currentDate <= endDate) {
+        dates.push(currentDate.toISOString().slice(0, 10))
+        currentDate.setDate(currentDate.getDate() + 1)
+    }
+    
+    // 为每个日期添加选中的计划
+    let addedCount = 0
+    dates.forEach(date => {
+        selectedBatchPlans.value.forEach(planId => {
+            const templatePlan = store.plans.find(p => p.id === planId)
+            if (templatePlan) {
+                // 检查是否已存在
+                const existingPlan = store.plans.find(p => 
+                    p.id !== planId &&
+                    p.subject === templatePlan.subject &&
+                    p.subjectName === templatePlan.subjectName &&
+                    p.description === templatePlan.description &&
+                    p.date === date
+                )
+                
+                if (!existingPlan) {
+                    const newPlan = {
+                        ...templatePlan,
+                        id: `custom-${Date.now()}-${addedCount}`,
+                        date: date,
+                        completedCount: 0,
+                        completionLevel: false
+                    }
+                    store.plans.push(newPlan)
+                    addedCount++
+                }
+            }
+        })
+    })
+    
+    showNotificationMessage(`成功添加 ${addedCount} 个计划！`, 'success', '✅')
+    closeBatchConfirmModal()
+    closeQuickSetupDrawer()
+}
+
 // 通知相关
 const showNotification = ref(false)
 const notificationMessage = ref('')
@@ -715,6 +1380,15 @@ const authenticate = () => {
         isAuthenticated.value = true
         adminPassword.value = ''
         authError.value = ''
+        
+        // 保存认证状态到 localStorage，设置30分钟过期
+        const expiresAt = Date.now() + 30 * 60 * 1000 // 30分钟
+        const authData = {
+            token: 'admin-token', // 实际应用中应该使用更安全的token
+            expiresAt
+        }
+        localStorage.setItem('adminAuth', JSON.stringify(authData))
+        
         showNotificationMessage('认证成功！欢迎管理员 🧙‍♀️', 'success', '🎉')
     } else {
         authError.value = '密码错误，请重试'
@@ -754,7 +1428,7 @@ const showAddTaskModal = () => {
     isEditingTask.value = false
     Object.assign(currentTask, {
         id: '',
-        name: '',
+        taskName: '',
         subject: 'chinese',
         subjectName: '',
         date: new Date().toISOString().slice(0, 10),
@@ -762,17 +1436,18 @@ const showAddTaskModal = () => {
         dailyType: 'specific',
         weeklyType: 'everyweek',
         selectedWeek: '',
+        startDate: new Date().toISOString().slice(0, 10),
+        endDate: new Date().toISOString().slice(0, 10),
         frequency: 'once',
         targetCount: 1,
         timeRange: '',
-        completionLevel: null,
+        completionLevel: false,
         points: 0,
         description: '',
         icon: ''
     })
     // 重置时间选择器
-    startTime.value = ''
-    endTime.value = ''
+    timeRange.value = ['', '']
     showTaskModal.value = true
 }
 
@@ -809,11 +1484,9 @@ const editTask = (task: Task) => {
     // 解析时间范围并设置到时间选择器
     if (task.timeRange) {
         const [start, end] = task.timeRange.split('-')
-        startTime.value = start?.trim() || ''
-        endTime.value = end?.trim() || ''
+        timeRange.value = [start?.trim() || '', end?.trim() || '']
     } else {
-        startTime.value = ''
-        endTime.value = ''
+        timeRange.value = ['', '']
     }
     showTaskModal.value = true
 }
@@ -874,6 +1547,8 @@ const saveTask = () => {
         const index = store.plans.findIndex(t => t.id === newTask.id)
         if (index !== -1) {
             store.plans[index] = newTask
+            // 触发响应式更新
+            store.plans = [...store.plans]
             showNotificationMessage('计划更新成功！', 'success', '✅')
         }
     } else {
@@ -1033,6 +1708,7 @@ const goBack = () => {
 
 const logout = () => {
     isAuthenticated.value = false
+    localStorage.removeItem('adminAuth')
     router.push('/')
 }
 
@@ -1388,13 +2064,485 @@ const confirmResetData = () => {
     background: linear-gradient(45deg, #ff9ff3, #f368e0);
 }
 
+/* 标签页样式 */
+.admin-tabs {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+
+.admin-tabs::-webkit-scrollbar {
+    height: 6px;
+}
+
+.admin-tabs::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 10px;
+}
+
+.admin-tabs::-webkit-scrollbar-thumb {
+    background: rgba(255, 107, 139, 0.5);
+    border-radius: 10px;
+}
+
+.tab-btn {
+    background: rgba(255, 255, 255, 0.8);
+    border: 2px solid #ffd1dc;
+    border-radius: 30px;
+    padding: 12px 25px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    color: #666;
+}
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 107, 139, 0.2);
+}
+
+.tab-btn.active {
+    background: linear-gradient(45deg, #ff6b8b, #ff8fa3);
+    color: white;
+    border-color: #ff6b8b;
+    box-shadow: 0 4px 15px rgba(255, 107, 139, 0.3);
+}
+
+.tab-icon {
+    font-size: 1.2rem;
+}
+
+/* 标签内容 */
+.tab-content {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+/* 仪表板统计 */
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #fff 0%, #ffe6ea 100%);
+    border-radius: 20px;
+    padding: 25px;
+    border: 2px solid #ffd1dc;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(255, 107, 139, 0.2);
+}
+
+.stat-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    display: block;
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #ff6b8b;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 1rem;
+    color: #666;
+    font-weight: bold;
+}
+
+/* 学科分类区域 */
+.subject-section {
+    margin-top: 30px;
+    background: linear-gradient(135deg, #ffffff 0%, #fff0f5 100%);
+    border-radius: 20px;
+    border: 2px solid #ffd1dc;
+    box-shadow: 0 4px 12px rgba(255, 107, 139, 0.1);
+    overflow: hidden;
+}
+
+/* 学科标题 */
+.subject-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
+    font-weight: 700;
+}
+
+.subject-header .subject-icon {
+    font-size: 1.5rem;
+}
+
+.subject-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.subject-section .tasks-list {
+    padding: 20px;
+}
+
+/* 筛选按钮 */
+.filter-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.filter-btn {
+    background: rgba(255, 255, 255, 0.8);
+    border: 2px solid #ffd1dc;
+    border-radius: 30px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #666;
+}
+
+.filter-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 107, 139, 0.2);
+}
+
+.filter-btn.active {
+    background: linear-gradient(45deg, #ff6b8b, #ff8fa3);
+    color: white;
+    border-color: #ff6b8b;
+    box-shadow: 0 4px 15px rgba(255, 107, 139, 0.3);
+}
+
+/* 日期范围筛选 */
+.date-range-filter {
+    margin: 20px 0;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    border: 2px solid #ffd1dc;
+}
+
+.date-range-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.date-input {
+    flex: 1;
+}
+
+.date-separator {
+    font-weight: bold;
+    color: #666;
+    white-space: nowrap;
+}
+
+/* 操作按钮行 */
+.action-buttons-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.quick-setup-btn {
+    background: linear-gradient(45deg, #feca57, #ff9ff3);
+}
+
+/* 抽屉样式 */
+.drawer-overlay {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: flex-end;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+    overflow: hidden;
+}
+
+/* 当抽屉打开时，禁止背景页面滚动 */
+body:has(.drawer-overlay) {
+    overflow: hidden;
+}
+
+.drawer-content {
+    width: 50%;
+    min-width: 600px;
+    max-width: 90vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #fff 0%, #ffe6ea 100%);
+    border-left: 2px solid #ffd1dc;
+    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.2);
+    animation: slideInRight 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+/* 美化滚动条 */
+.drawer-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.drawer-content::-webkit-scrollbar-track {
+    background: rgba(255, 209, 220, 0.3);
+    border-radius: 10px;
+}
+
+.drawer-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #ff8fab, #ff6b8b);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.drawer-content::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #ff6b8b, #ff4757);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+.drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 2px solid #ffd1dc;
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
+}
+
+.drawer-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.drawer-body {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+/* 抽屉标签页 */
+.drawer-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #ffd1dc;
+    padding-bottom: 10px;
+}
+
+.drawer-tab-btn {
+    background: rgba(255, 255, 255, 0.8);
+    border: 2px solid #ffd1dc;
+    border-radius: 30px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #666;
+}
+
+.drawer-tab-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 107, 139, 0.2);
+}
+
+.drawer-tab-btn.active {
+    background: linear-gradient(45deg, #ff6b8b, #ff8fa3);
+    color: white;
+    border-color: #ff6b8b;
+    box-shadow: 0 4px 15px rgba(255, 107, 139, 0.3);
+}
+
+/* 计划复选框项 */
+.plan-checkbox-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    border: 2px solid #ffd1dc;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+}
+
+.plan-checkbox-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 107, 139, 0.1);
+    border-color: #ff8fab;
+}
+
+.plan-checkbox-item input[type="checkbox"] {
+    margin-top: 5px;
+    width: 18px;
+    height: 18px;
+    accent-color: #ff6b8b;
+    cursor: pointer;
+}
+
+.plan-checkbox-label {
+    flex: 1;
+    cursor: pointer;
+}
+
+.plan-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.plan-info .plan-name {
+    font-weight: bold;
+    color: #ff6b8b;
+    font-size: 1rem;
+}
+
+.plan-info .plan-description {
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.plan-info .plan-subject {
+    color: #ff8fab;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* 分页 */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.pagination-btn {
+    background: linear-gradient(45deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 107, 139, 0.3);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-info {
+    font-weight: bold;
+    color: #666;
+}
+
+/* 批量设置按钮 */
+.batch-setup-btn {
+    margin-top: 20px;
+    background: linear-gradient(45deg, #48dbfb, #1287a5);
+    width: 100%;
+    justify-content: center;
+}
+
+.batch-setup-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 批量计划列表 */
+.batch-plan-list {
+    margin: 20px 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.batch-plan-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    border: 2px solid #ffd1dc;
+    margin-bottom: 10px;
+}
+
+.batch-plan-item .plan-icon {
+    font-size: 1.5rem;
+    margin-top: 2px;
+}
+
+.batch-plan-item .plan-details {
+    flex: 1;
+}
+
+.batch-plan-item .plan-name {
+    font-weight: bold;
+    color: #ff6b8b;
+}
+
+.batch-plan-item .plan-description {
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
 /* 管理功能区域 */
 .admin-sections {
     position: relative;
     z-index: 2;
-    display: flex;
-    flex-direction: column;
-    gap: 40px;
 }
 
 /* 管理区域 */

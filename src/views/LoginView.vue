@@ -67,7 +67,6 @@ const router = useRouter()
 const store = useUserStore()
 const username = ref('')
 const password = ref('')
-const isLoggingIn = ref(false)
 
 // 装饰元素位置
 interface Position {
@@ -132,6 +131,8 @@ function showNotificationMessage(message: string, type: string, icon: string) {
     notificationType.value = type
     notificationIcon.value = icon
     showNotification.value = true
+    // 禁止背景页面滚动
+    document.body.style.overflow = 'hidden'
 
     setTimeout(() => {
         closeNotification()
@@ -140,6 +141,8 @@ function showNotificationMessage(message: string, type: string, icon: string) {
 
 function closeNotification() {
     showNotification.value = false
+    // 恢复背景页面滚动
+    document.body.style.overflow = 'auto'
 }
 </script>
 
