@@ -610,7 +610,7 @@ export const useUserStore = defineStore(
     ])
 
     // 抽奖消耗积分
-    const lotteryCost = 10
+    const lotteryCost = ref(10)
 
     // 计算属性
     const todayPlans = computed(() => {
@@ -732,7 +732,7 @@ export const useUserStore = defineStore(
                 
                 plans.value.forEach(plan => {
                   if (plan.completionLevel && subjectCounts.hasOwnProperty(plan.subject)) {
-                    subjectCounts[plan.subject]++
+                    subjectCounts[plan.subject] = (subjectCounts[plan.subject] || 0) + 1
                   }
                 })
                 
@@ -1187,7 +1187,7 @@ export const useUserStore = defineStore(
       const today = new Date().toISOString().split('T')[0]
       if (lastCompletionDate.value) {
         const lastDate = new Date(lastCompletionDate.value)
-        const todayDate = new Date(today)
+        const todayDate = new Date(today || new Date())
         const diffTime = todayDate.getTime() - lastDate.getTime()
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
 
@@ -1203,7 +1203,7 @@ export const useUserStore = defineStore(
         // 第一次完成任务
         studyStreak.value = 1
       }
-      lastCompletionDate.value = today
+      lastCompletionDate.value = today || null
     }
 
     function updatePlanCompletion(planId: string, completed: boolean) {
@@ -1502,13 +1502,13 @@ export const useUserStore = defineStore(
     // 新增抽奖方法
     function drawLottery(item?: LotteryItem): BackpackItem | null {
       // 检查积分是否足够
-      if (currentPoints.value < lotteryCost) {
+      if (currentPoints.value < lotteryCost.value) {
         console.log('积分不足，无法参与抽奖')
         return null
       }
 
       // 扣除积分
-      currentPoints.value -= lotteryCost
+      currentPoints.value -= lotteryCost.value
 
       // 记录抽奖记录
       const record: PointRecord = {
@@ -1612,6 +1612,43 @@ export const useUserStore = defineStore(
     // 删除兑换项（管理模块使用）
     function removeExchangeItem(itemId: string) {
       exchangeItems.value = exchangeItems.value.filter((item) => item.id !== itemId)
+    }
+
+    // 抽奖物品管理方法
+    // 添加抽奖物品（管理模块使用）
+    function addLotteryItem(name: string, description: string, rarity: ItemRarity, probability: number, effect: string) {
+      const newItem: LotteryItem = {
+        id: `lottery-${Date.now()}`,
+        name,
+        description,
+        rarity,
+        probability,
+        effect,
+        icon: '🎁'
+      }
+      lotteryItems.value.push(newItem)
+    }
+
+    // 更新抽奖物品（管理模块使用）
+    function updateLotteryItem(itemId: string, name: string, description: string, rarity: ItemRarity, probability: number, effect: string) {
+      const item = lotteryItems.value.find((i) => i.id === itemId)
+      if (item) {
+        item.name = name
+        item.description = description
+        item.rarity = rarity
+        item.probability = probability
+        item.effect = effect
+      }
+    }
+
+    // 删除抽奖物品（管理模块使用）
+    function removeLotteryItem(itemId: string) {
+      lotteryItems.value = lotteryItems.value.filter((item) => item.id !== itemId)
+    }
+
+    // 设置抽奖消耗积分（管理模块使用）
+    function setLotteryCost(cost: number) {
+      lotteryCost.value = cost
     }
 
     // 更新用户信息
@@ -2035,6 +2072,10 @@ export const useUserStore = defineStore(
       useItemFromBackpack,
       checkAchievements,
       drawLottery,
+      addLotteryItem,
+      updateLotteryItem,
+      removeLotteryItem,
+      setLotteryCost,
       updateUserInfo,
       updatePassword,
       clearTodayPlansFlag,

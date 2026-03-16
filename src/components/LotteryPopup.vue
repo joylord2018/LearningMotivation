@@ -310,7 +310,7 @@ async function handleCellClick(cellIndex: number) {
     await animateGlowingBlock(path);
 
     // 随机选择一个格子作为中奖格子
-    const winningCell = path[path.length - 1];
+    const winningCell = path[path.length - 1] || 1;
     revealedCell.value = winningCell;
 
     // 等待纸撕开动画完成
@@ -347,7 +347,10 @@ function generateRandomPath(): number[] {
     const stopIndex = Math.floor(Math.random() * cells.length);
     
     for (let i = 0; i < circles * cells.length + stopIndex; i++) {
-        path.push(cells[i % cells.length]);
+        const cell = cells[i % cells.length];
+        if (cell !== undefined) {
+            path.push(cell);
+        }
     }
     
     return path;

@@ -963,7 +963,7 @@
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import NavigationTabs from '@/components/NavigationTabs.vue'
-import { useUserStore } from '../stores/userStore'
+import { useUserStore, ItemRarity } from '../stores/userStore'
 
 const router = useRouter()
 const store = useUserStore()
@@ -1047,7 +1047,7 @@ interface LotteryItem {
     id: string
     name: string
     description: string
-    rarity: string
+    rarity: ItemRarity
     probability: number
     effect: string
     icon: string
@@ -1164,7 +1164,7 @@ const currentLotteryItem = reactive<LotteryItem>({
     id: '',
     name: '',
     description: '',
-    rarity: 'common',
+    rarity: ItemRarity.Common,
     probability: 10,
     effect: '',
     icon: '🎁'
@@ -1307,6 +1307,42 @@ function getPlanNameBySubject(subject: string): string {
         'english': '英语计划'
     }
     return names[subject] || '学习计划'
+}
+
+// 获取稀有度图标
+function getRarityIcon(rarity?: string) {
+    if (!rarity) return '✨'
+
+    switch (rarity) {
+        case 'common':
+            return '✨'
+        case 'rare':
+            return '🌟'
+        case 'epic':
+            return '💎'
+        case 'legendary':
+            return '👑'
+        default:
+            return '✨'
+    }
+}
+
+// 获取稀有度文本
+function getRarityText(rarity?: string) {
+    if (!rarity) return '普通'
+
+    switch (rarity) {
+        case 'common':
+            return '普通'
+        case 'rare':
+            return '稀有'
+        case 'epic':
+            return '史诗'
+        case 'legendary':
+            return '传说'
+        default:
+            return '普通'
+    }
 }
 
 // 便捷设置方法
@@ -1615,7 +1651,7 @@ const showAddLotteryItemModal = () => {
         id: '',
         name: '',
         description: '',
-        rarity: 'common',
+        rarity: ItemRarity.Common,
         probability: 10,
         effect: '',
         icon: '🎁'
