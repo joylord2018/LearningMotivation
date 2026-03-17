@@ -106,7 +106,7 @@
                                 <div class="plan-details">
                                     <div v-if="plan.frequency" class="detail-item">
                                         <span class="detail-icon">🔄</span>
-                                        <span class="detail-text">本周第{{ plan.frequency }}次</span>
+                                        <span class="detail-text">本周第{{ plan.frequency === 'weekly' ? '每周' : plan.frequency === 'daily' ? '每天' : plan.frequency === 'once' ? '一次' : plan.frequency }}次</span>
                                     </div>
                                     <div v-if="plan.type === 'weekly'" class="detail-item">
                                         <span class="detail-icon">📊</span>
@@ -305,7 +305,7 @@ const selectedWeekPlans = computed(() => {
                 name: plan.description,
                 subject: plan.subject,
                 subjectName: plan.subjectName,
-                frequency: plan.frequency === 'weekly' ? '每周' : plan.frequency,
+                frequency: plan.frequency === 'weekly' ? '每周' : plan.frequency === 'daily' ? '每天' : plan.frequency === 'once' ? '一次' : plan.frequency,
                 totalCount: totalCount,
                 completedCount: completedCount,
                 timeRange: plan.timeRange,

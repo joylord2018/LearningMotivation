@@ -24,7 +24,7 @@ const router = createRouter({
     {
       path: '/points',
       name: 'points',
-      component: () => import('../views/PointsView.vue'),
+      component: () => import('../views/PointsView/index.vue'),
       meta: { requiresAuth: true },
     },
     {
@@ -42,7 +42,7 @@ const router = createRouter({
     { 
       path: '/admin', 
       name: 'admin', 
-      component: () => import('../views/AdminView.vue'), 
+      component: () => import('../views/AdminView/index.vue'), 
       meta: { requiresAuth: true } 
     }, 
     { 
