@@ -49,6 +49,13 @@
                     </button>
                     <button 
                         class="filter-btn" 
+                        :class="{ active: selectedFilters.includes('general') }"
+                        @click="toggleFilter('general')"
+                    >
+                        🎯 全科
+                    </button>
+                    <button 
+                        class="filter-btn" 
                         :class="{ active: selectedFilters.includes('dateRange') }"
                         @click="toggleFilter('dateRange')"
                     >
@@ -142,7 +149,7 @@ const filteredPlans = computed(() => {
             return true
         }
         
-        const subjectFilters = ['chinese', 'math', 'english']
+        const subjectFilters = ['chinese', 'math', 'english', 'general']
         const selectedSubjects = selectedFilters.value.filter(f => subjectFilters.includes(f))
         if (selectedSubjects.length > 0 && !selectedSubjects.includes(plan.subject)) {
             return false
@@ -202,18 +209,20 @@ function getPlanIconBySubject(subject: string): string {
     const icons: { [key: string]: string } = {
         'chinese': '📚',
         'math': '🔢',
-        'english': '🗣️'
+        'english': '🗣️',
+        'general': '🎯'
     }
-    return icons[subject] || '📝'
+    return icons[subject.toLowerCase()] || '📝'
 }
 
 function getPlanNameBySubject(subject: string): string {
     const names: { [key: string]: string } = {
         'chinese': '语文计划',
         'math': '数学计划',
-        'english': '英语计划'
+        'english': '英语计划',
+        'general': '全科计划'
     }
-    return names[subject] || '学习计划'
+    return names[subject.toLowerCase()] || '学习计划'
 }
 
 function showAddTaskModal() {

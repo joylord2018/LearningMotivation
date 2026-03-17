@@ -59,4 +59,15 @@ input:-webkit-autofill:focus {
     touch-action: manipulation;
   }
 }
+
+/* 禁用滚动条 */
+.no-scroll {
+  overflow: hidden !important;
+  height: 100% !important;
+}
+
+.no-scroll body {
+  overflow: hidden !important;
+  height: 100% !important;
+}
 </style>

@@ -220,16 +220,25 @@ export function createPlansModule(): PlansModule {
           plan.completedCount++
           // 检查是否达到目标次数
           plan.completionLevel = plan.completedCount >= plan.targetCount
-          plan.points = plan.completionLevel ? 3 : 0
+          // 保持计划的原始积分值，只在未设置时使用默认值
+          if (plan.points === 0 && plan.completionLevel) {
+            plan.points = 3
+          }
         } else if (!completed && plan.completedCount > 0) {
           plan.completedCount--
           plan.completionLevel = plan.completedCount >= plan.targetCount
-          plan.points = plan.completionLevel ? 3 : 0
+          // 保持计划的原始积分值，只在未设置时使用默认值
+          if (plan.points === 0 && plan.completionLevel) {
+            plan.points = 3
+          }
         }
       } else {
         // 对于目标次数为1的日计划，直接设置完成状态
         plan.completionLevel = completed
-        plan.points = completed ? 3 : 0
+        // 保持计划的原始积分值，只在未设置时使用默认值
+        if (plan.points === 0 && completed) {
+          plan.points = 3
+        }
       }
 
       // 触发响应式更新

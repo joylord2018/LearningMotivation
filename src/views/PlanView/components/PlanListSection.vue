@@ -33,11 +33,11 @@
 
             <!-- 计划详情 -->
             <div class="plan-details">
-              <div v-if="plan.type === 'weekly'" class="detail-item">
+              <div v-if="plan.type === 'weekly' && (plan.targetCount || 1) > 1" class="detail-item">
                 <span class="detail-icon">🔄</span>
                 <span class="detail-text">本周第{{ plan.completedCount + 1 }}次</span>
               </div>
-              <div v-if="plan.type === 'weekly' || plan.targetCount > 1" class="detail-item">
+              <div v-if="(plan.type === 'weekly' || plan.targetCount > 1) && (plan.targetCount || 1) > 1" class="detail-item">
                 <span class="detail-icon">📊</span>
                 <span class="detail-text">进度: {{ plan.completedCount || 0 }}/{{ plan.targetCount || 1 }}</span>
               </div>
@@ -50,7 +50,7 @@
             <div class="plan-footer">
               <div class="plan-points">
                 <span class="point-icon">⭐</span>
-                {{ plan.completionLevel ? '已获得 ' + plan.points + ' 积分' : '完成可得 3 积分' }}
+                {{ plan.completionLevel ? '已获得 ' + plan.points + ' 积分' : '完成可得 ' + plan.points + ' 积分' }}
               </div>
 
               <div class="plan-actions">
@@ -169,7 +169,7 @@ function getPlanIconBySubject(subject: string): string {
     'english': '🗣️',
     'general': '🎯'
   }
-  return icons[subject] || '📝'
+  return icons[subject.toLowerCase()] || '📝'
 }
 
 // 获取计划名称
@@ -180,7 +180,7 @@ function getPlanNameBySubject(subject: string): string {
     'english': '英语计划',
     'general': '全科计划'
   }
-  return names[subject] || '学习计划'
+  return names[subject.toLowerCase()] || '学习计划'
 }
 
 // 获取计划描述
@@ -192,7 +192,7 @@ function getPlanDescriptionBySubject(subject: string): string {
     'english': '练习英语听力和口语',
     'general': '综合复习各个学科的知识点'
   }
-  return descriptions[subject] || '认真完成今日学习计划'
+  return descriptions[subject.toLowerCase()] || '认真完成今日学习计划'
 }
 
 // 快速完成计划

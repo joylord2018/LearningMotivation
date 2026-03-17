@@ -86,6 +86,7 @@
                             <el-option value="chinese" label="语文">语文</el-option>
                             <el-option value="math" label="数学">数学</el-option>
                             <el-option value="english" label="英语">英语</el-option>
+                            <el-option value="general" label="全科">全科</el-option>
                         </el-select>
                     </div>
                     <div class="form-group">
@@ -401,6 +402,17 @@
 
                     <!-- 单日设置 -->
                     <div v-if="quickSetupTab === 'single'" class="tab-content">
+                        <div class="settings-section">
+                            <div class="form-group">
+                                <label class="form-label">日期</label>
+                                <el-date-picker
+                                    v-model="quickSetupDate"
+                                    type="date"
+                                    placeholder="选择日期"
+                                    style="width: 100%"
+                                />
+                            </div>
+                        </div>
                         <div class="filter-toggle" @click="toggleSingleFilters">
                             <span>筛选条件</span>
                             <span class="toggle-icon">{{ showSingleFilters ? '▲' : '▼' }}</span>
@@ -408,48 +420,75 @@
                         <div v-if="showSingleFilters" class="filter-section">
                             <div class="filter-row">
                                 <div class="form-group">
-                                    <label class="form-label">日期</label>
-                                    <input type="date" v-model="quickSetupDate" class="form-input">
+                                    <label class="form-label">科目筛选</label>
+                                    <el-select v-model="subjectFilter" placeholder="选择科目" style="width: 100%">
+                                        <el-option value="" label="全部科目"></el-option>
+                                        <el-option value="chinese" label="语文"></el-option>
+                                        <el-option value="math" label="数学"></el-option>
+                                        <el-option value="english" label="英语"></el-option>
+                                        <el-option value="general" label="全科"></el-option>
+                                    </el-select>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">科目筛选</label>
-                                    <select v-model="subjectFilter" class="form-input">
-                                        <option value="">全部科目</option>
-                                        <option value="chinese">语文</option>
-                                        <option value="math">数学</option>
-                                        <option value="english">英语</option>
-                                    </select>
+                                    <label class="form-label">名称筛选</label>
+                                    <el-input v-model="nameFilter" placeholder="输入计划名称..." style="width: 100%"></el-input>
                                 </div>
                             </div>
                             <div class="filter-row">
                                 <div class="form-group">
-                                    <label class="form-label">名称筛选</label>
-                                    <input type="text" v-model="nameFilter" placeholder="输入计划名称..." class="form-input">
-                                </div>
-                                <div class="form-group">
                                     <label class="form-label">描述筛选</label>
-                                    <input type="text" v-model="descriptionFilter" placeholder="输入计划描述..." class="form-input">
+                                    <el-input v-model="descriptionFilter" placeholder="输入计划描述..." style="width: 100%"></el-input>
                                 </div>
                             </div>
                         </div>
                         <div class="plans-list-container">
                             <div class="plans-list">
-                                <div v-for="plan in filteredQuickSetupPlans" :key="plan.id" class="plan-checkbox-item">
-                                    <input type="checkbox" v-model="selectedPlans" :value="plan.id">
-                                    <span class="plan-name">{{ plan.subjectName }}</span>
-                                    <span class="plan-subject">{{ getPlanNameBySubject(plan.subject) }}</span>
-                                </div>
+                                <el-card v-for="plan in filteredQuickSetupPlans" :key="plan.id" class="plan-card" @click="togglePlanForDate(plan.id, quickSetupDate || '', !isPlanSelectedForDate(plan.id, quickSetupDate || ''))" style="cursor: pointer;">
+                                    <template #header>
+                                        <div class="plan-card-header">
+                                            <el-checkbox :checked="isPlanSelectedForDate(plan.id, quickSetupDate || '')" @change="togglePlanForDate(plan.id, quickSetupDate || '', $event)"></el-checkbox>
+                                            <span class="plan-name">{{ plan.subjectName }}</span>
+                                            <span class="plan-points">{{ plan.points }} 积分</span>
+                                        </div>
+                                    </template>
+                                    <div class="plan-card-body">
+                                        <div class="plan-meta">
+                                            <span class="plan-subject">{{ getPlanNameBySubject(plan.subject) }}</span>
+                                            <span class="plan-target">{{ plan.targetCount }} 次</span>
+                                        </div>
+                                        <div class="plan-description">{{ plan.description }}</div>
+                                        <div v-if="plan.timeRange" class="plan-time">{{ plan.timeRange }}</div>
+                                    </div>
+                                </el-card>
                                 <div v-if="filteredQuickSetupPlans.length === 0" class="no-plans-hint">暂无模板，请先在模板管理中添加</div>
                             </div>
                         </div>
-                        <button class="btn apply-btn" @click="applyQuickSetup">
-                            <span class="btn-icon">✅</span>
-                            <span>应用设置</span>
-                        </button>
                     </div>
 
                     <!-- 批量设置 -->
                     <div v-if="quickSetupTab === 'batch'" class="tab-content">
+                        <div class="settings-section">
+                            <div class="filter-row">
+                                <div class="form-group">
+                                    <label class="form-label">开始日期</label>
+                                    <el-date-picker
+                                        v-model="batchStartDate"
+                                        type="date"
+                                        placeholder="选择开始日期"
+                                        style="width: 100%"
+                                    />
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">结束日期</label>
+                                    <el-date-picker
+                                        v-model="batchEndDate"
+                                        type="date"
+                                        placeholder="选择结束日期"
+                                        style="width: 100%"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                         <div class="filter-toggle" @click="toggleBatchFilters">
                             <span>筛选条件</span>
                             <span class="toggle-icon">{{ showBatchFilters ? '▲' : '▼' }}</span>
@@ -457,43 +496,46 @@
                         <div v-if="showBatchFilters" class="filter-section">
                             <div class="filter-row">
                                 <div class="form-group">
-                                    <label class="form-label">开始日期</label>
-                                    <input type="date" v-model="batchStartDate" class="form-input">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">结束日期</label>
-                                    <input type="date" v-model="batchEndDate" class="form-input">
-                                </div>
-                            </div>
-                            <div class="filter-row">
-                                <div class="form-group">
                                     <label class="form-label">名称筛选</label>
-                                    <input type="text" v-model="batchNameFilter" placeholder="输入计划名称..." class="form-input">
+                                    <el-input v-model="batchNameFilter" placeholder="输入计划名称..." style="width: 100%"></el-input>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">描述筛选</label>
-                                    <input type="text" v-model="batchDescriptionFilter" placeholder="输入计划描述..." class="form-input">
+                                    <el-input v-model="batchDescriptionFilter" placeholder="输入计划描述..." style="width: 100%"></el-input>
                                 </div>
                             </div>
                             <div class="filter-row">
                                 <div class="form-group">
                                     <label class="form-label">科目筛选</label>
-                                    <select v-model="batchSubjectFilter" class="form-input">
-                                        <option value="">全部科目</option>
-                                        <option value="chinese">语文</option>
-                                        <option value="math">数学</option>
-                                        <option value="english">英语</option>
-                                    </select>
+                                    <el-select v-model="batchSubjectFilter" placeholder="选择科目" style="width: 100%">
+                                        <el-option value="" label="全部科目"></el-option>
+                                        <el-option value="chinese" label="语文"></el-option>
+                                        <el-option value="math" label="数学"></el-option>
+                                        <el-option value="english" label="英语"></el-option>
+                                        <el-option value="general" label="全科"></el-option>
+                                    </el-select>
                                 </div>
                             </div>
                         </div>
                         <div class="plans-list-container">
                             <div class="plans-list">
-                                <div v-for="plan in filteredBatchQuickSetupPlans" :key="plan.id" class="plan-checkbox-item">
-                                    <input type="checkbox" v-model="selectedBatchPlans" :value="plan.id">
-                                    <span class="plan-name">{{ plan.subjectName }}</span>
-                                    <span class="plan-subject">{{ getPlanNameBySubject(plan.subject) }}</span>
-                                </div>
+                                <el-card v-for="plan in filteredBatchQuickSetupPlans" :key="plan.id" class="plan-card" @click="toggleBatchPlanSelection(plan.id)" style="cursor: pointer;">
+                                    <template #header>
+                                        <div class="plan-card-header">
+                                            <el-checkbox v-model="selectedBatchPlans" :label="plan.id"></el-checkbox>
+                                            <span class="plan-name">{{ plan.subjectName }}</span>
+                                            <span class="plan-points">{{ plan.points }} 积分</span>
+                                        </div>
+                                    </template>
+                                    <div class="plan-card-body">
+                                        <div class="plan-meta">
+                                            <span class="plan-subject">{{ getPlanNameBySubject(plan.subject) }}</span>
+                                            <span class="plan-target">{{ plan.targetCount }} 次</span>
+                                        </div>
+                                        <div class="plan-description">{{ plan.description }}</div>
+                                        <div v-if="plan.timeRange" class="plan-time">{{ plan.timeRange }}</div>
+                                    </div>
+                                </el-card>
                                 <div v-if="filteredBatchQuickSetupPlans.length === 0" class="no-plans-hint">暂无模板，请先在模板管理中添加</div>
                             </div>
                         </div>
@@ -505,28 +547,36 @@
 
                     <!-- 模板管理 -->
                     <div v-if="quickSetupTab === 'templates'" class="tab-content">
-                        <button class="btn add-template-btn" @click="showAddTemplateModal">
+                        <el-button type="primary" @click="showAddTemplateModal" class="add-template-btn">
                             <span class="btn-icon">➕</span>
                             <span>添加模板</span>
-                        </button>
+                        </el-button>
                         <div class="templates-list">
-                            <div v-for="template in store.quickSetupTemplates" :key="template.id" class="template-item">
-                                <div class="template-info">
-                                    <h3 class="template-name">{{ template.subjectName }}</h3>
-                                    <p class="template-description">{{ template.description }}</p>
-                                    <span class="template-subject">{{ getPlanNameBySubject(template.subject) }}</span>
+                            <div v-for="template in store.quickSetupTemplates" :key="template.id" class="template-card">
+                                <div class="template-card-header">
+                                    <span class="template-name">{{ template.subjectName }}</span>
+                                    <span class="template-points">{{ template.points }} 积分</span>
                                 </div>
-                                <div class="template-actions">
-                                    <button class="btn edit-btn" @click="editTemplate(template)">
-                                        <span class="btn-icon">✏️</span>
-                                        <span>编辑</span>
-                                    </button>
-                                    <button class="btn delete-btn" @click="confirmDeleteTemplate(template)">
-                                        <span class="btn-icon">🗑️</span>
-                                        <span>删除</span>
-                                    </button>
+                                <div class="template-card-body">
+                                    <div class="template-meta">
+                                        <span class="template-subject">{{ getPlanNameBySubject(template.subject) }}</span>
+                                        <span class="template-target">{{ template.targetCount }} 次</span>
+                                    </div>
+                                    <div class="template-description">{{ template.description }}</div>
+                                    <div v-if="template.timeRange" class="template-time">{{ template.timeRange }}</div>
+                                    <div class="template-actions">
+                                        <el-button type="primary" size="small" @click="editTemplate(template)">
+                                            <span class="btn-icon">✏️</span>
+                                            <span>编辑</span>
+                                        </el-button>
+                                        <el-button type="danger" size="small" @click="confirmDeleteTemplate(template)">
+                                            <span class="btn-icon">🗑️</span>
+                                            <span>删除</span>
+                                        </el-button>
+                                    </div>
                                 </div>
                             </div>
+                            <div v-if="store.quickSetupTemplates.length === 0" class="no-plans-hint">暂无模板，请点击添加模板按钮创建</div>
                         </div>
                     </div>
                 </div>
@@ -543,52 +593,47 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="templateName" class="form-label">模板名称</label>
-                        <input type="text" id="templateName" v-model="currentTemplate.subjectName"
-                            placeholder="输入模板名称..." class="form-input">
+                        <el-input id="templateName" v-model="currentTemplate.subjectName" placeholder="输入模板名称..." style="width: 100%"></el-input>
                     </div>
                     <div class="form-group">
                         <label for="templateDescription" class="form-label">模板描述</label>
-                        <textarea id="templateDescription" v-model="currentTemplate.description" placeholder="输入模板描述..."
-                            class="form-textarea" rows="3"></textarea>
+                        <el-input id="templateDescription" v-model="currentTemplate.description" type="textarea" placeholder="输入模板描述..." :rows="3" style="width: 100%"></el-input>
                     </div>
                     <div class="form-group">
                         <label for="templateSubject" class="form-label">学科</label>
-                        <select id="templateSubject" v-model="currentTemplate.subject" class="form-input">
-                            <option value="chinese">语文</option>
-                            <option value="math">数学</option>
-                            <option value="english">英语</option>
-                        </select>
+                        <el-select id="templateSubject" v-model="currentTemplate.subject" placeholder="选择学科" style="width: 100%">
+                            <el-option value="chinese" label="语文"></el-option>
+                            <el-option value="math" label="数学"></el-option>
+                            <el-option value="english" label="英语"></el-option>
+                            <el-option value="general" label="全科"></el-option>
+                        </el-select>
                     </div>
                     <div class="form-group">
                         <label for="templateTargetCount" class="form-label">目标次数</label>
-                        <input type="number" id="templateTargetCount" v-model.number="currentTemplate.targetCount"
-                            placeholder="输入目标次数..." class="form-input" min="1">
+                        <el-input-number id="templateTargetCount" v-model="currentTemplate.targetCount" placeholder="输入目标次数..." :min="1" style="width: 100%"></el-input-number>
                     </div>
                     <div class="form-group">
                         <label class="form-label">时间限制</label>
-                        <input type="text" v-model="currentTemplate.timeRange" placeholder="例如：09:00-10:00"
-                            class="form-input">
+                        <el-time-picker v-model="templateTimeRange" type="timerange" range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间" style="width: 100%"></el-time-picker>
                     </div>
                     <div class="form-group">
                         <label for="templatePoints" class="form-label">奖励积分</label>
-                        <input type="number" id="templatePoints" v-model.number="currentTemplate.points"
-                            placeholder="输入积分..." class="form-input" min="0">
+                        <el-input-number id="templatePoints" v-model="currentTemplate.points" placeholder="输入积分..." :min="0" style="width: 100%"></el-input-number>
                     </div>
                     <div class="form-group">
                         <label class="form-label">模板图标</label>
                         <div class="icon-input-group">
-                            <input type="text" v-model="currentTemplate.icon" placeholder="输入图标（例如：📝）..."
-                                class="form-input">
-                            <button type="button" class="btn icon-select-btn" @click="openIconSelector('template')">
+                            <el-input v-model="currentTemplate.icon" placeholder="输入图标（例如：📝）..." style="flex: 1"></el-input>
+                            <el-button type="primary" @click="openIconSelector('template')">
                                 <span class="btn-icon">🎨</span>
                                 <span>选择图标</span>
-                            </button>
+                            </el-button>
                         </div>
                     </div>
-                    <button class="btn save-btn" @click="saveTemplate">
+                    <el-button type="primary" @click="saveTemplate" style="width: 100%">
                         <span class="btn-icon">💾</span>
                         <span>保存</span>
-                    </button>
+                    </el-button>
                 </div>
             </div>
         </div>
@@ -632,6 +677,15 @@ const checkAuthStatus = () => {
       localStorage.removeItem('adminAuth');
     }
   }
+};
+
+// 控制滚动条
+const disableScroll = () => {
+  document.documentElement.classList.add('no-scroll');
+};
+
+const enableScroll = () => {
+  document.documentElement.classList.remove('no-scroll');
 };
 
 // 标签管理
@@ -738,6 +792,29 @@ const subjectFilter = ref('');
 const selectedPlans = ref<string[]>([]);
 const showSingleFilters = ref(false);
 
+// 存储每个日期的计划选择状态
+// 从本地存储加载日期计划选择状态
+const loadDatePlanSelections = (): { [date: string]: string[] } => {
+  try {
+    const stored = localStorage.getItem('datePlanSelections');
+    return stored ? JSON.parse(stored) : {};
+  } catch (error) {
+    console.error('加载日期计划选择状态失败:', error);
+    return {};
+  }
+};
+
+// 保存日期计划选择状态到本地存储
+const saveDatePlanSelections = (selections: { [date: string]: string[] }) => {
+  try {
+    localStorage.setItem('datePlanSelections', JSON.stringify(selections));
+  } catch (error) {
+    console.error('保存日期计划选择状态失败:', error);
+  }
+};
+
+const datePlanSelections = ref<{ [date: string]: string[] }>(loadDatePlanSelections());
+
 const toggleSingleFilters = () => {
     showSingleFilters.value = !showSingleFilters.value;
 };
@@ -764,11 +841,12 @@ const currentTemplate = ref({
     subjectName: '',
     description: '',
     subject: '',
-    points: 0,
+    points: 10,
     targetCount: 1,
     timeRange: '',
     icon: ''
 });
+const templateTimeRange = ref<string[]>([]);
 
 // 计算属性
 const filteredQuickSetupPlans = computed(() => {
@@ -855,6 +933,7 @@ const showAddTaskModal = () => {
     timeRange.value = [];
     taskDateRange.value = [];
     showTaskModal.value = true;
+    disableScroll();
 };
 
 const editTask = (task: any) => {
@@ -870,6 +949,7 @@ const editTask = (task: any) => {
         timeRange.value = currentTask.value.timeRange.split('-');
     }
     showTaskModal.value = true;
+    disableScroll();
 };
 
 const saveTask = () => {
@@ -882,7 +962,7 @@ const saveTask = () => {
     const taskData = {
         ...currentTask.value,
         date: (currentTask.value.date || new Date().toISOString().split('T')[0]) as string,
-        subject: currentTask.value.subject as 'chinese' | 'math' | 'english'
+        subject: currentTask.value.subject as 'chinese' | 'math' | 'english' | 'general'
     };
 
     if (timeRange.value.length === 2) {
@@ -901,6 +981,7 @@ const saveTask = () => {
 
 const closeTaskModal = () => {
     showTaskModal.value = false;
+    enableScroll();
 };
 
 const showAddBehaviorModal = () => {
@@ -916,12 +997,14 @@ const showAddBehaviorModal = () => {
         type: 'positive'
     };
     showBehaviorModal.value = true;
+    disableScroll();
 };
 
 const editBehavior = (behavior: any) => {
     isEditingBehavior.value = true;
     currentBehavior.value = { ...behavior };
     showBehaviorModal.value = true;
+    disableScroll();
 };
 
 const saveBehavior = () => {
@@ -958,6 +1041,7 @@ const saveBehavior = () => {
 
 const closeBehaviorModal = () => {
     showBehaviorModal.value = false;
+    enableScroll();
 };
 
 const showAddRewardModal = () => {
@@ -970,12 +1054,14 @@ const showAddRewardModal = () => {
         icon: '🎁'
     };
     showRewardModal.value = true;
+    disableScroll();
 };
 
 const editReward = (reward: any) => {
     isEditingReward.value = true;
     currentReward.value = { ...reward, points: reward.points || reward.cost || 100 };
     showRewardModal.value = true;
+    disableScroll();
 };
 
 const saveReward = () => {
@@ -996,6 +1082,7 @@ const saveReward = () => {
 
 const closeRewardModal = () => {
     showRewardModal.value = false;
+    enableScroll();
 };
 
 const showAddLotteryItemModal = () => {
@@ -1010,6 +1097,7 @@ const showAddLotteryItemModal = () => {
         icon: '🎁'
     };
     showLotteryItemModal.value = true;
+    disableScroll();
 };
 
 const editLotteryItem = (item: any) => {
@@ -1019,6 +1107,7 @@ const editLotteryItem = (item: any) => {
         rarity: typeof item.rarity === 'string' ? 0 : item.rarity
     };
     showLotteryItemModal.value = true;
+    disableScroll();
 };
 
 const saveLotteryItem = () => {
@@ -1039,13 +1128,76 @@ const saveLotteryItem = () => {
 
 const closeLotteryItemModal = () => {
     showLotteryItemModal.value = false;
+    enableScroll();
 };
+
+// 检查计划在指定日期是否被选中
+function isPlanSelectedForDate(planId: string, date: string): boolean {
+    return datePlanSelections.value[date]?.includes(planId) || false;
+}
+
+// 切换计划在指定日期的选中状态
+function togglePlanForDate(planId: string, date: string, checked: boolean) {
+    if (!datePlanSelections.value[date]) {
+        datePlanSelections.value[date] = [];
+    }
+    
+    const index = datePlanSelections.value[date].indexOf(planId);
+    if (checked && index === -1) {
+        datePlanSelections.value[date].push(planId);
+        // 即时应用设置 - 添加计划
+        const template = store.quickSetupTemplates.find((t: any) => t.id === planId);
+        if (template) {
+            const newPlan = {
+                id: `${template.subject}-${date}-${Date.now()}`,
+                subject: template.subject,
+                subjectName: template.subjectName,
+                date: date,
+                type: 'daily' as const,
+                dailyType: 'specific' as const,
+                weeklyType: 'everyweek' as const,
+                selectedWeek: '',
+                frequency: 'once' as const,
+                targetCount: template.targetCount || 1,
+                completedCount: 0,
+                timeRange: template.timeRange || '',
+                completionLevel: false,
+                points: template.points || 0,
+                description: template.description || '',
+                icon: template.icon || ''
+            };
+            store.addPlan(newPlan);
+            showNotificationMessage('计划添加成功', 'success');
+        }
+    } else if (!checked && index > -1) {
+        datePlanSelections.value[date].splice(index, 1);
+        // 即时应用设置 - 移除计划
+        const template = store.quickSetupTemplates.find((t: any) => t.id === planId);
+        if (template) {
+            // 只移除通过该模板添加的计划，通过检查计划的 subjectName 和 description 是否与模板匹配
+            const plansToRemove = store.plans.filter((plan: any) => 
+                plan.date === date && 
+                plan.subject === template.subject &&
+                plan.subjectName === template.subjectName &&
+                plan.description === template.description
+            );
+            plansToRemove.forEach((plan: any) => {
+                store.removePlan(plan.id);
+            });
+            showNotificationMessage('计划移除成功', 'success');
+        }
+    }
+    
+    // 保存到本地存储
+    saveDatePlanSelections(datePlanSelections.value);
+}
 
 
 
 const openIconSelector = (type: string) => {
     selectedIconType.value = type;
     showIconSelector.value = true;
+    disableScroll();
 };
 
 const selectIcon = (icon: string) => {
@@ -1068,6 +1220,7 @@ const selectIcon = (icon: string) => {
 
 const closeIconSelector = () => {
     showIconSelector.value = false;
+    enableScroll();
 };
 
 const showNotificationMessage = (message: string, type: 'success' | 'error' = 'success') => {
@@ -1125,14 +1278,17 @@ const confirmDeleteLotteryItem = (item: any) => {
 
 const closeConfirmModal = () => {
     showConfirmModal.value = false;
+    enableScroll();
 };
 
 const openQuickSetupDrawer = () => {
     showQuickSetupDrawer.value = true;
+    disableScroll();
 };
 
 const closeQuickSetupDrawer = () => {
     showQuickSetupDrawer.value = false;
+    enableScroll();
 };
 
 const applyQuickSetup = () => {
@@ -1168,6 +1324,16 @@ const applyQuickSetup = () => {
 
     showNotificationMessage(`成功添加 ${selectedPlans.value.length} 个计划`, 'success');
     selectedPlans.value = [];
+};
+
+// 切换批量计划选择状态
+const toggleBatchPlanSelection = (planId: string) => {
+    const index = selectedBatchPlans.value.indexOf(planId);
+    if (index === -1) {
+        selectedBatchPlans.value.push(planId);
+    } else {
+        selectedBatchPlans.value.splice(index, 1);
+    }
 };
 
 const applyBatchQuickSetup = () => {
@@ -1238,7 +1404,10 @@ const showAddTemplateModal = () => {
         points: 10,
         icon: '📝'
     };
+    // 重置时间范围
+    templateTimeRange.value = [];
     showTemplateModal.value = true;
+    disableScroll();
 };
 
 const editTemplate = (template: any) => {
@@ -1254,7 +1423,14 @@ const editTemplate = (template: any) => {
         points: template.points || 10,
         icon: template.icon || '📝'
     };
+    // 处理时间范围
+    if (template.timeRange) {
+        templateTimeRange.value = template.timeRange.split('-');
+    } else {
+        templateTimeRange.value = [];
+    }
     showTemplateModal.value = true;
+    disableScroll();
 };
 
 const saveTemplate = () => {
@@ -1263,11 +1439,16 @@ const saveTemplate = () => {
         return;
     }
 
+    // 处理时间范围
+    if (templateTimeRange.value.length === 2) {
+        currentTemplate.value.timeRange = templateTimeRange.value.join('-');
+    }
+
     if (isEditingTemplate.value) {
         store.updateQuickSetupTemplate(currentTemplate.value.id, {
             subjectName: currentTemplate.value.subjectName,
             description: currentTemplate.value.description,
-            subject: currentTemplate.value.subject as 'chinese' | 'math' | 'english',
+            subject: currentTemplate.value.subject as 'chinese' | 'math' | 'english' | 'general',
             targetCount: currentTemplate.value.targetCount,
             timeRange: currentTemplate.value.timeRange,
             points: currentTemplate.value.points,
@@ -1277,7 +1458,7 @@ const saveTemplate = () => {
     } else {
         const templateData = {
             id: `template-${Date.now()}`,
-            subject: currentTemplate.value.subject as 'chinese' | 'math' | 'english',
+            subject: currentTemplate.value.subject as 'chinese' | 'math' | 'english' | 'general',
             subjectName: currentTemplate.value.subjectName,
             date: new Date().toISOString().split('T')[0] as string,
             type: 'daily' as 'daily' | 'weekly',
@@ -1303,6 +1484,7 @@ const saveTemplate = () => {
 
 const closeTemplateModal = () => {
     showTemplateModal.value = false;
+    enableScroll();
 };
 
 const confirmDeleteTemplate = (template: any) => {
@@ -1344,6 +1526,7 @@ const handleConfirm = (data: { message: string; action: () => void }) => {
     confirmMessage.value = data.message;
     confirmAction.value = data.action;
     showConfirmModal.value = true;
+    disableScroll();
 };
 
 const getPlanIconBySubject = (subject: string) => {
@@ -2566,7 +2749,8 @@ input:checked+.toggle-slider:before {
 
 .plans-list {
     margin-top: 0;
-    max-height: 300px;
+    min-height: 200px;
+    max-height: 70vh;
     overflow-y: auto;
     padding: 15px;
     background: #fff;
@@ -2654,6 +2838,208 @@ input:checked+.toggle-slider:before {
 .template-actions {
     display: flex;
     gap: 10px;
+    margin-top: 15px;
+    justify-content: flex-end;
+}
+
+/* 计划卡片样式 */
+.plan-card {
+    margin-bottom: 12px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border: 1px solid #e8e8e8;
+    padding: 0 !important;
+}
+
+.plan-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: #ff8fab;
+}
+
+.plan-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 2px solid #ff8fab;
+    border-radius: 8px 8px 0 0;
+    margin: 0 !important;
+}
+
+.plan-card-header .plan-name {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.plan-card-header .plan-points {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4CAF50;
+    background: #f1f8e9;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.plan-card-body {
+    padding: 0 15px 8px 15px;
+    margin: 0 !important;
+}
+
+.plan-meta {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.plan-meta .plan-subject {
+    font-size: 12px;
+    color: #666;
+    background: #e3f2fd;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.plan-meta .plan-target {
+    font-size: 12px;
+    color: #666;
+    background: #fff3e0;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.plan-description {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+.plan-time {
+    font-size: 12px;
+    color: #999;
+    background: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 10px;
+    display: inline-block;
+}
+
+/* 模板卡片样式 */
+.template-card {
+    margin-bottom: 12px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border: 1px solid #e8e8e8;
+    padding: 10px;
+}
+
+.template-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: #ff8fab;
+}
+
+.template-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 15px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 2px solid #ff8fab;
+    border-radius: 8px 8px 0 0;
+    margin: -10px -10px 8px -10px;
+}
+
+.template-card-header .template-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.template-card-header .template-points {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4CAF50;
+    background: #f1f8e9;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.template-card-body {
+    padding: 0;
+}
+
+.template-meta {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.template-meta .template-subject {
+    font-size: 11px;
+    color: #666;
+    background: #e3f2fd;
+    padding: 1px 6px;
+    border-radius: 8px;
+}
+
+.template-meta .template-target {
+    font-size: 11px;
+    color: #666;
+    background: #fff3e0;
+    padding: 1px 6px;
+    border-radius: 8px;
+}
+
+.template-description {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 6px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.template-time {
+    font-size: 11px;
+    color: #999;
+    background: #f5f5f5;
+    padding: 1px 6px;
+    border-radius: 8px;
+    display: inline-block;
+    margin-bottom: 8px;
+}
+
+.template-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    justify-content: flex-end;
+}
+
+.template-actions .el-button {
+    padding: 4px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+}
+
+/* 添加模板按钮 */
+.add-template-btn {
+    margin-bottom: 15px;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: bold;
 }
 
 /* 无数据状态 */

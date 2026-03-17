@@ -138,22 +138,39 @@ onMounted(() => {
 function quickComplete(planId: string) {
   const plan = store.plans.find(p => p.id === planId)
   if (plan && !plan.completionLevel) {
+    const wasCompleted = plan.completionLevel
     store.updatePlanCompletion(planId, true) // 标记为完成，获得积分
-    const points = plan.points // 使用计划的points属性
+    const updatedPlan = store.plans.find(p => p.id === planId)
+    
+    // 只有在达到目标次数时才显示完成弹窗
+    if (updatedPlan && updatedPlan.completionLevel && !wasCompleted) {
+      const points = updatedPlan.points // 使用计划的points属性
 
-    // 确保弹窗状态正确更新
-    showPopup.value = false
-    setTimeout(() => {
-      popupMessage.value = '🎉 计划完成！'
-      popupIcon.value = '🎊'
-      popupPoints.value = points
-      showPopup.value = true
-      // 禁止背景页面滚动
-      document.body.style.overflow = 'hidden'
-    }, 50)
+      // 确保弹窗状态正确更新
+      showPopup.value = false
+      setTimeout(() => {
+        popupMessage.value = '🎉 计划完成！'
+        popupIcon.value = '🎊'
+        popupPoints.value = points
+        showPopup.value = true
+        // 禁止背景页面滚动
+        document.body.style.overflow = 'hidden'
+      }, 50)
 
-    // 检查是否完成了所有计划
-    checkAllPlansCompleted()
+      // 检查是否完成了所有计划
+      checkAllPlansCompleted()
+    } else if (updatedPlan && updatedPlan.targetCount > 1) {
+      // 显示进度更新弹窗
+      showPopup.value = false
+      setTimeout(() => {
+        popupMessage.value = `📊 完成进度: ${updatedPlan.completedCount}/${updatedPlan.targetCount}`
+        popupIcon.value = '🔄'
+        popupPoints.value = 0
+        showPopup.value = true
+        // 禁止背景页面滚动
+        document.body.style.overflow = 'hidden'
+      }, 50)
+    }
   }
 }
 
@@ -230,6 +247,8 @@ function startTimer(planId: string) {
     currentTimerPlanId.value = planId
     currentTimerPlanName.value = `${plan.subjectName} - ${getPlanNameBySubject(plan.subject)}`
     showTimerPopup.value = true
+    // 禁止背景页面滚动
+    document.body.style.overflow = 'hidden'
   }
 }
 
@@ -238,22 +257,39 @@ function stopTimer() {
   if (currentTimerPlanId.value) {
     const plan = store.plans.find(p => p.id === currentTimerPlanId.value)
     if (plan && !plan.completionLevel) {
+      const wasCompleted = plan.completionLevel
       store.updatePlanCompletion(currentTimerPlanId.value, true) // 标记为完成，获得积分
-      const points = plan.points // 使用计划的points属性
+      const updatedPlan = store.plans.find(p => p.id === currentTimerPlanId.value)
+      
+      // 只有在达到目标次数时才显示完成弹窗
+      if (updatedPlan && updatedPlan.completionLevel && !wasCompleted) {
+        const points = updatedPlan.points // 使用计划的points属性
 
-      // 确保弹窗状态正确更新
-      showPopup.value = false
-      setTimeout(() => {
-        popupMessage.value = '🎉 计划完成！'
-        popupIcon.value = '🎊'
-        popupPoints.value = points
-        showPopup.value = true
-        // 禁止背景页面滚动
-        document.body.style.overflow = 'hidden'
-      }, 50)
+        // 确保弹窗状态正确更新
+        showPopup.value = false
+        setTimeout(() => {
+          popupMessage.value = '🎉 计划完成！'
+          popupIcon.value = '🎊'
+          popupPoints.value = points
+          showPopup.value = true
+          // 禁止背景页面滚动
+          document.body.style.overflow = 'hidden'
+        }, 50)
 
-      // 检查是否完成了所有计划
-      checkAllPlansCompleted()
+        // 检查是否完成了所有计划
+        checkAllPlansCompleted()
+      } else if (updatedPlan && updatedPlan.targetCount > 1) {
+        // 显示进度更新弹窗
+        showPopup.value = false
+        setTimeout(() => {
+          popupMessage.value = `📊 完成进度: ${updatedPlan.completedCount}/${updatedPlan.targetCount}`
+          popupIcon.value = '🔄'
+          popupPoints.value = 0
+          showPopup.value = true
+          // 禁止背景页面滚动
+          document.body.style.overflow = 'hidden'
+        }, 50)
+      }
     }
   }
   
@@ -261,6 +297,8 @@ function stopTimer() {
   currentTimerPlanId.value = ''
   currentTimerPlanName.value = ''
   showTimerPopup.value = false
+  // 恢复背景页面滚动
+  document.body.style.overflow = 'auto'
 }
 
 // 关闭计时弹窗
