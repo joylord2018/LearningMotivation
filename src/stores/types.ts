@@ -1,7 +1,7 @@
 // 定义计划类型
 export interface Plan {
   id: string
-  subject: 'chinese' | 'math' | 'english'
+  subject: 'chinese' | 'math' | 'english' | 'general'
   subjectName: string
   date: string
   type: 'daily' | 'weekly'
@@ -64,7 +64,7 @@ export interface PointRecord {
   date: string
   description: string
   points: number
-  type: 'task' | 'exchange'
+  type: 'task' | 'exchange' | 'plan' | 'behavior'
 }
 
 // 定义兑换项类型

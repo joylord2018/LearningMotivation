@@ -603,7 +603,7 @@ function getRandomPoints() {
 
 // 撤销完成
 function undoComplete(planId: string) {
-    store.undoPlanCompletion(planId)
+    store.cancelPlanCompletion(planId)
     // 强制更新弹窗状态
     showPopup.value = false
     // 延迟显示撤销弹窗，确保响应式更新完成

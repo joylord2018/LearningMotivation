@@ -128,7 +128,37 @@ export const useUserStore = defineStore(
     const todayPoints = computed(() => {
       const today = new Date().toISOString().slice(0, 10)
       return plansModule.plans.value
-        .filter((plan) => plan.date === today && plan.completionLevel)
+        .filter((plan) => {
+          if (plan.type === 'weekly') {
+            // 对于周计划，检查当前日期是否在周计划的日期范围内
+            if (plan.selectedWeek) {
+              try {
+                // 解析周计划的日期范围（格式：YYYY-MM-DD-YYYY-MM-DD）
+                const parts = plan.selectedWeek.split('-')
+                if (parts.length === 6) {
+                  // 格式：YYYY-MM-DD-YYYY-MM-DD
+                  const weekStart = `${parts[0]}-${parts[1]}-${parts[2]}`
+                  const weekEnd = `${parts[3]}-${parts[4]}-${parts[5]}`
+                  
+                  // 将日期字符串转换为日期对象进行比较
+                  const startDate = new Date(weekStart)
+                  const endDate = new Date(weekEnd)
+                  const currentDate = new Date(today)
+                  
+                  // 比较日期
+                  return currentDate >= startDate && currentDate <= endDate && plan.completionLevel
+                }
+              } catch (error) {
+                // 如果解析出错，默认认为日期在范围内
+                console.error('解析周计划日期范围失败:', error)
+                return plan.completionLevel
+              }
+            }
+            return false
+          }
+          // 对于日计划，直接检查日期
+          return plan.date === today && plan.completionLevel
+        })
         .reduce((sum, plan) => sum + plan.points, 0)
     })
 
@@ -343,10 +373,7 @@ export const useUserStore = defineStore(
       return pointsToDeduct
     }
 
-    // 撤销计划完成
-    function undoPlanCompletion(planId: string) {
-      return cancelPlanCompletion(planId)
-    }
+
 
     // 计划管理方法
     function addPlan(plan: Plan) {
@@ -505,7 +532,6 @@ export const useUserStore = defineStore(
       updatePlanDescription,
       updatePlanCompletion,
       cancelPlanCompletion,
-      undoPlanCompletion,
       addPlan,
       updatePlan,
       removePlan,

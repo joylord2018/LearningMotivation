@@ -54,15 +54,7 @@ export function createUserModule(): UserModule {
     }
   }
   
-  // 保存数据到本地存储
-  const saveToLocalStorage = () => {
-    try {
-      localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
-      localStorage.setItem('lastLoginDate', lastLoginDate.value)
-    } catch (error) {
-      console.error('保存用户数据失败:', error)
-    }
-  }
+
 
   // 状态
   const isLoggedIn = ref(false)
@@ -77,7 +69,6 @@ export function createUserModule(): UserModule {
       localStorage.setItem('isLoggedIn', 'true')
       // 记录登录日期，用于计算连续登录
       lastLoginDate.value = new Date().toISOString().slice(0, 10)
-      saveToLocalStorage()
       return true
     }
     return false
@@ -95,13 +86,11 @@ export function createUserModule(): UserModule {
       ...userInfo.value,
       ...updates
     }
-    saveToLocalStorage()
   }
 
   // 更新密码
   function updatePassword(newPassword: string) {
     userInfo.value.password = newPassword
-    saveToLocalStorage()
   }
 
   // 重置用户信息

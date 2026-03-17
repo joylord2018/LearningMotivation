@@ -14,11 +14,9 @@ interface PlansModule {
 
   updatePlanCompletion: (planId: string, completed: boolean) => number
   cancelPlanCompletion: (planId: string) => number
-  undoPlanCompletion: (planId: string) => number
   addPlan: (plan: Plan) => void
   updatePlan: (updatedPlan: Plan) => void
   removePlan: (planId: string) => void
-  clearTodayPlansFlag: () => void
   resetPlans: () => void
 }
 
@@ -138,7 +136,7 @@ export function createPlansModule(): PlansModule {
         id: `weekly-${today}`,
         subject: 'chinese',
         subjectName: '本周阅读计划',
-        date: weekStart.toISOString().slice(0, 10), // 使用周一开始日期
+        date: today, // 使用当前日期
         type: 'weekly',
         dailyType: 'specific',
         weeklyType: 'everyweek',
@@ -159,6 +157,8 @@ export function createPlansModule(): PlansModule {
     const plan = plans.value.find((p) => p.id === planId)
     if (plan) {
       plan.description = description
+      // 触发响应式更新
+      plans.value = [...plans.value]
     }
   }
 
@@ -314,10 +314,7 @@ export function createPlansModule(): PlansModule {
     return 0
   }
 
-  // 撤销计划完成
-  function undoPlanCompletion(planId: string): number {
-    return cancelPlanCompletion(planId)
-  }
+
 
   // 计划管理方法
   function addPlan(plan: Plan) {
@@ -339,10 +336,7 @@ export function createPlansModule(): PlansModule {
     plans.value = plans.value.filter(p => p.id !== planId)
   }
 
-  // 清除今日计划初始化标记
-  function clearTodayPlansFlag() {
-    // 移除localStorage操作，因为我们现在使用pinia-plugin-persistedstate
-  }
+
 
   // 重置计划数据
   function resetPlans() {
@@ -365,11 +359,9 @@ export function createPlansModule(): PlansModule {
     updatePlanDescription,
     updatePlanCompletion,
     cancelPlanCompletion,
-    undoPlanCompletion,
     addPlan,
     updatePlan,
     removePlan,
-    clearTodayPlansFlag,
     resetPlans
   }
 }

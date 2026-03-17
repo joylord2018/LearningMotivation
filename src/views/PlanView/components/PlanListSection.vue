@@ -60,7 +60,7 @@
                 <button v-if="!plan.completionLevel" @click="quickComplete(plan.id)" class="action-btn quick-complete">
                   <span class="btn-icon">✓</span> 快速完成
                 </button>
-                <button v-if="plan.completionLevel" @click="undoComplete(plan.id)" class="action-btn undo">
+                <button v-if="plan.completionLevel" @click="cancelComplete(plan.id)" class="action-btn undo">
                   <span class="btn-icon">↩️</span> 撤销
                 </button>
               </div>
@@ -88,13 +88,39 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'startTimer', planId: string): void
   (e: 'quickComplete', planId: string): void
-  (e: 'undoComplete', planId: string): void
+  (e: 'cancelComplete', planId: string): void
 }>()
 
 // 计算选中日期的计划
 const selectedDatePlans = computed(() => {
   return store.plans.filter(plan => {
-    if (plan.type === 'weekly') return false
+    if (plan.type === 'weekly') {
+      // 对于周计划，检查当前日期是否在周计划的日期范围内
+      if (plan.selectedWeek) {
+        try {
+          // 解析周计划的日期范围（格式：YYYY-MM-DD-YYYY-MM-DD）
+          const parts = plan.selectedWeek.split('-')
+          if (parts.length === 6) {
+            // 格式：YYYY-MM-DD-YYYY-MM-DD
+            const weekStart = `${parts[0]}-${parts[1]}-${parts[2]}`
+            const weekEnd = `${parts[3]}-${parts[4]}-${parts[5]}`
+            
+            // 将日期字符串转换为日期对象进行比较
+            const startDate = new Date(weekStart)
+            const endDate = new Date(weekEnd)
+            const selected = new Date(props.selectedDate)
+            
+            // 比较日期
+            return selected >= startDate && selected <= endDate
+          }
+        } catch (error) {
+          // 如果解析出错，默认认为日期在范围内
+          console.error('解析周计划日期范围失败:', error)
+          return true
+        }
+      }
+      return false
+    }
     
     // 检查是否是特定范围类型的计划
     if (plan.dailyType === 'dateRange' && plan.startDate && plan.endDate) {
@@ -175,8 +201,8 @@ function quickComplete(planId: string) {
 }
 
 // 撤销完成
-function undoComplete(planId: string) {
-  emit('undoComplete', planId)
+function cancelComplete(planId: string) {
+  emit('cancelComplete', planId)
 }
 
 // 开始计时

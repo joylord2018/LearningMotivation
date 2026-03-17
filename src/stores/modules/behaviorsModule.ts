@@ -32,7 +32,7 @@ export function createBehaviorsModule(): BehaviorsModule {
         const weekEnd = new Date(weekStart)
         weekEnd.setDate(weekStart.getDate() + 6) // 周日
         return true
-      } else if (behavior.frequency === 'monthly') {
+      } else if (behavior.frequency === 'custom') {
         // 每月频率：只要是本月的行为都显示
         return true
       }
