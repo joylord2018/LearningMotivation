@@ -187,7 +187,7 @@
 <script lang="ts" setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/userStore'
+import { useUserStore } from '../stores'
 import NavigationTabs from '@/components/NavigationTabs.vue'
 
 const router = useRouter()

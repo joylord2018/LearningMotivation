@@ -58,8 +58,8 @@
 
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue'
-import { useUserStore } from '../../../stores/userStore'
-import { ItemRarity } from '../../../stores/userStore'
+import { useUserStore } from '../../../stores'
+import { ItemRarity } from '../../../stores'
 
 const store = useUserStore()
 const lotteryCost = ref(10)

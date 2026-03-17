@@ -26,6 +26,93 @@ export const useUserStore = defineStore(
     const streakModule = createStreakModule()
     const leaderboardModule = createLeaderboardModule()
 
+    // 兼容性处理函数
+    function handleCompatibility() {
+      // 处理积分记录类型的兼容性
+      pointsModule.pointRecords.value.forEach(record => {
+        if (record.type === 'task') {
+          // 根据描述判断是计划还是行为
+          if (record.description.includes('计划')) {
+            record.type = 'plan'
+          } else if (record.description.includes('行为')) {
+            record.type = 'behavior'
+          }
+        }
+      })
+
+      // 处理计划数据的兼容性
+      // 确保所有计划都有subject字段
+      plansModule.plans.value.forEach(plan => {
+        if (!plan.subject) {
+          // 根据subjectName推断subject
+          if (plan.subjectName === '语文') {
+            plan.subject = 'chinese'
+          } else if (plan.subjectName === '数学') {
+            plan.subject = 'math'
+          } else if (plan.subjectName === '英语') {
+            plan.subject = 'english'
+          } else {
+            plan.subject = 'general'
+          }
+        }
+        
+        // 确保计划有必要的字段
+        if (plan.points === undefined) {
+          plan.points = 0
+        }
+        if (plan.completionLevel === undefined) {
+          plan.completionLevel = false
+        }
+        if (plan.completedCount === undefined) {
+          plan.completedCount = 0
+        }
+        if (plan.targetCount === undefined) {
+          plan.targetCount = 1
+        }
+      })
+
+      // 处理行为频率类型的兼容性
+      behaviorsModule.behaviors.value.forEach(behavior => {
+        if (!behavior.frequency) {
+          behavior.frequency = 'daily'
+        }
+        if (behavior.currentCount === undefined) {
+          behavior.currentCount = 0
+        }
+        if (behavior.completed === undefined) {
+          behavior.completed = false
+        }
+      })
+
+      // 处理背包物品的兼容性
+      pointsModule.backpackItems.value.forEach(item => {
+        if (!item.rarity) {
+          item.rarity = ItemRarity.Common
+        }
+        if (!item.icon) {
+          item.icon = '🎁'
+        }
+        if (!item.acquiredDate) {
+          item.acquiredDate = new Date().toISOString()
+        }
+      })
+
+      // 处理抽奖物品的兼容性
+      pointsModule.lotteryItems.value.forEach(item => {
+        if (!item.probability) {
+          item.probability = 10
+        }
+        if (!item.icon) {
+          item.icon = '🎁'
+        }
+      })
+
+      console.log('数据兼容性处理完成')
+    }
+
+    // 执行兼容性处理
+    handleCompatibility()
+
     // 状态
     const totalTaskCompletions = ref(0)
     const enableReminders = ref(false)
@@ -186,7 +273,7 @@ export const useUserStore = defineStore(
             date: new Date().toISOString(),
             description: `${plan.subjectName}计划${completed ? '完成' : '取消完成'}`,
             points: completed ? plan.points : -plan.points,
-            type: 'task',
+            type: 'plan',
           }
           pointsModule.pointRecords.value.push(record)
         }
@@ -226,7 +313,7 @@ export const useUserStore = defineStore(
             date: new Date().toISOString(),
             description: `${plan.subjectName}计划取消完成`,
             points: -pointsToDeduct,
-            type: 'task',
+            type: 'plan',
           }
           pointsModule.pointRecords.value.push(record)
         }
@@ -480,6 +567,12 @@ export const useUserStore = defineStore(
       enableLottery,
       quickSetupTemplates,
       resetAllData
+    }
+  },
+  {
+    persist: {
+      key: 'learning-motivation',
+      storage: localStorage
     }
   }
 )

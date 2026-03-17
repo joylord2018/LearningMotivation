@@ -87,7 +87,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import NavigationTabs from '@/components/NavigationTabs.vue'
-import { useUserStore } from '@/stores/userStore'
+import { useUserStore } from '../stores'
 
 const router = useRouter()
 const store = useUserStore()

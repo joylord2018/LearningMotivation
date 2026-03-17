@@ -74,7 +74,7 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue'
-import { useUserStore } from '../../../stores/userStore'
+import { useUserStore } from '../../../stores'
 
 const store = useUserStore()
 

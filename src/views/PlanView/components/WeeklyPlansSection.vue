@@ -53,7 +53,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useUserStore } from '../../../stores/userStore'
+import { useUserStore } from '../../../stores'
 
 const store = useUserStore()
 
@@ -138,7 +138,8 @@ function getPlanIconBySubject(subject: string): string {
   const icons: { [key: string]: string } = {
     'chinese': '📚',
     'math': '🔢',
-    'english': '🗣️'
+    'english': '🗣️',
+    'general': '🎯'
   }
   return icons[subject] || '📝'
 }

@@ -52,7 +52,7 @@
                 <DashboardTab v-if="activeTab === 'dashboard'" />
 
                 <!-- 计划管理 -->
-                <PlansTab v-if="activeTab === 'plans'" @open-quick-setup="openQuickSetupDrawer" @show-task-modal="handleShowTaskModal" @notification="showNotificationMessage" @confirm="handleConfirm" />
+                <PlansTab v-if="activeTab === 'plans'" @show-quick-setup="openQuickSetupDrawer" @show-task-modal="handleShowTaskModal" @notification="showNotificationMessage" @confirm="handleConfirm" />
 
                 <!-- 行为管理 -->
                 <BehaviorsTab v-if="activeTab === 'behaviors'" @show-behavior-modal="handleShowBehaviorModal" @notification="showNotificationMessage" @confirm="handleConfirm" />
@@ -83,16 +83,16 @@
                     <div class="form-group">
                         <label for="taskSubject" class="form-label">学科</label>
                         <el-select id="taskSubject" v-model="currentTask.subject">
-                            <el-option value="chinese">语文</el-option>
-                            <el-option value="math">数学</el-option>
-                            <el-option value="english">英语</el-option>
+                            <el-option value="chinese" label="语文">语文</el-option>
+                            <el-option value="math" label="数学">数学</el-option>
+                            <el-option value="english" label="英语">英语</el-option>
                         </el-select>
                     </div>
                     <div class="form-group">
                         <label for="taskType" class="form-label">计划类型</label>
                         <el-select id="taskType" v-model="currentTask.type">
-                            <el-option value="daily">日计划</el-option>
-                            <el-option value="weekly">周计划</el-option>
+                            <el-option value="daily" label="日计划">日计划</el-option>
+                            <el-option value="weekly" label="周计划">周计划</el-option>
                         </el-select>
                     </div>
 
@@ -100,9 +100,9 @@
                     <div v-if="currentTask.type === 'daily'" class="form-group">
                         <label for="dailyType" class="form-label">日计划类型</label>
                         <el-select id="dailyType" v-model="currentTask.dailyType">
-                            <el-option value="specific">特定日期</el-option>
-                            <el-option value="everyday">每天</el-option>
-                            <el-option value="dateRange">特定范围</el-option>
+                            <el-option value="specific" label="特定日期">特定日期</el-option>
+                            <el-option value="everyday" label="每天">每天</el-option>
+                            <el-option value="dateRange" label="特定范围">特定范围</el-option>
                         </el-select>
                     </div>
 
@@ -125,8 +125,8 @@
                     <div v-if="currentTask.type === 'weekly'" class="form-group">
                         <label for="weeklyType" class="form-label">周计划类型</label>
                         <el-select id="weeklyType" v-model="currentTask.weeklyType">
-                            <el-option value="everyweek">每周</el-option>
-                            <el-option value="specific">特定周</el-option>
+                            <el-option value="everyweek" label="每周">每周</el-option>
+                            <el-option value="specific" label="特定周">特定周</el-option>
                         </el-select>
                     </div>
 
@@ -401,32 +401,45 @@
 
                     <!-- 单日设置 -->
                     <div v-if="quickSetupTab === 'single'" class="tab-content">
-                        <div class="form-group">
-                            <label class="form-label">日期</label>
-                            <input type="date" v-model="quickSetupDate" class="form-input">
+                        <div class="filter-toggle" @click="toggleSingleFilters">
+                            <span>筛选条件</span>
+                            <span class="toggle-icon">{{ showSingleFilters ? '▲' : '▼' }}</span>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">名称筛选</label>
-                            <input type="text" v-model="nameFilter" placeholder="输入计划名称..." class="form-input">
+                        <div v-if="showSingleFilters" class="filter-section">
+                            <div class="filter-row">
+                                <div class="form-group">
+                                    <label class="form-label">日期</label>
+                                    <input type="date" v-model="quickSetupDate" class="form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">科目筛选</label>
+                                    <select v-model="subjectFilter" class="form-input">
+                                        <option value="">全部科目</option>
+                                        <option value="chinese">语文</option>
+                                        <option value="math">数学</option>
+                                        <option value="english">英语</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="filter-row">
+                                <div class="form-group">
+                                    <label class="form-label">名称筛选</label>
+                                    <input type="text" v-model="nameFilter" placeholder="输入计划名称..." class="form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">描述筛选</label>
+                                    <input type="text" v-model="descriptionFilter" placeholder="输入计划描述..." class="form-input">
+                                </div>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">描述筛选</label>
-                            <input type="text" v-model="descriptionFilter" placeholder="输入计划描述..." class="form-input">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">科目筛选</label>
-                            <select v-model="subjectFilter" class="form-input">
-                                <option value="">全部科目</option>
-                                <option value="chinese">语文</option>
-                                <option value="math">数学</option>
-                                <option value="english">英语</option>
-                            </select>
-                        </div>
-                        <div class="plans-list">
-                            <div v-for="plan in filteredQuickSetupPlans" :key="plan.id" class="plan-checkbox-item">
-                                <input type="checkbox" v-model="selectedPlans" :value="plan.id">
-                                <span class="plan-name">{{ plan.subjectName }}</span>
-                                <span class="plan-subject">{{ getPlanNameBySubject(plan.subject) }}</span>
+                        <div class="plans-list-container">
+                            <div class="plans-list">
+                                <div v-for="plan in filteredQuickSetupPlans" :key="plan.id" class="plan-checkbox-item">
+                                    <input type="checkbox" v-model="selectedPlans" :value="plan.id">
+                                    <span class="plan-name">{{ plan.subjectName }}</span>
+                                    <span class="plan-subject">{{ getPlanNameBySubject(plan.subject) }}</span>
+                                </div>
+                                <div v-if="filteredQuickSetupPlans.length === 0" class="no-plans-hint">暂无模板，请先在模板管理中添加</div>
                             </div>
                         </div>
                         <button class="btn apply-btn" @click="applyQuickSetup">
@@ -437,37 +450,51 @@
 
                     <!-- 批量设置 -->
                     <div v-if="quickSetupTab === 'batch'" class="tab-content">
-                        <div class="form-group">
-                            <label class="form-label">开始日期</label>
-                            <input type="date" v-model="batchStartDate" class="form-input">
+                        <div class="filter-toggle" @click="toggleBatchFilters">
+                            <span>筛选条件</span>
+                            <span class="toggle-icon">{{ showBatchFilters ? '▲' : '▼' }}</span>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">结束日期</label>
-                            <input type="date" v-model="batchEndDate" class="form-input">
+                        <div v-if="showBatchFilters" class="filter-section">
+                            <div class="filter-row">
+                                <div class="form-group">
+                                    <label class="form-label">开始日期</label>
+                                    <input type="date" v-model="batchStartDate" class="form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">结束日期</label>
+                                    <input type="date" v-model="batchEndDate" class="form-input">
+                                </div>
+                            </div>
+                            <div class="filter-row">
+                                <div class="form-group">
+                                    <label class="form-label">名称筛选</label>
+                                    <input type="text" v-model="batchNameFilter" placeholder="输入计划名称..." class="form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">描述筛选</label>
+                                    <input type="text" v-model="batchDescriptionFilter" placeholder="输入计划描述..." class="form-input">
+                                </div>
+                            </div>
+                            <div class="filter-row">
+                                <div class="form-group">
+                                    <label class="form-label">科目筛选</label>
+                                    <select v-model="batchSubjectFilter" class="form-input">
+                                        <option value="">全部科目</option>
+                                        <option value="chinese">语文</option>
+                                        <option value="math">数学</option>
+                                        <option value="english">英语</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">名称筛选</label>
-                            <input type="text" v-model="batchNameFilter" placeholder="输入计划名称..." class="form-input">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">描述筛选</label>
-                            <input type="text" v-model="batchDescriptionFilter" placeholder="输入计划描述..."
-                                class="form-input">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">科目筛选</label>
-                            <select v-model="batchSubjectFilter" class="form-input">
-                                <option value="">全部科目</option>
-                                <option value="chinese">语文</option>
-                                <option value="math">数学</option>
-                                <option value="english">英语</option>
-                            </select>
-                        </div>
-                        <div class="plans-list">
-                            <div v-for="plan in filteredBatchQuickSetupPlans" :key="plan.id" class="plan-checkbox-item">
-                                <input type="checkbox" v-model="selectedBatchPlans" :value="plan.id">
-                                <span class="plan-name">{{ plan.subjectName }}</span>
-                                <span class="plan-subject">{{ getPlanNameBySubject(plan.subject) }}</span>
+                        <div class="plans-list-container">
+                            <div class="plans-list">
+                                <div v-for="plan in filteredBatchQuickSetupPlans" :key="plan.id" class="plan-checkbox-item">
+                                    <input type="checkbox" v-model="selectedBatchPlans" :value="plan.id">
+                                    <span class="plan-name">{{ plan.subjectName }}</span>
+                                    <span class="plan-subject">{{ getPlanNameBySubject(plan.subject) }}</span>
+                                </div>
+                                <div v-if="filteredBatchQuickSetupPlans.length === 0" class="no-plans-hint">暂无模板，请先在模板管理中添加</div>
                             </div>
                         </div>
                         <button class="btn apply-btn" @click="applyBatchQuickSetup">
@@ -571,7 +598,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useUserStore, ItemRarity } from '@/stores/userStore';
+import { useUserStore, ItemRarity } from '@/stores';
 import PasswordModal from './components/PasswordModal.vue';
 import DashboardTab from './components/DashboardTab.vue';
 import PlansTab from './components/PlansTab.vue';
@@ -587,6 +614,25 @@ const store = useUserStore();
 const isAuthenticated = ref(false);
 const adminPassword = ref('');
 const authError = ref('');
+
+// 检查认证状态
+const checkAuthStatus = () => {
+  const authData = localStorage.getItem('adminAuth');
+  if (authData) {
+    try {
+      const { timestamp } = JSON.parse(authData);
+      const now = Date.now();
+      const thirtyMinutes = 30 * 60 * 1000;
+      if (now - timestamp < thirtyMinutes) {
+        isAuthenticated.value = true;
+      } else {
+        localStorage.removeItem('adminAuth');
+      }
+    } catch (error) {
+      localStorage.removeItem('adminAuth');
+    }
+  }
+};
 
 // 标签管理
 const activeTab = ref('dashboard');
@@ -690,6 +736,11 @@ const nameFilter = ref('');
 const descriptionFilter = ref('');
 const subjectFilter = ref('');
 const selectedPlans = ref<string[]>([]);
+const showSingleFilters = ref(false);
+
+const toggleSingleFilters = () => {
+    showSingleFilters.value = !showSingleFilters.value;
+};
 
 // 批量设置
 const batchStartDate = ref(new Date().toISOString().split('T')[0]);
@@ -698,6 +749,11 @@ const batchNameFilter = ref('');
 const batchDescriptionFilter = ref('');
 const batchSubjectFilter = ref('');
 const selectedBatchPlans = ref<string[]>([]);
+const showBatchFilters = ref(false);
+
+const toggleBatchFilters = () => {
+    showBatchFilters.value = !showBatchFilters.value;
+};
 
 // 模板管理
 const showTemplateModal = ref(false);
@@ -754,6 +810,8 @@ const availableWeeks = computed(() => {
 const authenticate = () => {
     isAuthenticated.value = true;
     authError.value = '';
+    // 存储认证信息，有效期30分钟
+    localStorage.setItem('adminAuth', JSON.stringify({ timestamp: Date.now() }));
     showNotificationMessage('认证成功！', 'success');
 };
 
@@ -1314,6 +1372,8 @@ const notificationIcon = computed(() => {
 
 // 生命周期
 onMounted(() => {
+  // 检查认证状态
+  checkAuthStatus();
 });
 </script>
 
@@ -1331,6 +1391,8 @@ onMounted(() => {
     position: relative;
     overflow: hidden;
 }
+
+
 
 /* 装饰元素 */
 .decorations {
@@ -1691,6 +1753,16 @@ onMounted(() => {
     border-radius: 6px;
     font-size: 14px;
     transition: border-color 0.3s ease;
+}
+
+.icon-input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.icon-input-group .el-input {
+    flex: 1;
 }
 
 .form-input:focus {
@@ -2388,8 +2460,7 @@ input:checked+.toggle-slider:before {
     position: fixed;
     top: 0;
     right: 0;
-    width: 90%;
-    max-width: 400px;
+    width: 50%;
     height: 100%;
     background: white;
     box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
@@ -2447,10 +2518,65 @@ input:checked+.toggle-slider:before {
     color: white;
 }
 
+.filter-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.toggle-icon {
+    font-size: 12px;
+}
+
+.filter-section {
+    margin-bottom: 15px;
+    padding: 15px;
+    background: #f5f5f5;
+    border-radius: 8px;
+}
+
+.filter-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.filter-row:last-child {
+    margin-bottom: 0;
+}
+
+.filter-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.plans-list-container {
+    border: 2px solid #ffd6e0;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
 .plans-list {
-    margin-top: 20px;
+    margin-top: 0;
     max-height: 300px;
     overflow-y: auto;
+    padding: 15px;
+    background: #fff;
+}
+
+.no-plans-hint {
+    text-align: center;
+    padding: 20px;
+    color: #999;
+    font-size: 14px;
 }
 
 .plan-checkbox-item {

@@ -24,294 +24,149 @@ interface PointsModule {
 }
 
 export function createPointsModule(): PointsModule {
-  // 从本地存储加载数据
-  const loadFromLocalStorage = () => {
-    try {
-      const storedCurrentPoints = localStorage.getItem('currentPoints')
-      const storedPointRecords = localStorage.getItem('pointRecords')
-      const storedExchangeItems = localStorage.getItem('exchangeItems')
-      const storedBackpackItems = localStorage.getItem('backpackItems')
-      const storedLotteryItems = localStorage.getItem('lotteryItems')
-      const storedLotteryRecords = localStorage.getItem('lotteryRecords')
-      const storedLotteryCost = localStorage.getItem('lotteryCost')
-      
-      return {
-        currentPoints: storedCurrentPoints ? parseInt(storedCurrentPoints) : 0,
-        pointRecords: storedPointRecords ? JSON.parse(storedPointRecords) : [],
-        exchangeItems: storedExchangeItems ? JSON.parse(storedExchangeItems) : [
-          { id: '1', name: '零食', points: 20, description: '美味零食一包' },
-          { id: '2', name: '小玩具', points: 50, description: '精美小玩具一个' },
-          { id: '3', name: '大玩具', points: 100, description: '超值大玩具一个' },
-        ],
-        backpackItems: storedBackpackItems ? JSON.parse(storedBackpackItems) : [],
-        lotteryItems: storedLotteryItems ? JSON.parse(storedLotteryItems) : [
-          // 普通物品 (70% 概率)
-          {
-            id: 'lucky-1',
-            name: '幸运星',
-            description: '带来好运的星星',
-            rarity: ItemRarity.Common,
-            probability: 30,
-            icon: '✨'
-          },
-          {
-            id: 'lucky-2',
-            name: '学习笔记',
-            description: '提高学习效率',
-            rarity: ItemRarity.Common,
-            probability: 25,
-            icon: '📓'
-          },
-          {
-            id: 'lucky-3',
-            name: '能量饮料',
-            description: '补充学习能量',
-            rarity: ItemRarity.Common,
-            probability: 15,
-            icon: '🥤'
-          },
-
-          // 稀有物品 (20% 概率)
-          {
-            id: 'rare-1',
-            name: '智慧结晶',
-            description: '增加智慧的结晶',
-            rarity: ItemRarity.Rare,
-            probability: 10,
-            effect: '使用后获得5点积分',
-            effectType: ItemEffectType.ADD_POINTS_5,
-            icon: '💡'
-          },
-          {
-            id: 'rare-2',
-            name: '学习加速器',
-            description: '加速学习进度',
-            rarity: ItemRarity.Rare,
-            probability: 10,
-            effect: '使用后获得额外的任务完成度',
-            icon: '🚀'
-          },
-
-          // 史诗物品 (8% 概率)
-          {
-            id: 'epic-1',
-            name: '知识宝库',
-            description: '蕴含丰富知识的宝库',
-            rarity: ItemRarity.Epic,
-            probability: 5,
-            effect: '使用后获得10点积分',
-            effectType: ItemEffectType.ADD_POINTS_10,
-            icon: '🏰'
-          },
-          {
-            id: 'epic-2',
-            name: '学习大师的祝福',
-            description: '来自学习大师的祝福',
-            rarity: ItemRarity.Epic,
-            probability: 3,
-            effect: '使用后所有任务获得双倍积分',
-            effectType: ItemEffectType.DOUBLE_POINTS,
-            icon: '🧙‍♂️'
-          },
-
-          // 传说物品 (2% 概率)
-          {
-            id: 'legendary-1',
-            name: '学习之神的馈赠',
-            description: '学习之神赐予的珍贵礼物',
-            rarity: ItemRarity.Legendary,
-            probability: 1,
-            effect: '使用后获得20点积分和一次额外抽奖机会',
-            effectType: ItemEffectType.ADD_POINTS_20,
-            icon: '🌟'
-          },
-          {
-            id: 'legendary-2',
-            name: '全能学霸徽章',
-            description: '全能学霸的象征',
-            rarity: ItemRarity.Legendary,
-            probability: 1,
-            effect: '使用后解锁所有成就进度+1',
-            effectType: ItemEffectType.UNLOCK_ACHIEVEMENTS,
-            icon: '🏅'
-          },
-        ],
-        lotteryRecords: storedLotteryRecords ? JSON.parse(storedLotteryRecords) : [],
-        lotteryCost: storedLotteryCost ? parseInt(storedLotteryCost) : 10
-      }
-    } catch (error) {
-      console.error('加载积分数据失败:', error)
-      return {
-        currentPoints: 0,
-        pointRecords: [],
-        exchangeItems: [
-          { id: '1', name: '零食', points: 20, description: '美味零食一包' },
-          { id: '2', name: '小玩具', points: 50, description: '精美小玩具一个' },
-          { id: '3', name: '大玩具', points: 100, description: '超值大玩具一个' },
-        ],
-        backpackItems: [],
-        lotteryItems: [
-          // 普通物品 (70% 概率)
-          {
-            id: 'lucky-1',
-            name: '幸运星',
-            description: '带来好运的星星',
-            rarity: ItemRarity.Common,
-            probability: 30,
-            icon: '✨'
-          },
-          {
-            id: 'lucky-2',
-            name: '学习笔记',
-            description: '提高学习效率',
-            rarity: ItemRarity.Common,
-            probability: 25,
-            icon: '📓'
-          },
-          {
-            id: 'lucky-3',
-            name: '能量饮料',
-            description: '补充学习能量',
-            rarity: ItemRarity.Common,
-            probability: 15,
-            icon: '🥤'
-          },
-
-          // 稀有物品 (20% 概率)
-          {
-            id: 'rare-1',
-            name: '智慧结晶',
-            description: '增加智慧的结晶',
-            rarity: ItemRarity.Rare,
-            probability: 10,
-            effect: '使用后获得5点积分',
-            effectType: ItemEffectType.ADD_POINTS_5,
-            icon: '💡'
-          },
-          {
-            id: 'rare-2',
-            name: '学习加速器',
-            description: '加速学习进度',
-            rarity: ItemRarity.Rare,
-            probability: 10,
-            effect: '使用后获得额外的任务完成度',
-            icon: '🚀'
-          },
-
-          // 史诗物品 (8% 概率)
-          {
-            id: 'epic-1',
-            name: '知识宝库',
-            description: '蕴含丰富知识的宝库',
-            rarity: ItemRarity.Epic,
-            probability: 5,
-            effect: '使用后获得10点积分',
-            effectType: ItemEffectType.ADD_POINTS_10,
-            icon: '🏰'
-          },
-          {
-            id: 'epic-2',
-            name: '学习大师的祝福',
-            description: '来自学习大师的祝福',
-            rarity: ItemRarity.Epic,
-            probability: 3,
-            effect: '使用后所有任务获得双倍积分',
-            effectType: ItemEffectType.DOUBLE_POINTS,
-            icon: '🧙‍♂️'
-          },
-
-          // 传说物品 (2% 概率)
-          {
-            id: 'legendary-1',
-            name: '学习之神的馈赠',
-            description: '学习之神赐予的珍贵礼物',
-            rarity: ItemRarity.Legendary,
-            probability: 1,
-            effect: '使用后获得20点积分和一次额外抽奖机会',
-            effectType: ItemEffectType.ADD_POINTS_20,
-            icon: '🌟'
-          },
-          {
-            id: 'legendary-2',
-            name: '全能学霸徽章',
-            description: '全能学霸的象征',
-            rarity: ItemRarity.Legendary,
-            probability: 1,
-            effect: '使用后解锁所有成就进度+1',
-            effectType: ItemEffectType.UNLOCK_ACHIEVEMENTS,
-            icon: '🏅'
-          },
-        ],
-        lotteryRecords: [],
-        lotteryCost: 10
-      }
-    }
-  }
-  
-  // 保存数据到本地存储
-  const saveToLocalStorage = () => {
-    try {
-      localStorage.setItem('currentPoints', currentPoints.value.toString())
-      localStorage.setItem('pointRecords', JSON.stringify(pointRecords.value))
-      localStorage.setItem('exchangeItems', JSON.stringify(exchangeItems.value))
-      localStorage.setItem('backpackItems', JSON.stringify(backpackItems.value))
-      localStorage.setItem('lotteryItems', JSON.stringify(lotteryItems.value))
-      localStorage.setItem('lotteryRecords', JSON.stringify(lotteryRecords.value))
-      localStorage.setItem('lotteryCost', lotteryCost.value.toString())
-    } catch (error) {
-      console.error('保存积分数据失败:', error)
-    }
-  }
-
   // 状态
-  const storedData = loadFromLocalStorage()
-  const currentPoints = ref(storedData.currentPoints)
-  const pointRecords = ref<PointRecord[]>(storedData.pointRecords)
-  const exchangeItems = ref<ExchangeItem[]>(storedData.exchangeItems)
-  const backpackItems = ref<BackpackItem[]>(storedData.backpackItems)
-  const lotteryItems = ref<LotteryItem[]>(storedData.lotteryItems)
-  const lotteryRecords = ref<LotteryRecord[]>(storedData.lotteryRecords)
-  const lotteryCost = ref(storedData.lotteryCost)
+  const currentPoints = ref(0)
+  const pointRecords = ref<PointRecord[]>([])
+  const exchangeItems = ref<ExchangeItem[]>([
+    { id: '1', name: '零食', points: 20, description: '美味零食一包' },
+    { id: '2', name: '小玩具', points: 50, description: '精美小玩具一个' },
+    { id: '3', name: '大玩具', points: 100, description: '超值大玩具一个' },
+  ])
+  const backpackItems = ref<BackpackItem[]>([])
+  const lotteryItems = ref<LotteryItem[]>([
+    // 普通物品 (70% 概率)
+    {
+      id: 'lucky-1',
+      name: '幸运星',
+      description: '带来好运的星星',
+      rarity: ItemRarity.Common,
+      probability: 30,
+      icon: '✨'
+    },
+    {
+      id: 'lucky-2',
+      name: '学习笔记',
+      description: '提高学习效率',
+      rarity: ItemRarity.Common,
+      probability: 25,
+      icon: '📓'
+    },
+    {
+      id: 'lucky-3',
+      name: '能量饮料',
+      description: '补充学习能量',
+      rarity: ItemRarity.Common,
+      probability: 15,
+      icon: '🥤'
+    },
+
+    // 稀有物品 (20% 概率)
+    {
+      id: 'rare-1',
+      name: '智慧结晶',
+      description: '增加智慧的结晶',
+      rarity: ItemRarity.Rare,
+      probability: 10,
+      effect: '使用后获得5点积分',
+      effectType: ItemEffectType.ADD_POINTS_5,
+      icon: '💡'
+    },
+    {
+      id: 'rare-2',
+      name: '学习加速器',
+      description: '加速学习进度',
+      rarity: ItemRarity.Rare,
+      probability: 10,
+      effect: '使用后获得额外的任务完成度',
+      icon: '🚀'
+    },
+
+    // 史诗物品 (8% 概率)
+    {
+      id: 'epic-1',
+      name: '知识宝库',
+      description: '蕴含丰富知识的宝库',
+      rarity: ItemRarity.Epic,
+      probability: 5,
+      effect: '使用后获得10点积分',
+      effectType: ItemEffectType.ADD_POINTS_10,
+      icon: '🏰'
+    },
+    {
+      id: 'epic-2',
+      name: '学习大师的祝福',
+      description: '来自学习大师的祝福',
+      rarity: ItemRarity.Epic,
+      probability: 3,
+      effect: '使用后所有任务获得双倍积分',
+      effectType: ItemEffectType.DOUBLE_POINTS,
+      icon: '🧙‍♂️'
+    },
+
+    // 传说物品 (2% 概率)
+    {
+      id: 'legendary-1',
+      name: '学习之神的馈赠',
+      description: '学习之神赐予的珍贵礼物',
+      rarity: ItemRarity.Legendary,
+      probability: 1,
+      effect: '使用后获得20点积分和一次额外抽奖机会',
+      effectType: ItemEffectType.ADD_POINTS_20,
+      icon: '🌟'
+    },
+    {
+      id: 'legendary-2',
+      name: '全能学霸徽章',
+      description: '全能学霸的象征',
+      rarity: ItemRarity.Legendary,
+      probability: 1,
+      effect: '使用后解锁所有成就进度+1',
+      effectType: ItemEffectType.UNLOCK_ACHIEVEMENTS,
+      icon: '🏅'
+    },
+  ])
+  const lotteryRecords = ref<LotteryRecord[]>([])
+  const lotteryCost = ref(10)
 
   // 兑换物品（修改以支持背包）
   function exchangeItem(itemId: string): boolean {
     const item = exchangeItems.value.find((i) => i.id === itemId)
-    if (item) {
-      if (currentPoints.value >= item.points) {
-        // 扣除积分
-        currentPoints.value -= item.points
-
-        // 记录兑换记录
-        const record: PointRecord = {
-          id: `record-${Date.now()}`,
-          date: new Date().toISOString(),
-          description: `兑换${item.name}`,
-          points: -item.points,
-          type: 'exchange',
-        }
-        pointRecords.value.push(record)
-
-        // 添加到背包，默认普通稀有度
-        const backpackItem: BackpackItem = {
-          id: `backpack-${Date.now()}`,
-          originalId: item.id,
-          name: item.name,
-          description: item.description,
-          acquiredDate: new Date().toISOString(),
-          rarity: ItemRarity.Common,
-          icon: '🎁'
-        }
-        backpackItems.value.push(backpackItem)
-
-        saveToLocalStorage()
-        return true
-      } else {
-        console.log('积分不足，无法兑换该物品')
-        return false
-      }
+    if (!item) {
+      console.error('兑换失败：未找到指定的兑换物品')
+      return false
     }
-    console.log('未找到指定的兑换物品')
-    return false
+    
+    if (currentPoints.value < item.points) {
+      console.error(`兑换失败：积分不足，需要 ${item.points} 积分，当前只有 ${currentPoints.value} 积分`)
+      return false
+    }
+    
+    // 扣除积分
+    currentPoints.value -= item.points
+
+    // 记录兑换记录
+    const record: PointRecord = {
+      id: `record-${Date.now()}`,
+      date: new Date().toISOString(),
+      description: `兑换${item.name}`,
+      points: -item.points,
+      type: 'exchange',
+    }
+    pointRecords.value.push(record)
+
+    // 添加到背包，默认普通稀有度
+    const backpackItem: BackpackItem = {
+      id: `backpack-${Date.now()}`,
+      originalId: item.id,
+      name: item.name,
+      description: item.description,
+      acquiredDate: new Date().toISOString(),
+      rarity: ItemRarity.Common,
+      icon: '🎁'
+    }
+    backpackItems.value.push(backpackItem)
+
+    return true
   }
 
   // 使用背包物品
@@ -383,7 +238,6 @@ export function createPointsModule(): PointsModule {
       }
       pointRecords.value.push(record)
 
-      saveToLocalStorage()
       return true
     }
     return false
@@ -393,7 +247,7 @@ export function createPointsModule(): PointsModule {
   function drawLottery(item?: LotteryItem): BackpackItem | null {
     // 检查积分是否足够
     if (currentPoints.value < lotteryCost.value) {
-      console.log('积分不足，无法参与抽奖')
+      console.error(`抽奖失败：积分不足，需要 ${lotteryCost.value} 积分，当前只有 ${currentPoints.value} 积分`)
       return null
     }
 
@@ -424,6 +278,7 @@ export function createPointsModule(): PointsModule {
       }
 
       // 如果没有找到（理论上不会发生），返回安慰奖
+      console.warn('抽奖异常：未找到匹配概率的物品，返回安慰奖')
       return {
         id: 'fallback-item',
         name: '安慰奖',
@@ -458,7 +313,7 @@ export function createPointsModule(): PointsModule {
     }
     lotteryRecords.value.unshift(lotteryRecord)
 
-    saveToLocalStorage()
+    console.log(`抽奖成功：获得 ${selectedItem.rarity} 物品 ${selectedItem.name}`)
     return backpackItem
   }
 
@@ -477,7 +332,6 @@ export function createPointsModule(): PointsModule {
 
     // 检查成就
     // 这里需要通过回调函数来检查成就
-    saveToLocalStorage()
   }
 
   // 更新兑换项（管理模块使用）
@@ -487,7 +341,8 @@ export function createPointsModule(): PointsModule {
       item.name = name
       item.points = points
       item.description = description
-      saveToLocalStorage()
+      // 触发响应式更新
+      exchangeItems.value = [...exchangeItems.value]
     }
   }
 
@@ -500,13 +355,13 @@ export function createPointsModule(): PointsModule {
       description,
     }
     exchangeItems.value.push(newItem)
-    saveToLocalStorage()
+    // 触发响应式更新
+    exchangeItems.value = [...exchangeItems.value]
   }
 
   // 删除兑换项（管理模块使用）
   function removeExchangeItem(itemId: string) {
     exchangeItems.value = exchangeItems.value.filter((item) => item.id !== itemId)
-    saveToLocalStorage()
   }
 
   // 抽奖物品管理方法
@@ -522,7 +377,8 @@ export function createPointsModule(): PointsModule {
       icon: '🎁'
     }
     lotteryItems.value.push(newItem)
-    saveToLocalStorage()
+    // 触发响应式更新
+    lotteryItems.value = [...lotteryItems.value]
   }
 
   // 更新抽奖物品（管理模块使用）
@@ -534,20 +390,19 @@ export function createPointsModule(): PointsModule {
       item.rarity = rarity
       item.probability = probability
       item.effect = effect
-      saveToLocalStorage()
+      // 触发响应式更新
+      lotteryItems.value = [...lotteryItems.value]
     }
   }
 
   // 删除抽奖物品（管理模块使用）
   function removeLotteryItem(itemId: string) {
     lotteryItems.value = lotteryItems.value.filter((item) => item.id !== itemId)
-    saveToLocalStorage()
   }
 
   // 设置抽奖消耗积分（管理模块使用）
   function setLotteryCost(cost: number) {
     lotteryCost.value = cost
-    saveToLocalStorage()
   }
 
   return {

@@ -1,12 +1,12 @@
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
-import type { Behavior } from '../types'
+import type { Behavior, PointRecord } from '../types'
 
 interface BehaviorsModule {
   behaviors: Ref<Behavior[]>
   todayBehaviors: ComputedRef<Behavior[]>
   initializeDefaultBehaviors: () => void
-  recordBehavior: (behaviorId: string, currentPoints: any, pointRecords: any) => boolean
-  cancelBehaviorRecord: (behaviorId: string, currentPoints: any, pointRecords: any) => boolean
+  recordBehavior: (behaviorId: string, currentPoints: Ref<number>, pointRecords: Ref<PointRecord[]>) => boolean
+  cancelBehaviorRecord: (behaviorId: string, currentPoints: Ref<number>, pointRecords: Ref<PointRecord[]>) => boolean
   addBehavior: (behavior: Omit<Behavior, 'id' | 'currentCount' | 'completed' | 'lastRecordDate'>) => Behavior
   updateBehavior: (behaviorId: string, updates: Partial<Omit<Behavior, 'id' | 'currentCount' | 'completed' | 'lastRecordDate'>>) => boolean
   removeBehavior: (behaviorId: string) => boolean
@@ -15,28 +15,8 @@ interface BehaviorsModule {
 }
 
 export function createBehaviorsModule(): BehaviorsModule {
-  // 从本地存储加载数据
-  const loadFromLocalStorage = () => {
-    try {
-      const storedBehaviors = localStorage.getItem('behaviors')
-      return storedBehaviors ? JSON.parse(storedBehaviors) : []
-    } catch (error) {
-      console.error('加载行为数据失败:', error)
-      return []
-    }
-  }
-  
-  // 保存数据到本地存储
-  const saveToLocalStorage = () => {
-    try {
-      localStorage.setItem('behaviors', JSON.stringify(behaviors.value))
-    } catch (error) {
-      console.error('保存行为数据失败:', error)
-    }
-  }
-
   // 状态
-  const behaviors = ref<Behavior[]>(loadFromLocalStorage())
+  const behaviors = ref<Behavior[]>([])
 
   // 计算属性
   const todayBehaviors = computed(() => {
@@ -44,8 +24,18 @@ export function createBehaviorsModule(): BehaviorsModule {
     return behaviors.value.filter((behavior) => {
       if (behavior.frequency === 'daily') {
         return true
+      } else if (behavior.frequency === 'weekly') {
+        // 每周频率：只要是本周的行为都显示
+        const todayDate = new Date(today)
+        const weekStart = new Date(todayDate)
+        weekStart.setDate(todayDate.getDate() - todayDate.getDay() + 1) // 调整到周一
+        const weekEnd = new Date(weekStart)
+        weekEnd.setDate(weekStart.getDate() + 6) // 周日
+        return true
+      } else if (behavior.frequency === 'monthly') {
+        // 每月频率：只要是本月的行为都显示
+        return true
       }
-      // 可以根据需要添加其他频率的逻辑
       return false
     })
   })
@@ -166,11 +156,10 @@ export function createBehaviorsModule(): BehaviorsModule {
     ]
 
     behaviors.value = defaultBehaviors
-    saveToLocalStorage()
   }
 
   // 记录行为
-  function recordBehavior(behaviorId: string, currentPoints: any, pointRecords: any): boolean {
+  function recordBehavior(behaviorId: string, currentPoints: Ref<number>, pointRecords: Ref<PointRecord[]>): boolean {
     const behavior = behaviors.value.find((b) => b.id === behaviorId)
     if (behavior) {
       const today = new Date().toISOString().slice(0, 10)
@@ -188,20 +177,16 @@ export function createBehaviorsModule(): BehaviorsModule {
       if (behavior.currentCount >= behavior.targetCount) {
         behavior.completed = true
         // 添加积分
-        if (currentPoints && typeof currentPoints.value === 'number') {
-          currentPoints.value += behavior.points
-        }
+        currentPoints.value += behavior.points
 
         // 记录积分变动
-        if (pointRecords && Array.isArray(pointRecords.value)) {
-          pointRecords.value.push({
-            id: `record-${Date.now()}`,
-            date: new Date().toISOString(),
-            description: `完成行为记录: ${behavior.name}`,
-            points: behavior.points,
-            type: 'task'
-          })
-        }
+        pointRecords.value.push({
+          id: `record-${Date.now()}`,
+          date: new Date().toISOString(),
+          description: `完成行为记录: ${behavior.name}`,
+          points: behavior.points,
+          type: 'behavior'
+        })
       }
 
       return true
@@ -210,7 +195,7 @@ export function createBehaviorsModule(): BehaviorsModule {
   }
 
   // 取消行为记录
-  function cancelBehaviorRecord(behaviorId: string, currentPoints: any, pointRecords: any): boolean {
+  function cancelBehaviorRecord(behaviorId: string, currentPoints: Ref<number>, pointRecords: Ref<PointRecord[]>): boolean {
     const behavior = behaviors.value.find((b) => b.id === behaviorId)
     if (behavior && behavior.lastRecordDate === new Date().toISOString().slice(0, 10)) {
       // 减少当前计数
@@ -220,29 +205,22 @@ export function createBehaviorsModule(): BehaviorsModule {
       if (behavior.completed) {
         behavior.completed = false
         // 扣除积分
-        if (currentPoints && typeof currentPoints.value === 'number') {
-          currentPoints.value = Math.max(0, currentPoints.value - behavior.points)
-        }
+        currentPoints.value = Math.max(0, currentPoints.value - behavior.points)
 
         // 记录积分变动
-        if (pointRecords && Array.isArray(pointRecords.value)) {
-          pointRecords.value.push({
-            id: `record-${Date.now()}`,
-            date: new Date().toISOString(),
-            description: `取消行为记录: ${behavior.name}`,
-            points: -behavior.points,
-            type: 'task'
-          })
-        }
+        pointRecords.value.push({
+          id: `record-${Date.now()}`,
+          date: new Date().toISOString(),
+          description: `取消行为记录: ${behavior.name}`,
+          points: -behavior.points,
+          type: 'behavior'
+        })
       }
       
       // 如果计数为0，清除最后记录日期
       if (behavior.currentCount === 0) {
         behavior.lastRecordDate = null
       }
-
-      // 检查成就
-      // 这里需要通过回调函数来检查成就
 
       return true
     }
@@ -259,6 +237,8 @@ export function createBehaviorsModule(): BehaviorsModule {
       lastRecordDate: null
     }
     behaviors.value.push(newBehavior)
+    // 触发响应式更新
+    behaviors.value = [...behaviors.value]
     return newBehavior
   }
 
@@ -267,6 +247,8 @@ export function createBehaviorsModule(): BehaviorsModule {
     const behavior = behaviors.value.find((b) => b.id === behaviorId)
     if (behavior) {
       Object.assign(behavior, updates)
+      // 触发响应式更新
+      behaviors.value = [...behaviors.value]
       return true
     }
     return false

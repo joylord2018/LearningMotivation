@@ -87,7 +87,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import type { CSSProperties } from 'vue'
-import { useUserStore, ItemRarity, type LotteryItem, type BackpackItem } from '../stores/userStore'
+import { useUserStore, ItemRarity, type LotteryItem, type BackpackItem } from '../stores'
 
 // Props
 interface Props {

@@ -100,7 +100,7 @@
                                     <p class="task-description">{{ task.description }}</p>
                                     <div class="task-meta">
                                         <span class="task-date">{{ task.date }}</span>
-                                        <span class="task-subject">{{ task.subject }}</span>
+                                        <span class="task-subject">{{ getPlanNameBySubject(String(task.subject)) }}</span>
                                     </div>
                                 </div>
                                 <div class="task-actions">
@@ -124,7 +124,7 @@
 
 <script lang="ts" setup>
 import { ref, computed } from 'vue'
-import { useUserStore } from '../../../stores/userStore'
+import { useUserStore } from '../../../stores'
 
 const store = useUserStore()
 
@@ -235,7 +235,7 @@ function confirmDeleteTask(task: any) {
 }
 
 function openQuickSetupDrawer() {
-    emit('open-quick-setup')
+    emit('show-quick-setup')
 }
 </script>
 

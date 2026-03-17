@@ -215,7 +215,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore, ItemRarity } from '../stores/userStore'
+import { useUserStore, ItemRarity } from '../stores'
 import NavigationTabs from '../components/NavigationTabs.vue'
 import LotteryPopup from '../components/LotteryPopup.vue'
 

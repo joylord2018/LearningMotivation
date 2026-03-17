@@ -52,7 +52,12 @@ const closePasswordModal = () => {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(255, 138, 171, 0.7);
+    background: linear-gradient(135deg, rgba(255, 240, 245, 0.9) 0%, rgba(255, 230, 237, 0.9) 100%);
+    background-image:
+        radial-gradient(rgba(255, 214, 224, 0.3) 1px, transparent 1px),
+        radial-gradient(rgba(255, 214, 224, 0.3) 1px, transparent 1px);
+    background-size: 30px 30px;
+    background-position: 0 0, 15px 15px;
     display: flex;
     justify-content: center;
     align-items: center;

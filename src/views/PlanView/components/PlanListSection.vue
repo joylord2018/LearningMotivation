@@ -37,7 +37,7 @@
                 <span class="detail-icon">🔄</span>
                 <span class="detail-text">本周第{{ plan.completedCount + 1 }}次</span>
               </div>
-              <div v-if="plan.type === 'weekly'" class="detail-item">
+              <div v-if="plan.type === 'weekly' || plan.targetCount > 1" class="detail-item">
                 <span class="detail-icon">📊</span>
                 <span class="detail-text">进度: {{ plan.completedCount || 0 }}/{{ plan.targetCount || 1 }}</span>
               </div>
@@ -74,7 +74,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useUserStore } from '../../../stores/userStore'
+import { useUserStore } from '../../../stores'
 
 const store = useUserStore()
 
@@ -140,7 +140,8 @@ function getPlanIconBySubject(subject: string): string {
   const icons: { [key: string]: string } = {
     'chinese': '📚',
     'math': '🔢',
-    'english': '🗣️'
+    'english': '🗣️',
+    'general': '🎯'
   }
   return icons[subject] || '📝'
 }
@@ -150,7 +151,8 @@ function getPlanNameBySubject(subject: string): string {
   const names: { [key: string]: string } = {
     'chinese': '语文计划',
     'math': '数学计划',
-    'english': '英语计划'
+    'english': '英语计划',
+    'general': '全科计划'
   }
   return names[subject] || '学习计划'
 }
@@ -161,7 +163,8 @@ function getPlanDescriptionBySubject(subject: string): string {
   const descriptions: { [key: string]: string } = {
     'chinese': '阅读一篇文章并理解内容',
     'math': '完成几道数学练习题',
-    'english': '练习英语听力和口语'
+    'english': '练习英语听力和口语',
+    'general': '综合复习各个学科的知识点'
   }
   return descriptions[subject] || '认真完成今日学习计划'
 }

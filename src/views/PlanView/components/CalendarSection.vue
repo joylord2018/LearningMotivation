@@ -23,7 +23,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useUserStore } from '../../../stores/userStore'
+import { useUserStore } from '../../../stores'
 
 const store = useUserStore()
 

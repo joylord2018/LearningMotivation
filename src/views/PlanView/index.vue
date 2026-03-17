@@ -89,7 +89,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '../../stores/userStore'
+import { useUserStore } from '../../stores'
 import NavigationTabs from '../../components/NavigationTabs.vue'
 import CalendarSection from './components/CalendarSection.vue'
 import PlanListSection from './components/PlanListSection.vue'

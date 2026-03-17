@@ -333,28 +333,8 @@ export function createAchievementsModule(): AchievementsModule {
     },
   ]
 
-  // 从本地存储加载数据
-  const loadFromLocalStorage = () => {
-    try {
-      const storedAchievements = localStorage.getItem('achievements')
-      return storedAchievements ? JSON.parse(storedAchievements) : defaultAchievements
-    } catch (error) {
-      console.error('加载成就数据失败:', error)
-      return defaultAchievements
-    }
-  }
-  
-  // 保存数据到本地存储
-  const saveToLocalStorage = () => {
-    try {
-      localStorage.setItem('achievements', JSON.stringify(achievements.value))
-    } catch (error) {
-      console.error('保存成就数据失败:', error)
-    }
-  }
-
   // 状态
-  const achievements = ref<Achievement[]>(loadFromLocalStorage())
+  const achievements = ref<Achievement[]>(defaultAchievements)
 
   // 计算属性
   const unlockedAchievements = ref<Achievement[]>([])
@@ -415,7 +395,6 @@ export function createAchievementsModule(): AchievementsModule {
 
     // 更新计算属性
     updateAchievementLists()
-    saveToLocalStorage()
 
     return newlyUnlocked
   }
@@ -428,7 +407,6 @@ export function createAchievementsModule(): AchievementsModule {
       achievement.unlockedAt = new Date().toISOString()
       achievement.isNew = true
       updateAchievementLists()
-      saveToLocalStorage()
     }
   }
 
@@ -441,7 +419,6 @@ export function createAchievementsModule(): AchievementsModule {
       achievement.isNew = true
     })
     updateAchievementLists()
-    saveToLocalStorage()
   }
 
   // 更新成就列表

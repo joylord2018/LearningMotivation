@@ -53,7 +53,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useUserStore, ItemRarity } from '../../../stores/userStore'
+import { useUserStore, ItemRarity } from '../../../stores'
 
 const props = defineProps({
     visible: {
