@@ -108,7 +108,7 @@
                                         <span class="detail-icon">📊</span>
                                         <span class="detail-text">进度: {{ plan.completedCount || 0 }}/{{ plan.targetCount || 1 }}</span>
                                     </div>
-                                    <div v-if="plan.timeRange" class="detail-item">
+                                    <div v-if="plan.timeRange && plan.timeRange !== ''" class="detail-item">
                                         <span class="detail-icon">⏰</span>
                                         <span class="detail-text">{{ plan.timeRange }}</span>
                                     </div>
@@ -364,7 +364,7 @@ const weekDays = computed(() => {
 
 // 计算选中日期的计划
 const selectedDatePlans = computed(() => {
-    return store.plans.filter(plan => {
+    const plans = store.plans.filter(plan => {
         if (plan.type === 'weekly') return false
         
         // 检查是否是特定范围类型的计划
@@ -378,6 +378,8 @@ const selectedDatePlans = computed(() => {
         // 普通特定日期计划
         return plan.date === selectedDate.value
     })
+    console.log('选中日期的计划:', plans);
+    return plans
 })
 
 // 按学科分组的计划
@@ -646,6 +648,7 @@ function startTimer(planId: string) {
         
         // 解析时间限制作为倒计时
         if (plan.timeRange) {
+            // 尝试解析单个时间格式 (HH:MM:SS)
             const timeParts = plan.timeRange.split(':')
             if (timeParts.length === 3) {
                 const hours = parseInt(timeParts[0] || '0')
@@ -653,8 +656,36 @@ function startTimer(planId: string) {
                 const seconds = parseInt(timeParts[2] || '0')
                 timerSeconds.value = hours * 3600 + minutes * 60 + seconds
             } else {
-                // 默认1小时
-                timerSeconds.value = 3600
+                // 尝试解析时间范围格式 (HH:MM:SS-HH:MM:SS)
+                const rangeParts = plan.timeRange.split('-')
+                if (rangeParts.length === 2) {
+                    const startPart = rangeParts[0]
+                    const endPart = rangeParts[1]
+                    if (startPart && endPart) {
+                        const startParts = startPart.split(':')
+                        const endParts = endPart.split(':')
+                        if (startParts.length === 3 && endParts.length === 3) {
+                            const startHours = parseInt(startParts[0] || '0')
+                            const startMinutes = parseInt(startParts[1] || '0')
+                            const startSeconds = parseInt(startParts[2] || '0')
+                            const endHours = parseInt(endParts[0] || '0')
+                            const endMinutes = parseInt(endParts[1] || '0')
+                            const endSeconds = parseInt(endParts[2] || '0')
+                            const startTime = startHours * 3600 + startMinutes * 60 + startSeconds
+                            const endTime = endHours * 3600 + endMinutes * 60 + endSeconds
+                            timerSeconds.value = Math.max(0, endTime - startTime)
+                        } else {
+                            // 默认1小时
+                            timerSeconds.value = 3600
+                        }
+                    } else {
+                        // 默认1小时
+                        timerSeconds.value = 3600
+                    }
+                } else {
+                    // 默认1小时
+                    timerSeconds.value = 3600
+                }
             }
         } else {
             // 默认1小时
@@ -1480,6 +1511,8 @@ function handleLogout() {
 
 /* 计划详情项 */
 .plan-details {
+    display: flex;
+    gap: 20px;
     margin-bottom: 15px;
     position: relative;
     z-index: 1;
@@ -1491,7 +1524,6 @@ function handleLogout() {
     gap: 8px;
     font-size: 0.85rem;
     color: #ff8fab;
-    margin-bottom: 5px;
 }
 
 .detail-icon {

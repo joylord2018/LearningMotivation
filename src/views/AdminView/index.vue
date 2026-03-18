@@ -80,21 +80,23 @@
                         <label for="taskName" class="form-label">计划名称<span class="required">*</span></label>
                         <el-input id="taskName" v-model="currentTask.subjectName" placeholder="输入计划名称..." />
                     </div>
-                    <div class="form-group">
-                        <label for="taskSubject" class="form-label">学科</label>
-                        <el-select id="taskSubject" v-model="currentTask.subject">
-                            <el-option value="chinese" label="语文">语文</el-option>
-                            <el-option value="math" label="数学">数学</el-option>
-                            <el-option value="english" label="英语">英语</el-option>
-                            <el-option value="general" label="全科">全科</el-option>
-                        </el-select>
-                    </div>
-                    <div class="form-group">
-                        <label for="taskType" class="form-label">计划类型</label>
-                        <el-select id="taskType" v-model="currentTask.type">
-                            <el-option value="daily" label="日计划">日计划</el-option>
-                            <el-option value="weekly" label="周计划">周计划</el-option>
-                        </el-select>
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="taskSubject" class="form-label">学科</label>
+                            <el-select id="taskSubject" v-model="currentTask.subject" style="width: 100%">
+                                <el-option value="chinese" label="语文">语文</el-option>
+                                <el-option value="math" label="数学">数学</el-option>
+                                <el-option value="english" label="英语">英语</el-option>
+                                <el-option value="general" label="全科">全科</el-option>
+                            </el-select>
+                        </div>
+                        <div class="form-group half">
+                            <label for="taskType" class="form-label">计划类型</label>
+                            <el-select id="taskType" v-model="currentTask.type" style="width: 100%">
+                                <el-option value="daily" label="日计划">日计划</el-option>
+                                <el-option value="weekly" label="周计划">周计划</el-option>
+                            </el-select>
+                        </div>
                     </div>
 
                     <!-- 日计划选项 -->
@@ -141,15 +143,17 @@
                             </el-option>
                         </el-select>
                     </div>
-                    <div class="form-group">
-                        <label for="taskTargetCount" class="form-label">目标次数</label>
-                        <el-input-number id="taskTargetCount" v-model="currentTask.targetCount" placeholder="输入目标次数..."
-                            :min="1" />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">时间限制</label>
-                        <el-time-picker v-model="timeRange" type="timerange" range-separator="至"
-                            start-placeholder="开始时间" end-placeholder="结束时间" style="width: 100%" />
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="taskTargetCount" class="form-label">目标次数</label>
+                            <el-input-number id="taskTargetCount" v-model="currentTask.targetCount" placeholder="输入目标次数..."
+                                :min="1" style="width: 100%" />
+                        </div>
+                        <div class="form-group half">
+                            <label class="form-label">时间限制</label>
+                            <el-time-picker v-model="timeRange" type="time"
+                                placeholder="选择时间" style="width: 100%" />
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="taskDescription" class="form-label">计划描述<span class="required">*</span></label>
@@ -443,10 +447,10 @@
                         </div>
                         <div class="plans-list-container">
                             <div class="plans-list">
-                                <el-card v-for="plan in filteredQuickSetupPlans" :key="plan.id" class="plan-card" @click="togglePlanForDate(plan.id, quickSetupDate || '', !isPlanSelectedForDate(plan.id, quickSetupDate || ''))" style="cursor: pointer;">
+                                <el-card v-for="plan in filteredQuickSetupPlans" :key="plan.id" class="plan-card" @click="() => togglePlanForDate(plan.id, quickSetupDate || '', !isPlanSelectedForDate(plan.id, quickSetupDate || ''))" style="cursor: pointer;">
                                     <template #header>
                                         <div class="plan-card-header">
-                                            <el-checkbox :checked="isPlanSelectedForDate(plan.id, quickSetupDate || '')" @change="togglePlanForDate(plan.id, quickSetupDate || '', $event)"></el-checkbox>
+                                            <el-checkbox :checked="isPlanSelectedForDate(plan.id, quickSetupDate || '')" @change="(val: boolean) => togglePlanForDate(plan.id, quickSetupDate || '', val)" @click.stop></el-checkbox>
                                             <span class="plan-name">{{ plan.subjectName }}</span>
                                             <span class="plan-points">{{ plan.points }} 积分</span>
                                         </div>
@@ -614,7 +618,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">时间限制</label>
-                        <el-time-picker v-model="templateTimeRange" type="timerange" range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间" style="width: 100%"></el-time-picker>
+                        <el-time-picker v-model="templateTimeRange" type="time" placeholder="选择时间" style="width: 100%"></el-time-picker>
                     </div>
                     <div class="form-group">
                         <label for="templatePoints" class="form-label">奖励积分</label>
@@ -723,7 +727,7 @@ const currentTask = ref({
     timeRange: '',
     completionLevel: false
 });
-const timeRange = ref<string[]>([]);
+const timeRange = ref<string | Date>('');
 const taskDateRange = ref<string[]>([]);
 
 // 行为相关
@@ -846,7 +850,7 @@ const currentTemplate = ref({
     timeRange: '',
     icon: ''
 });
-const templateTimeRange = ref<string[]>([]);
+const templateTimeRange = ref<string | Date>('');
 
 // 计算属性
 const filteredQuickSetupPlans = computed(() => {
@@ -930,7 +934,7 @@ const showAddTaskModal = () => {
         timeRange: '',
         completionLevel: false
     };
-    timeRange.value = [];
+    timeRange.value = '';
     taskDateRange.value = [];
     showTaskModal.value = true;
     disableScroll();
@@ -938,16 +942,31 @@ const showAddTaskModal = () => {
 
 const editTask = (task: any) => {
     isEditingTask.value = true;
+    let timeRangeValue = '';
+    
+    if (task.timeRange) {
+        if (typeof task.timeRange === 'string') {
+            timeRangeValue = task.timeRange;
+        } else if (task.timeRange instanceof Date) {
+            // 将Date对象转换为HH:MM:SS格式的字符串
+            const hours = String(task.timeRange.getHours()).padStart(2, '0');
+            const minutes = String(task.timeRange.getMinutes()).padStart(2, '0');
+            const seconds = String(task.timeRange.getSeconds()).padStart(2, '0');
+            timeRangeValue = `${hours}:${minutes}:${seconds}`;
+        }
+    }
+    
     currentTask.value = {
         ...task,
         frequency: task.frequency || 'once',
         completionLevel: task.completionLevel || false,
-        timeRange: typeof task.timeRange === 'string' ? task.timeRange : (Array.isArray(task.timeRange) ? task.timeRange.join('-') : ''),
+        timeRange: timeRangeValue,
         date: typeof task.date === 'object' ? task.date.toISOString().split('T')[0] : (task.date || new Date().toISOString().split('T')[0])
     };
-    if (currentTask.value.timeRange) {
-        timeRange.value = currentTask.value.timeRange.split('-');
-    }
+    
+    // 直接设置timeRange
+    timeRange.value = timeRangeValue;
+    
     showTaskModal.value = true;
     disableScroll();
 };
@@ -965,13 +984,18 @@ const saveTask = () => {
         subject: currentTask.value.subject as 'chinese' | 'math' | 'english' | 'general'
     };
 
-    // 无论时间范围是否有值，都更新taskData.timeRange
-    if (timeRange.value.length === 2) {
-        taskData.timeRange = timeRange.value.join('-');
+    // 处理时间范围
+    if (timeRange.value instanceof Date) {
+        // 将Date对象转换为HH:MM:SS格式的字符串
+        const hours = String(timeRange.value.getHours()).padStart(2, '0');
+        const minutes = String(timeRange.value.getMinutes()).padStart(2, '0');
+        const seconds = String(timeRange.value.getSeconds()).padStart(2, '0');
+        taskData.timeRange = `${hours}:${minutes}:${seconds}`;
     } else {
-        taskData.timeRange = '';
+        taskData.timeRange = timeRange.value || '';
     }
 
+    console.log('保存计划数据:', taskData);
     if (isEditingTask.value) {
         store.updatePlan(taskData);
         showNotificationMessage('计划更新成功', 'success');
@@ -1136,18 +1160,32 @@ const closeLotteryItemModal = () => {
 
 // 检查计划在指定日期是否被选中
 function isPlanSelectedForDate(planId: string, date: string): boolean {
-    return datePlanSelections.value[date]?.includes(planId) || false;
+    if (!date) return false;
+    if (!datePlanSelections.value[date]) return false;
+    return datePlanSelections.value[date].includes(planId);
 }
 
 // 切换计划在指定日期的选中状态
 function togglePlanForDate(planId: string, date: string, checked: boolean) {
+    if (!date) return;
+    
     if (!datePlanSelections.value[date]) {
-        datePlanSelections.value[date] = [];
+        // 初始化日期的选择状态
+        const newSelections = { ...datePlanSelections.value };
+        newSelections[date] = [];
+        datePlanSelections.value = newSelections;
     }
+    
+    // 确保datePlanSelections.value[date]存在
+    if (!datePlanSelections.value[date]) return;
     
     const index = datePlanSelections.value[date].indexOf(planId);
     if (checked && index === -1) {
-        datePlanSelections.value[date].push(planId);
+        // 创建一个新的对象来触发响应式更新
+        const newSelections = { ...datePlanSelections.value };
+        newSelections[date] = [...(newSelections[date] || []), planId];
+        datePlanSelections.value = newSelections;
+        
         // 即时应用设置 - 添加计划
         const template = store.quickSetupTemplates.find((t: any) => t.id === planId);
         if (template) {
@@ -1173,7 +1211,11 @@ function togglePlanForDate(planId: string, date: string, checked: boolean) {
             showNotificationMessage('计划添加成功', 'success');
         }
     } else if (!checked && index > -1) {
-        datePlanSelections.value[date].splice(index, 1);
+        // 创建一个新的对象来触发响应式更新
+        const newSelections = { ...datePlanSelections.value };
+        newSelections[date] = (newSelections[date] || []).filter(id => id !== planId);
+        datePlanSelections.value = newSelections;
+        
         // 即时应用设置 - 移除计划
         const template = store.quickSetupTemplates.find((t: any) => t.id === planId);
         if (template) {
@@ -1243,6 +1285,32 @@ const confirmDeleteTask = (task: any) => {
     confirmMessage.value = `确定要删除计划 "${task.subjectName}" 吗？`;
     confirmAction.value = () => {
         store.removePlan(task.id);
+        
+        // 同步更新datePlanSelections，确保单日设置里的勾选状态与实际计划状态一致
+        const date = task.date;
+        if (date) {
+            // 遍历所有模板，查找匹配的模板
+            for (const template of store.quickSetupTemplates) {
+                if (template.subject === task.subject &&
+                    template.subjectName === task.subjectName &&
+                    template.description === task.description) {
+                    // 从datePlanSelections中移除该模板的勾选状态
+                    if (datePlanSelections.value && datePlanSelections.value[date]) {
+                        const index = datePlanSelections.value[date].indexOf(template.id);
+                        if (index > -1) {
+                            // 创建一个新的对象来触发响应式更新
+                            const newSelections = { ...datePlanSelections.value };
+                            newSelections[date] = (newSelections[date] || []).filter(id => id !== template.id);
+                            datePlanSelections.value = newSelections;
+                            // 保存到本地存储
+                            saveDatePlanSelections(datePlanSelections.value);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
         showNotificationMessage('计划删除成功', 'success');
         closeConfirmModal();
     };
@@ -1379,7 +1447,7 @@ const applyBatchQuickSetup = () => {
                 frequency: (template.frequency || 'once') as 'once' | 'daily' | 'weekly',
                 targetCount: template.targetCount || 1,
                 completedCount: 0,
-                timeRange: Array.isArray(template.timeRange) ? template.timeRange.join('-') : (template.timeRange || ''),
+                timeRange: template.timeRange || '',
                 completionLevel: false,
                 points: template.points || 0,
                 description: template.description,
@@ -1408,7 +1476,7 @@ const showAddTemplateModal = () => {
         icon: '📝'
     };
     // 重置时间范围
-    templateTimeRange.value = [];
+    templateTimeRange.value = '';
     showTemplateModal.value = true;
     disableScroll();
 };
@@ -1428,9 +1496,19 @@ const editTemplate = (template: any) => {
     };
     // 处理时间范围
     if (template.timeRange) {
-        templateTimeRange.value = template.timeRange.split('-');
+        // 将时间字符串转换为Date对象
+        const timeParts = template.timeRange.split(':');
+        if (timeParts.length === 3) {
+            const date = new Date();
+            date.setHours(parseInt(timeParts[0]));
+            date.setMinutes(parseInt(timeParts[1]));
+            date.setSeconds(parseInt(timeParts[2]));
+            templateTimeRange.value = date;
+        } else {
+            templateTimeRange.value = '';
+        }
     } else {
-        templateTimeRange.value = [];
+        templateTimeRange.value = '';
     }
     showTemplateModal.value = true;
     disableScroll();
@@ -1443,8 +1521,14 @@ const saveTemplate = () => {
     }
 
     // 处理时间范围
-    if (templateTimeRange.value.length === 2) {
-        currentTemplate.value.timeRange = templateTimeRange.value.join('-');
+    if (templateTimeRange.value instanceof Date) {
+        // 将Date对象转换为HH:MM:SS格式的字符串
+        const hours = String(templateTimeRange.value.getHours()).padStart(2, '0');
+        const minutes = String(templateTimeRange.value.getMinutes()).padStart(2, '0');
+        const seconds = String(templateTimeRange.value.getSeconds()).padStart(2, '0');
+        currentTemplate.value.timeRange = `${hours}:${minutes}:${seconds}`;
+    } else {
+        currentTemplate.value.timeRange = templateTimeRange.value || '';
     }
 
     if (isEditingTemplate.value) {
@@ -1766,11 +1850,13 @@ onMounted(() => {
     background: #f8f9fa;
     border-bottom: 1px solid #dee2e6;
     overflow-x: auto;
+    white-space: nowrap;
 }
 
 .tab-btn {
-    flex: 1;
-    padding: 15px;
+    flex: 0 0 auto;
+    min-width: 100px;
+    padding: 15px 20px;
     border: none;
     background: transparent;
     cursor: pointer;
@@ -1781,6 +1867,7 @@ onMounted(() => {
     gap: 8px;
     font-size: 14px;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .tab-btn:hover {
@@ -1923,6 +2010,16 @@ onMounted(() => {
 /* 表单样式 */
 .form-group {
     margin-bottom: 16px;
+}
+
+.form-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.form-group.half {
+    flex: 1;
 }
 
 .form-label {
@@ -2467,7 +2564,7 @@ input:checked+.toggle-slider:before {
     border-radius: 12px;
     padding: 30px;
     width: 90%;
-    max-width: 500px;
+    max-width: 700px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
     animation: modalFadeIn 0.3s ease;
 }

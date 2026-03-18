@@ -10,37 +10,80 @@
                     <span class="btn-icon">➕</span>
                     <span>添加新行为</span>
                 </button>
-                <div class="behaviors-list">
-                    <div v-for="(behavior, index) in store.behaviors" :key="behavior.id"
-                        class="behavior-item fade-in" :style="{ animationDelay: index * 0.05 + 's' }">
-                        <div class="behavior-info">
-                            <div class="behavior-header">
-                                <span class="behavior-icon">{{ behavior.icon }}</span>
-                                <h3 class="behavior-name">{{ behavior.name }}</h3>
-                                <span class="behavior-points" :class="{ 'negative': behavior.type === 'negative' }">
-                                    {{ behavior.points > 0 ? '+' : '' }}{{ behavior.points }}分
-                                </span>
+                
+                <!-- 积极行为（加积分） -->
+                <div class="behavior-section">
+                    <h3 class="section-subtitle">➕ 积极行为</h3>
+                    <div class="behaviors-list">
+                        <div v-for="(behavior, index) in positiveBehaviors" :key="behavior.id"
+                            class="behavior-item fade-in" :style="{ animationDelay: index * 0.05 + 's' }">
+                            <div class="behavior-info">
+                                <div class="behavior-header">
+                                    <span class="behavior-icon">{{ behavior.icon }}</span>
+                                    <h3 class="behavior-name">{{ behavior.name }}</h3>
+                                    <span class="behavior-points">
+                                        +{{ behavior.points }}分
+                                    </span>
+                                </div>
+                                <p class="behavior-description">{{ behavior.description }}</p>
+                                <div class="behavior-meta">
+                                    <span class="behavior-frequency">{{ behavior.frequency === 'daily' ? '每日' : behavior.frequency === 'weekly' ? '每周' : '自定义' }} {{ behavior.targetCount }}次</span>
+                                    <span class="behavior-type">积极</span>
+                                </div>
                             </div>
-                            <p class="behavior-description">{{ behavior.description }}</p>
-                            <div class="behavior-meta">
-                                <span class="behavior-frequency">{{ behavior.frequency === 'daily' ? '每日' : behavior.frequency === 'weekly' ? '每周' : '自定义' }} {{ behavior.targetCount }}次</span>
-                                <span class="behavior-type">{{ behavior.type === 'positive' ? '积极' : '消极' }}</span>
+                            <div class="behavior-actions">
+                                <button class="btn edit-btn" @click="editBehavior(behavior)">
+                                    <span class="btn-icon">✏️</span>
+                                    <span>编辑</span>
+                                </button>
+                                <button class="btn delete-btn" @click="confirmDeleteBehavior(behavior)">
+                                    <span class="btn-icon">🗑️</span>
+                                    <span>删除</span>
+                                </button>
                             </div>
                         </div>
-                        <div class="behavior-actions">
-                            <button class="btn edit-btn" @click="editBehavior(behavior)">
-                                <span class="btn-icon">✏️</span>
-                                <span>编辑</span>
-                            </button>
-                            <button class="btn delete-btn" @click="confirmDeleteBehavior(behavior)">
-                                <span class="btn-icon">🗑️</span>
-                                <span>删除</span>
-                            </button>
+                        <div v-if="positiveBehaviors.length === 0" class="no-behaviors">
+                            <p class="no-behaviors-text">暂无积极行为</p>
+                            <p class="no-behaviors-hint">点击上方按钮添加新行为</p>
                         </div>
                     </div>
-                    <div v-if="store.behaviors.length === 0" class="no-behaviors">
-                        <p class="no-behaviors-text">暂无行为</p>
-                        <p class="no-behaviors-hint">点击上方按钮添加新行为</p>
+                </div>
+                
+                <!-- 消极行为（减积分） -->
+                <div class="behavior-section">
+                    <h3 class="section-subtitle">➖ 消极行为</h3>
+                    <div class="behaviors-list">
+                        <div v-for="(behavior, index) in negativeBehaviors" :key="behavior.id"
+                            class="behavior-item fade-in" :style="{ animationDelay: index * 0.05 + 's' }">
+                            <div class="behavior-info">
+                                <div class="behavior-header">
+                                    <span class="behavior-icon">{{ behavior.icon }}</span>
+                                    <h3 class="behavior-name">{{ behavior.name }}</h3>
+                                    <span class="behavior-points negative">
+                                        {{ behavior.points }}分
+                                    </span>
+                                </div>
+                                <p class="behavior-description">{{ behavior.description }}</p>
+                                <div class="behavior-meta">
+                                    <span class="behavior-frequency">{{ behavior.frequency === 'daily' ? '每日' : behavior.frequency === 'weekly' ? '每周' : '自定义' }} {{ behavior.targetCount }}次</span>
+                                    <span class="behavior-type">消极</span>
+                                </div>
+                            </div>
+                            <div class="behavior-actions">
+                                <button class="btn edit-btn" @click="editBehavior(behavior)">
+                                    <span class="btn-icon">✏️</span>
+                                    <span>编辑</span>
+                                </button>
+                                <button class="btn delete-btn" @click="confirmDeleteBehavior(behavior)">
+                                    <span class="btn-icon">🗑️</span>
+                                    <span>删除</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div v-if="negativeBehaviors.length === 0" class="no-behaviors">
+                            <p class="no-behaviors-text">暂无消极行为</p>
+                            <p class="no-behaviors-hint">点击上方按钮添加新行为</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -50,8 +93,19 @@
 
 <script lang="ts" setup>
 import { useUserStore } from '../../../stores'
+import { computed } from 'vue'
 
 const store = useUserStore()
+
+// 计算积极行为（加积分）
+const positiveBehaviors = computed(() => {
+    return store.behaviors.filter(behavior => behavior.type === 'positive')
+})
+
+// 计算消极行为（减积分）
+const negativeBehaviors = computed(() => {
+    return store.behaviors.filter(behavior => behavior.type === 'negative')
+})
 
 const emit = defineEmits(['show-behavior-modal', 'notification', 'confirm'])
 
@@ -94,6 +148,29 @@ function confirmDeleteBehavior(behavior: any) {
 .add-behavior-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(255, 107, 139, 0.4);
+}
+
+.behavior-section {
+    margin-top: 30px;
+}
+
+.section-subtitle {
+    color: #ff6b8b;
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(255, 107, 139, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-subtitle::before {
+    content: '';
+    width: 8px;
+    height: 24px;
+    background: linear-gradient(135deg, #ff6b8b 0%, #ff8fab 100%);
+    border-radius: 4px;
 }
 
 .behaviors-list {

@@ -39,76 +39,161 @@
       />
     </div>
 
-    <!-- 行为卡片网格 -->
-    <div class="behaviors-grid">
-      <div 
-        v-for="behavior in filteredBehaviors" 
-        :key="behavior.id"
-        :class="['behavior-card', { 'completed': behavior.completed, 'negative': behavior.type === 'negative' }]"
-      >
-        <!-- 行为头部 -->
-        <div class="behavior-header-card">
-          <div class="behavior-icon">{{ behavior.icon }}</div>
-          <div class="behavior-info">
-            <h3 class="behavior-name">{{ behavior.name }}</h3>
-            <p class="behavior-description">{{ behavior.description }}</p>
+    <!-- 行为分类展示 -->
+    
+    <!-- 积极行为（加积分） -->
+    <div class="behavior-section">
+      <h2 class="section-title">➕ 积极行为</h2>
+      <div class="behaviors-grid">
+        <div 
+          v-for="behavior in positiveFilteredBehaviors" 
+          :key="behavior.id"
+          :class="['behavior-card', { 'completed': behavior.completed }]"
+        >
+          <!-- 行为头部 -->
+          <div class="behavior-header-card">
+            <div class="behavior-icon">{{ behavior.icon }}</div>
+            <div class="behavior-info">
+              <h3 class="behavior-name">{{ behavior.name }}</h3>
+              <p class="behavior-description">{{ behavior.description }}</p>
+            </div>
           </div>
-          <div class="behavior-status" v-if="behavior.type === 'negative'">
-            <span class="status-indicator"></span>
+
+          <!-- 行为详情 -->
+          <div class="behavior-details">
+            <div class="behavior-meta">
+              <span class="behavior-frequency">
+                {{ behavior.frequency === 'daily' ? '每日' : behavior.frequency === 'weekly' ? '每周' : '自定义' }}
+                {{ behavior.targetCount }}次
+              </span>
+              <span class="behavior-points">
+                +{{ behavior.points }}分
+              </span>
+            </div>
+
+            <!-- 进度条 (仅用于需要多次打卡的行为) -->
+            <div v-if="behavior.targetCount > 1" class="progress-container">
+              <div class="progress-bar">
+                <div 
+                  class="progress-fill" 
+                  :style="{ width: `${(behavior.currentCount / behavior.targetCount) * 100}%` }"
+                ></div>
+              </div>
+              <span class="progress-text">
+                进度: {{ behavior.currentCount }}/{{ behavior.targetCount }}
+              </span>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="behavior-actions">
+              <button 
+                v-if="!behavior.completed" 
+                class="action-btn checkin-btn" 
+                @click="handleRecordBehavior(behavior.id)"
+              >
+                <span class="btn-icon">+</span> 
+                打卡
+                <span v-if="behavior.currentCount > 0" class="checkin-count">({{ behavior.currentCount }})</span>
+              </button>
+              <button 
+                v-else 
+                class="action-btn completed-btn"
+              >
+                <span class="btn-icon">✓</span> 已完成
+              </button>
+              <button 
+                v-if="behavior.currentCount > 0" 
+                class="action-btn cancel-btn" 
+                @click="handleCancelBehavior(behavior.id)"
+              >
+                <span class="btn-icon">✕</span> 取消
+              </button>
+            </div>
           </div>
         </div>
-
-        <!-- 行为详情 -->
-        <div class="behavior-details">
-          <div class="behavior-meta">
-            <span class="behavior-frequency">
-              {{ behavior.frequency === 'daily' ? '每日' : behavior.frequency === 'weekly' ? '每周' : '自定义' }}
-              {{ behavior.targetCount }}次
-            </span>
-            <span class="behavior-points" :class="{ 'negative': behavior.type === 'negative' }">
-              {{ behavior.points > 0 ? '+' : '' }}{{ behavior.points }}分
-            </span>
-          </div>
-
-          <!-- 进度条 (仅用于需要多次打卡的行为) -->
-          <div v-if="behavior.targetCount > 1" class="progress-container">
-            <div class="progress-bar">
-              <div 
-                class="progress-fill" 
-                :style="{ width: `${(behavior.currentCount / behavior.targetCount) * 100}%` }"
-                :class="{ 'negative': behavior.type === 'negative' }"
-              ></div>
+        <div v-if="positiveFilteredBehaviors.length === 0" class="no-behaviors">
+          <p class="no-behaviors-text">暂无积极行为</p>
+          <p class="no-behaviors-hint">请在管理页面添加积极行为</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 消极行为（减积分） -->
+    <div class="behavior-section">
+      <h2 class="section-title">➖ 消极行为</h2>
+      <div class="behaviors-grid">
+        <div 
+          v-for="behavior in negativeFilteredBehaviors" 
+          :key="behavior.id"
+          :class="['behavior-card', { 'completed': behavior.completed, 'negative': behavior.type === 'negative' }]"
+        >
+          <!-- 行为头部 -->
+          <div class="behavior-header-card">
+            <div class="behavior-icon">{{ behavior.icon }}</div>
+            <div class="behavior-info">
+              <h3 class="behavior-name">{{ behavior.name }}</h3>
+              <p class="behavior-description">{{ behavior.description }}</p>
             </div>
-            <span class="progress-text">
-              进度: {{ behavior.currentCount }}/{{ behavior.targetCount }}
-            </span>
+            <div class="behavior-status">
+              <span class="status-indicator"></span>
+            </div>
           </div>
 
-          <!-- 操作按钮 -->
-          <div class="behavior-actions">
-            <button 
-              v-if="!behavior.completed" 
-              class="action-btn checkin-btn" 
-              @click="handleRecordBehavior(behavior.id)"
-            >
-              <span class="btn-icon">+</span> 
-              {{ behavior.type === 'positive' ? '打卡' : '记录' }}
-              <span v-if="behavior.currentCount > 0" class="checkin-count">({{ behavior.currentCount }})</span>
-            </button>
-            <button 
-              v-else 
-              class="action-btn completed-btn"
-            >
-              <span class="btn-icon">✓</span> 已完成
-            </button>
-            <button 
-              v-if="behavior.currentCount > 0" 
-              class="action-btn cancel-btn" 
-              @click="handleCancelBehavior(behavior.id)"
-            >
-              <span class="btn-icon">✕</span> 取消
-            </button>
+          <!-- 行为详情 -->
+          <div class="behavior-details">
+            <div class="behavior-meta">
+              <span class="behavior-frequency">
+                {{ behavior.frequency === 'daily' ? '每日' : behavior.frequency === 'weekly' ? '每周' : '自定义' }}
+                {{ behavior.targetCount }}次
+              </span>
+              <span class="behavior-points negative">
+                {{ behavior.points }}分
+              </span>
+            </div>
+
+            <!-- 进度条 (仅用于需要多次打卡的行为) -->
+            <div v-if="behavior.targetCount > 1" class="progress-container">
+              <div class="progress-bar">
+                <div 
+                  class="progress-fill negative" 
+                  :style="{ width: `${(behavior.currentCount / behavior.targetCount) * 100}%` }"
+                ></div>
+              </div>
+              <span class="progress-text">
+                进度: {{ behavior.currentCount }}/{{ behavior.targetCount }}
+              </span>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="behavior-actions">
+              <button 
+                v-if="!behavior.completed" 
+                class="action-btn checkin-btn negative" 
+                @click="handleRecordBehavior(behavior.id)"
+              >
+                <span class="btn-icon">+</span> 
+                记录
+                <span v-if="behavior.currentCount > 0" class="checkin-count">({{ behavior.currentCount }})</span>
+              </button>
+              <button 
+                v-else 
+                class="action-btn completed-btn"
+              >
+                <span class="btn-icon">✓</span> 已完成
+              </button>
+              <button 
+                v-if="behavior.currentCount > 0" 
+                class="action-btn cancel-btn" 
+                @click="handleCancelBehavior(behavior.id)"
+              >
+                <span class="btn-icon">✕</span> 取消
+              </button>
+            </div>
           </div>
+        </div>
+        <div v-if="negativeFilteredBehaviors.length === 0" class="no-behaviors">
+          <p class="no-behaviors-text">暂无消极行为</p>
+          <p class="no-behaviors-hint">请在管理页面添加消极行为</p>
         </div>
       </div>
     </div>
@@ -161,6 +246,16 @@ const filteredBehaviors = computed(() => {
     behavior.name.toLowerCase().includes(query) || 
     behavior.description.toLowerCase().includes(query)
   )
+})
+
+// 过滤积极行为（加积分）
+const positiveFilteredBehaviors = computed(() => {
+  return filteredBehaviors.value.filter(behavior => behavior.type === 'positive')
+})
+
+// 过滤消极行为（减积分）
+const negativeFilteredBehaviors = computed(() => {
+  return filteredBehaviors.value.filter(behavior => behavior.type === 'negative')
 })
 
 // 记录行为
@@ -433,6 +528,67 @@ onMounted(() => {
   margin-bottom: 30px;
   position: relative;
   z-index: 1;
+}
+
+/* 行为分类部分 */
+.behavior-section {
+  margin-bottom: 40px;
+  position: relative;
+  z-index: 1;
+}
+
+.behavior-section .section-title {
+  color: #ff6b8b;
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  font-weight: 800;
+  text-shadow: 2px 2px 4px rgba(255, 107, 139, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.behavior-section .section-title::before {
+  content: '';
+  width: 10px;
+  height: 30px;
+  background: linear-gradient(135deg, #ff6b8b 0%, #ff8fab 100%);
+  border-radius: 5px;
+}
+
+/* 消极行为的打卡按钮样式 */
+.action-btn.checkin-btn.negative {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+  box-shadow: 0 4px 10px rgba(248, 113, 113, 0.3);
+}
+
+.action-btn.checkin-btn.negative:hover {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 6px 15px rgba(239, 68, 68, 0.4);
+}
+
+/* 无行为提示 */
+.no-behaviors {
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #ffffff 0%, #fff0f5 100%);
+  border-radius: 20px;
+  box-shadow: 0 6px 20px rgba(255, 107, 139, 0.1);
+  border: 3px solid #ffd6e0;
+  grid-column: 1 / -1;
+}
+
+.no-behaviors-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #ff6b8b;
+  margin-bottom: 10px;
+}
+
+.no-behaviors-hint {
+  font-size: 1rem;
+  color: #ff8fab;
+  margin: 0;
 }
 
 .search-input {
