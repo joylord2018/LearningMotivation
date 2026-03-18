@@ -234,7 +234,7 @@
                             <span class="btn-icon">❌</span>
                             <span>取消</span>
                         </button>
-                        <button class="btn delete-confirm-btn" @click="confirmAction">
+                        <button class="btn delete-confirm-btn" @click="() => { confirmAction(); closeConfirmModal(); }">
                             <span class="btn-icon">✅</span>
                             <span>确认</span>
                         </button>

@@ -217,6 +217,8 @@ onMounted(() => {
   store.initializeDefaultBehaviors()
   // 重置每日行为状态
   store.resetDailyBehaviors()
+  // 确保行为数据响应式更新
+  store.behaviors = [...store.behaviors]
 })
 </script>
 
