@@ -104,11 +104,7 @@
 
                                 <!-- 计划详情 -->
                                 <div class="plan-details">
-                                    <div v-if="plan.frequency" class="detail-item">
-                                        <span class="detail-icon">🔄</span>
-                                        <span class="detail-text">本周第{{ plan.frequency === 'weekly' ? '每周' : plan.frequency === 'daily' ? '每天' : plan.frequency === 'once' ? '一次' : plan.frequency }}次</span>
-                                    </div>
-                                    <div v-if="plan.type === 'weekly'" class="detail-item">
+                                    <div class="detail-item">
                                         <span class="detail-icon">📊</span>
                                         <span class="detail-text">进度: {{ plan.completedCount || 0 }}/{{ plan.targetCount || 1 }}</span>
                                     </div>
@@ -125,7 +121,7 @@
                                     </div>
 
                                     <div class="plan-actions">
-                                        <button v-if="!plan.completionLevel" @click="startTimer(plan.id)" class="action-btn start-timer">
+                                        <button v-if="!plan.completionLevel && plan.timeRange" @click="startTimer(plan.id)" class="action-btn start-timer">
                                             <span class="btn-icon">⏱️</span> 开始计时
                                         </button>
                                         <button v-if="!plan.completionLevel" @click="quickComplete(plan.id)" class="action-btn quick-complete">
@@ -208,10 +204,10 @@
             <div class="game-popup-content" @click.stop>
                 <div class="timer-popup">
                     <div class="timer-header">
-                        <h3>⏱️ 计时中</h3>
+                        <h3>{{ timerSeconds > 0 ? '⏱️ 计时中' : '⏱️ 已超时' }}</h3>
                         <div class="timer-plan-name">{{ currentTimerPlanName }}</div>
                     </div>
-                    <div class="timer-display">{{ timerTime }}</div>
+                    <div class="timer-display" :class="{ 'timeout': timerSeconds <= 0 }">{{ timerTime }}</div>
                     <div class="timer-actions">
                         <button @click="pauseTimer" class="game-btn">
                             <span class="btn-icon">{{ isTimerPaused ? '▶️' : '⏸️' }}</span> {{ isTimerPaused ? '继续' : '暂停' }}
@@ -502,7 +498,8 @@ function getPlanIconBySubject(subject: string): string {
     const icons: { [key: string]: string } = {
         'chinese': '📚',
         'math': '🔢',
-        'english': '🗣️'
+        'english': '🗣️',
+        'general': '🎓'
     }
     return icons[subject] || '📝'
 }
@@ -512,7 +509,8 @@ function getPlanNameBySubject(subject: string): string {
     const names: { [key: string]: string } = {
         'chinese': '语文计划',
         'math': '数学计划',
-        'english': '英语计划'
+        'english': '英语计划',
+        'general': '全科计划'
     }
     return names[subject] || '学习计划'
 }
@@ -523,7 +521,8 @@ function getPlanDescriptionBySubject(subject: string): string {
     const descriptions: { [key: string]: string } = {
         'chinese': '阅读一篇文章并理解内容',
         'math': '完成几道数学练习题',
-        'english': '练习英语听力和口语'
+        'english': '练习英语听力和口语',
+        'general': '完成各科学习任务'
     }
     return descriptions[subject] || '认真完成今日学习计划'
 }
@@ -640,11 +639,27 @@ function startTimer(planId: string) {
     if (plan) {
         currentTimerPlanId.value = planId
         currentTimerPlanName.value = `${plan.subjectName} - ${getPlanNameBySubject(plan.subject)}`
-        timerSeconds.value = 0
         isTimerPaused.value = false
         showTimerPopup.value = true
         // 禁止背景页面滚动
         document.body.style.overflow = 'hidden'
+        
+        // 解析时间限制作为倒计时
+        if (plan.timeRange) {
+            const timeParts = plan.timeRange.split(':')
+            if (timeParts.length === 3) {
+                const hours = parseInt(timeParts[0] || '0')
+                const minutes = parseInt(timeParts[1] || '0')
+                const seconds = parseInt(timeParts[2] || '0')
+                timerSeconds.value = hours * 3600 + minutes * 60 + seconds
+            } else {
+                // 默认1小时
+                timerSeconds.value = 3600
+            }
+        } else {
+            // 默认1小时
+            timerSeconds.value = 3600
+        }
         
         // 开始计时
         if (timerInterval.value) {
@@ -653,7 +668,8 @@ function startTimer(planId: string) {
         
         timerInterval.value = window.setInterval(() => {
             if (!isTimerPaused.value) {
-                timerSeconds.value++
+                timerSeconds.value--
+                // 倒计时结束后继续计时，显示超时时间
             }
         }, 1000)
     }
@@ -1943,6 +1959,20 @@ function handleLogout() {
     margin: 30px 0;
     text-shadow: 2px 2px 4px rgba(255, 107, 139, 0.2);
     font-family: 'Courier New', monospace;
+}
+
+.timer-display.timeout {
+    color: #ff4757;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
 }
 
 .timer-actions {

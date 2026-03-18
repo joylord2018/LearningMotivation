@@ -965,8 +965,11 @@ const saveTask = () => {
         subject: currentTask.value.subject as 'chinese' | 'math' | 'english' | 'general'
     };
 
+    // 无论时间范围是否有值，都更新taskData.timeRange
     if (timeRange.value.length === 2) {
         taskData.timeRange = timeRange.value.join('-');
+    } else {
+        taskData.timeRange = '';
     }
 
     if (isEditingTask.value) {
