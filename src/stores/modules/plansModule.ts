@@ -41,6 +41,9 @@ export function createPlansModule(): PlansModule {
       .reduce((sum, plan) => sum + plan.points, 0)
   })
 
+  // 检查是否已经初始化了默认数据
+  let hasInitializedDefaultData = false
+
   // 初始化今日计划
   function initializeTodayPlans() {
     const today = new Date().toISOString().slice(0, 10)
@@ -50,6 +53,14 @@ export function createPlansModule(): PlansModule {
     if (todayPlans.length > 0) {
       return
     }
+
+    // 检查是否已经初始化了默认数据
+    if (hasInitializedDefaultData) {
+      return
+    }
+
+    // 标记已初始化默认数据
+    hasInitializedDefaultData = true
 
     // 添加今日的四个学科计划，包含默认描述和新增的字段
     plans.value.push(

@@ -282,7 +282,53 @@ function getDayPlanCount(date: string) {
     
     // 周计划
     if (plan.type === 'weekly') {
-      return true
+      // 检查该日期所在的周是否有周计划
+      if (!plan.selectedWeek) {
+        // 如果没有 selectedWeek，检查是否是当前周
+        const currentDate = new Date(date)
+        const now = new Date()
+        const currentWeekStart = new Date(now)
+        currentWeekStart.setDate(now.getDate() - now.getDay() + 1)
+        const currentWeekEnd = new Date(currentWeekStart)
+        currentWeekEnd.setDate(currentWeekStart.getDate() + 6)
+        return currentDate >= currentWeekStart && currentDate <= currentWeekEnd
+      }
+      
+      try {
+        // 解析周计划的日期范围（格式：YYYY-MM-DD-YYYY-MM-DD）
+        const parts = plan.selectedWeek.split('-')
+        if (parts.length === 6) {
+          // 格式：YYYY-MM-DD-YYYY-MM-DD
+          const weekStart = `${parts[0]}-${parts[1]}-${parts[2]}`
+          const weekEnd = `${parts[3]}-${parts[4]}-${parts[5]}`
+          
+          // 将日期字符串转换为日期对象进行比较
+          const currentDate = new Date(date)
+          const startDate = new Date(weekStart)
+          const endDate = new Date(weekEnd)
+          
+          // 比较日期
+          return currentDate >= startDate && currentDate <= endDate
+        } else {
+          // 如果格式不正确，默认认为是当前周
+          const currentDate = new Date(date)
+          const now = new Date()
+          const currentWeekStart = new Date(now)
+          currentWeekStart.setDate(now.getDate() - now.getDay() + 1)
+          const currentWeekEnd = new Date(currentWeekStart)
+          currentWeekEnd.setDate(currentWeekStart.getDate() + 6)
+          return currentDate >= currentWeekStart && currentDate <= currentWeekEnd
+        }
+      } catch (error) {
+        // 如果解析出错，默认认为是当前周
+        const currentDate = new Date(date)
+        const now = new Date()
+        const currentWeekStart = new Date(now)
+        currentWeekStart.setDate(now.getDate() - now.getDay() + 1)
+        const currentWeekEnd = new Date(currentWeekStart)
+        currentWeekEnd.setDate(currentWeekStart.getDate() + 6)
+        return currentDate >= currentWeekStart && currentDate <= currentWeekEnd
+      }
     }
     
     return false
@@ -318,7 +364,61 @@ const filteredPlans = computed(() => {
         
         // 对于每周计划，检查是否应该显示
         if (plan.type === 'weekly') {
-            // 周计划默认显示
+            // 检查该日期所在的周是否有周计划
+            if (!plan.selectedWeek) {
+                // 如果没有 selectedWeek，检查是否是当前周
+                const currentDate = new Date(selectedDateStr)
+                const now = new Date()
+                const currentWeekStart = new Date(now)
+                currentWeekStart.setDate(now.getDate() - now.getDay() + 1)
+                const currentWeekEnd = new Date(currentWeekStart)
+                currentWeekEnd.setDate(currentWeekStart.getDate() + 6)
+                if (!(currentDate >= currentWeekStart && currentDate <= currentWeekEnd)) {
+                    return false
+                }
+            } else {
+                try {
+                    // 解析周计划的日期范围（格式：YYYY-MM-DD-YYYY-MM-DD）
+                    const parts = plan.selectedWeek.split('-')
+                    if (parts.length === 6) {
+                        // 格式：YYYY-MM-DD-YYYY-MM-DD
+                        const weekStart = `${parts[0]}-${parts[1]}-${parts[2]}`
+                        const weekEnd = `${parts[3]}-${parts[4]}-${parts[5]}`
+                        
+                        // 将日期字符串转换为日期对象进行比较
+                        const currentDate = new Date(selectedDateStr)
+                        const startDate = new Date(weekStart)
+                        const endDate = new Date(weekEnd)
+                        
+                        // 比较日期
+                        if (!(currentDate >= startDate && currentDate <= endDate)) {
+                            return false
+                        }
+                    } else {
+                        // 如果格式不正确，默认认为是当前周
+                        const currentDate = new Date(selectedDateStr)
+                        const now = new Date()
+                        const currentWeekStart = new Date(now)
+                        currentWeekStart.setDate(now.getDate() - now.getDay() + 1)
+                        const currentWeekEnd = new Date(currentWeekStart)
+                        currentWeekEnd.setDate(currentWeekStart.getDate() + 6)
+                        if (!(currentDate >= currentWeekStart && currentDate <= currentWeekEnd)) {
+                            return false
+                        }
+                    }
+                } catch (error) {
+                    // 如果解析出错，默认认为是当前周
+                    const currentDate = new Date(selectedDateStr)
+                    const now = new Date()
+                    const currentWeekStart = new Date(now)
+                    currentWeekStart.setDate(now.getDate() - now.getDay() + 1)
+                    const currentWeekEnd = new Date(currentWeekStart)
+                    currentWeekEnd.setDate(currentWeekStart.getDate() + 6)
+                    if (!(currentDate >= currentWeekStart && currentDate <= currentWeekEnd)) {
+                        return false
+                    }
+                }
+            }
         }
         
         // 检查其他筛选条件
@@ -421,13 +521,35 @@ function editTask(task: any) {
 }
 
 function confirmDeleteTask(task: any) {
-    emit('confirm', {
-        message: `确定要删除计划 "${task.subjectName}" 吗？`,
-        action: () => {
-            store.removePlan(task.id)
-            emit('notification', '计划删除成功！', 'success', '✅')
-        }
-    })
+    // 检查是否是日期范围计划
+    if (task.dailyType === 'dateRange' && task.startDate && task.endDate) {
+        emit('confirm', {
+            message: `确定要删除计划 "${task.subjectName}" 及其整个日期范围内的所有计划吗？`,
+            action: () => {
+                // 找到该日期范围内的所有计划并删除
+                const plansToDelete = store.plans.filter(plan => {
+                    return plan.dailyType === 'dateRange' && 
+                           plan.startDate === task.startDate && 
+                           plan.endDate === task.endDate && 
+                           plan.subjectName === task.subjectName
+                })
+                
+                plansToDelete.forEach(plan => {
+                    store.removePlan(plan.id)
+                })
+                
+                emit('notification', `成功删除 ${plansToDelete.length} 个计划！`, 'success', '✅')
+            }
+        })
+    } else {
+        emit('confirm', {
+            message: `确定要删除计划 "${task.subjectName}" 吗？`,
+            action: () => {
+                store.removePlan(task.id)
+                emit('notification', '计划删除成功！', 'success', '✅')
+            }
+        })
+    }
 }
 
 function openQuickSetupDrawer() {
