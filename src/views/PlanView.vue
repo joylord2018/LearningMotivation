@@ -205,10 +205,10 @@
             <div class="game-popup-content" @click.stop>
                 <div class="timer-popup">
                     <div class="timer-header">
-                        <h3>{{ timerSeconds > 0 ? '⏱️ 计时中' : '⏱️ 已超时' }}</h3>
+                        <h3>{{ !isTimeout ? '⏱️ 计时中' : '⏱️ 已超时' }}</h3>
                         <div class="timer-plan-name">{{ currentTimerPlanName }}</div>
                     </div>
-                    <div class="timer-display" :class="{ 'timeout': timerSeconds <= 0 }">{{ timerTime }}</div>
+                    <div class="timer-display" :class="{ 'timeout': isTimeout }">{{ timerTime }}</div>
                     <div class="timer-actions">
                         <button @click="pauseTimer" class="game-btn">
                             <span class="btn-icon">{{ isTimerPaused ? '▶️' : '⏸️' }}</span> {{ isTimerPaused ? '继续' : '暂停' }}
@@ -259,6 +259,7 @@ const currentTimerPlanId = ref('')
 const currentTimerPlanName = ref('')
 const timerSeconds = ref(0)
 const isTimerPaused = ref(false)
+const isTimeout = ref(false)
 const timerInterval = ref<number | null>(null)
 
 // 弹窗状态
@@ -420,9 +421,10 @@ const pointsProgress = computed(() => {
 
 // 计算计时器显示时间
 const timerTime = computed(() => {
-    const hours = Math.floor(timerSeconds.value / 3600)
-    const minutes = Math.floor((timerSeconds.value % 3600) / 60)
-    const seconds = timerSeconds.value % 60
+    const absSeconds = Math.abs(timerSeconds.value)
+    const hours = Math.floor(absSeconds / 3600)
+    const minutes = Math.floor((absSeconds % 3600) / 60)
+    const seconds = absSeconds % 60
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
 })
 
@@ -702,15 +704,30 @@ function startTimer(planId: string) {
             timerSeconds.value = 3600
         }
         
+        // 重置超时状态
+        isTimeout.value = false
+        
         // 开始计时
         if (timerInterval.value) {
             clearInterval(timerInterval.value)
         }
         
+        // 标记是否已经开始正计时
+        let isCountingUp = false
+        
         timerInterval.value = window.setInterval(() => {
             if (!isTimerPaused.value) {
-                timerSeconds.value--
-                // 倒计时结束后继续计时，显示超时时间
+                if (!isCountingUp && timerSeconds.value > 0) {
+                    timerSeconds.value--
+                    // 检查是否倒计时结束
+                    if (timerSeconds.value === 0) {
+                        isCountingUp = true
+                        isTimeout.value = true
+                    }
+                } else {
+                    // 开始正计时
+                    timerSeconds.value++
+                }
             }
         }, 1000)
     }
