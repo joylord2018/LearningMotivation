@@ -459,10 +459,10 @@
                                     <div class="plan-card-body">
                                         <div class="plan-meta">
                                             <span class="plan-subject">{{ getPlanNameBySubject(plan.subject) }}</span>
-                                            <span class="plan-target">{{ plan.targetCount }} 次</span>
+                                            <span class="plan-target">目标次数：{{ plan.targetCount }} 次</span>
                                         </div>
                                         <div class="plan-description">{{ plan.description }}</div>
-                                        <div v-if="plan.timeRange" class="plan-time">{{ plan.timeRange }}</div>
+                                        <div v-if="plan.timeRange" class="plan-time">⏰ 时间限制：{{ plan.timeRange }}</div>
                                     </div>
                                 </el-card>
                                 <div v-if="filteredQuickSetupPlans.length === 0" class="no-plans-hint">暂无模板，请先在模板管理中添加</div>
@@ -472,46 +472,44 @@
 
                     <!-- 批量设置 -->
                     <div v-if="quickSetupTab === 'batch'" class="tab-content">
-                        <div class="settings-section">
-                            <div class="filter-row">
-                                <div class="form-group">
-                                    <label class="form-label">开始日期</label>
+                        <div class="settings-section" style="margin-bottom: 10px;">
+                            <div class="filter-row" style="gap: 10px;">
+                                <div class="form-group" style="margin-bottom: 0;">
                                     <el-date-picker
                                         v-model="batchStartDate"
                                         type="date"
-                                        placeholder="选择开始日期"
+                                        placeholder="开始日期"
                                         style="width: 100%"
                                     />
                                 </div>
-                                <div class="form-group">
-                                    <label class="form-label">结束日期</label>
+                                <div class="form-group" style="margin-bottom: 0;">
                                     <el-date-picker
                                         v-model="batchEndDate"
                                         type="date"
-                                        placeholder="选择结束日期"
+                                        placeholder="结束日期"
                                         style="width: 100%"
                                     />
                                 </div>
                             </div>
                         </div>
-                        <div class="filter-toggle" @click="toggleBatchFilters">
+                        <div class="filter-toggle" @click="toggleBatchFilters" style="margin-bottom: 10px;">
                             <span>筛选条件</span>
                             <span class="toggle-icon">{{ showBatchFilters ? '▲' : '▼' }}</span>
                         </div>
-                        <div v-if="showBatchFilters" class="filter-section">
-                            <div class="filter-row">
-                                <div class="form-group">
-                                    <label class="form-label">名称筛选</label>
+                        <div v-if="showBatchFilters" class="filter-section" style="margin-bottom: 10px;">
+                            <div class="filter-row" style="gap: 10px;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label class="form-label" style="margin-bottom: 4px;">名称筛选</label>
                                     <el-input v-model="batchNameFilter" placeholder="输入计划名称..." style="width: 100%"></el-input>
                                 </div>
-                                <div class="form-group">
-                                    <label class="form-label">描述筛选</label>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label class="form-label" style="margin-bottom: 4px;">描述筛选</label>
                                     <el-input v-model="batchDescriptionFilter" placeholder="输入计划描述..." style="width: 100%"></el-input>
                                 </div>
                             </div>
-                            <div class="filter-row">
-                                <div class="form-group">
-                                    <label class="form-label">科目筛选</label>
+                            <div class="filter-row" style="gap: 10px;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label class="form-label" style="margin-bottom: 4px;">科目筛选</label>
                                     <el-select v-model="batchSubjectFilter" placeholder="选择科目" style="width: 100%">
                                         <el-option value="" label="全部科目"></el-option>
                                         <el-option value="chinese" label="语文"></el-option>
@@ -522,12 +520,12 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="plans-list-container">
+                        <div class="plans-list-container" style="margin-bottom: 15px;">
                             <div class="plans-list">
-                                <el-card v-for="plan in filteredBatchQuickSetupPlans" :key="plan.id" class="plan-card" @click="toggleBatchPlanSelection(plan.id)" style="cursor: pointer;">
+                                <el-card v-for="plan in filteredBatchQuickSetupPlans" :key="plan.id" class="plan-card" @click="toggleBatchPlanSelection(plan.id)" style="cursor: pointer; margin-bottom: 10px;">
                                     <template #header>
                                         <div class="plan-card-header">
-                                            <el-checkbox v-model="selectedBatchPlans" :label="plan.id"></el-checkbox>
+                                            <el-checkbox :checked="selectedBatchPlans.includes(plan.id)" @change="(val: boolean) => { if (val) selectedBatchPlans.push(plan.id); else selectedBatchPlans = selectedBatchPlans.filter(id => id !== plan.id); }" @click.stop></el-checkbox>
                                             <span class="plan-name">{{ plan.subjectName }}</span>
                                             <span class="plan-points">{{ plan.points }} 积分</span>
                                         </div>
@@ -535,53 +533,62 @@
                                     <div class="plan-card-body">
                                         <div class="plan-meta">
                                             <span class="plan-subject">{{ getPlanNameBySubject(plan.subject) }}</span>
-                                            <span class="plan-target">{{ plan.targetCount }} 次</span>
+                                            <span class="plan-target">目标次数：{{ plan.targetCount }} 次</span>
                                         </div>
                                         <div class="plan-description">{{ plan.description }}</div>
-                                        <div v-if="plan.timeRange" class="plan-time">{{ plan.timeRange }}</div>
+                                        <div v-if="plan.timeRange" class="plan-time">⏰ 时间限制：{{ plan.timeRange }}</div>
                                     </div>
                                 </el-card>
                                 <div v-if="filteredBatchQuickSetupPlans.length === 0" class="no-plans-hint">暂无模板，请先在模板管理中添加</div>
                             </div>
                         </div>
-                        <button class="btn apply-btn" @click="applyBatchQuickSetup">
-                            <span class="btn-icon">✅</span>
-                            <span>批量应用</span>
-                        </button>
+                        <div style="position: sticky; bottom: 0; background: white; padding-top: 10px; border-top: 1px solid #eee;">
+                            <button class="btn apply-btn" @click="applyBatchQuickSetup">
+                                <span class="btn-icon">✅</span>
+                                <span>批量应用</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- 模板管理 -->
                     <div v-if="quickSetupTab === 'templates'" class="tab-content">
-                        <el-button type="primary" @click="showAddTemplateModal" class="add-template-btn">
+                        <el-button type="primary" @click="showAddTemplateModal" class="add-template-btn" style="margin-bottom: 15px;">
                             <span class="btn-icon">➕</span>
                             <span>添加模板</span>
                         </el-button>
-                        <div class="templates-list">
-                            <div v-for="template in store.quickSetupTemplates" :key="template.id" class="template-card">
-                                <div class="template-card-header">
-                                    <span class="template-name">{{ template.subjectName }}</span>
-                                    <span class="template-points">{{ template.points }} 积分</span>
-                                </div>
-                                <div class="template-card-body">
-                                    <div class="template-meta">
-                                        <span class="template-subject">{{ getPlanNameBySubject(template.subject) }}</span>
-                                        <span class="template-target">{{ template.targetCount }} 次</span>
+                        <div class="plans-list-container">
+                            <div class="plans-list">
+                                <div v-for="template in store.quickSetupTemplates" :key="template.id" class="template-card game-card">
+                                    <div class="template-card-header">
+                                        <div class="template-header-left">
+                                            <span class="template-icon">{{ template.icon || '📝' }}</span>
+                                            <div>
+                                                <h4 class="template-name">{{ template.subjectName }}</h4>
+                                                <div class="template-meta">
+                                                    <span class="template-subject">{{ getPlanNameBySubject(template.subject) }}</span>
+                                                    <span class="template-target">目标次数：{{ template.targetCount }} 次</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span class="template-points">{{ template.points }} 积分</span>
                                     </div>
-                                    <div class="template-description">{{ template.description }}</div>
-                                    <div v-if="template.timeRange" class="template-time">{{ template.timeRange }}</div>
-                                    <div class="template-actions">
-                                        <el-button type="primary" size="small" @click="editTemplate(template)">
+                                    <div class="template-card-body">
+                                        <div class="template-description">{{ template.description }}</div>
+                                        <div v-if="template.timeRange" class="template-time">⏰ 时间限制：{{ template.timeRange }}</div>
+                                    </div>
+                                    <div class="template-card-footer">
+                                        <button class="btn edit-btn" @click="editTemplate(template)">
                                             <span class="btn-icon">✏️</span>
                                             <span>编辑</span>
-                                        </el-button>
-                                        <el-button type="danger" size="small" @click="confirmDeleteTemplate(template)">
+                                        </button>
+                                        <button class="btn delete-btn" @click="confirmDeleteTemplate(template)">
                                             <span class="btn-icon">🗑️</span>
                                             <span>删除</span>
-                                        </el-button>
+                                        </button>
                                     </div>
                                 </div>
+                                <div v-if="store.quickSetupTemplates.length === 0" class="no-plans-hint">暂无模板，请点击添加模板按钮创建</div>
                             </div>
-                            <div v-if="store.quickSetupTemplates.length === 0" class="no-plans-hint">暂无模板，请点击添加模板按钮创建</div>
                         </div>
                     </div>
                 </div>
@@ -2812,7 +2819,7 @@ input:checked+.toggle-slider:before {
     position: fixed;
     top: 0;
     right: 0;
-    width: 50%;
+    width: 70%;
     height: 100%;
     background: white;
     box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
@@ -2837,16 +2844,16 @@ input:checked+.toggle-slider:before {
 
 .drawer-body {
     flex: 1;
-    padding: 20px;
+    padding: 15px 20px;
     overflow-y: auto;
 }
 
 .drawer-tabs {
     display: flex;
     gap: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
+    padding-bottom: 8px;
 }
 
 .drawer-tab-btn {
@@ -2923,6 +2930,25 @@ input:checked+.toggle-slider:before {
     overflow-y: auto;
     padding: 15px;
     background: #fff;
+}
+
+.plans-list::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.plans-list::-webkit-scrollbar-track {
+  background: #fff0f5;
+  border-radius: 4px;
+}
+
+.plans-list::-webkit-scrollbar-thumb {
+  background: #ffb6c1;
+  border-radius: 4px;
+}
+
+.plans-list::-webkit-scrollbar-thumb:hover {
+  background: #ff8fab;
 }
 
 .no-plans-hint {
@@ -3013,105 +3039,116 @@ input:checked+.toggle-slider:before {
 
 /* 计划卡片样式 */
 .plan-card {
-    margin-bottom: 12px;
-    border-radius: 8px;
+    margin-bottom: 15px;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
-    border: 1px solid #e8e8e8;
+    border: 2px solid #ffd6e0;
+    background: linear-gradient(135deg, #ffffff 0%, #fff0f5 100%);
     padding: 0 !important;
 }
 
 .plan-card:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(255, 107, 139, 0.2);
     border-color: #ff8fab;
 }
 
 .plan-card-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 12px 15px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border-bottom: 2px solid #ff8fab;
-    border-radius: 8px 8px 0 0;
+    gap: 12px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
     margin: 0 !important;
 }
 
 .plan-card-header .plan-name {
     flex: 1;
-    font-size: 14px;
-    font-weight: 600;
-    color: #333;
+    font-size: 16px;
+    font-weight: 700;
+    color: white;
 }
 
 .plan-card-header .plan-points {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
-    color: #4CAF50;
-    background: #f1f8e9;
-    padding: 2px 6px;
-    border-radius: 10px;
+    color: #ffda6a;
+    background: rgba(255, 218, 106, 0.2);
+    padding: 4px 12px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 218, 106, 0.3);
 }
 
 .plan-card-body {
-    padding: 0 15px 8px 15px;
+    padding: 16px 20px;
     margin: 0 !important;
 }
 
 .plan-meta {
     display: flex;
     gap: 8px;
-    margin-bottom: 6px;
+    margin-bottom: 12px;
 }
 
 .plan-meta .plan-subject {
     font-size: 12px;
-    color: #666;
-    background: #e3f2fd;
-    padding: 2px 6px;
-    border-radius: 10px;
+    color: #ff6b8b;
+    background: rgba(255, 107, 139, 0.1);
+    padding: 4px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 107, 139, 0.2);
 }
 
 .plan-meta .plan-target {
     font-size: 12px;
-    color: #666;
-    background: #fff3e0;
-    padding: 2px 6px;
-    border-radius: 10px;
+    color: #ff6b8b;
+    background: rgba(255, 107, 139, 0.1);
+    padding: 4px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 107, 139, 0.2);
 }
 
 .plan-description {
     font-size: 14px;
     color: #666;
-    margin-bottom: 6px;
+    margin-bottom: 12px;
     line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
 }
 
 .plan-time {
     font-size: 12px;
-    color: #999;
-    background: #f5f5f5;
-    padding: 2px 6px;
-    border-radius: 10px;
+    color: #ff6b8b;
+    background: rgba(255, 107, 139, 0.1);
+    padding: 4px 12px;
+    border-radius: 16px;
     display: inline-block;
+    border: 1px solid rgba(255, 107, 139, 0.2);
 }
 
 /* 模板卡片样式 */
 .template-card {
-    margin-bottom: 12px;
-    border-radius: 8px;
+    margin-bottom: 15px;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
-    border: 1px solid #e8e8e8;
-    padding: 10px;
+    border: 2px solid #ffd6e0;
+    background: linear-gradient(135deg, #ffffff 0%, #fff0f5 100%);
 }
 
 .template-card:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(255, 107, 139, 0.2);
     border-color: #ff8fab;
 }
 
@@ -3119,87 +3156,129 @@ input:checked+.toggle-slider:before {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 15px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border-bottom: 2px solid #ff8fab;
-    border-radius: 8px 8px 0 0;
-    margin: -10px -10px 8px -10px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
 }
 
-.template-card-header .template-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: #333;
+.template-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-.template-card-header .template-points {
-    font-size: 12px;
-    font-weight: 600;
-    color: #4CAF50;
-    background: #f1f8e9;
-    padding: 2px 6px;
-    border-radius: 10px;
+.template-icon {
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    backdrop-filter: blur(10px);
 }
 
-.template-card-body {
-    padding: 0;
+.template-header-left h4 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 700;
 }
 
 .template-meta {
     display: flex;
     gap: 8px;
-    margin-bottom: 6px;
 }
 
 .template-meta .template-subject {
-    font-size: 11px;
-    color: #666;
-    background: #e3f2fd;
-    padding: 1px 6px;
-    border-radius: 8px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
 }
 
 .template-meta .template-target {
-    font-size: 11px;
-    color: #666;
-    background: #fff3e0;
-    padding: 1px 6px;
-    border-radius: 8px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+}
+
+.template-card-header .template-points {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffda6a;
+    background: rgba(255, 218, 106, 0.2);
+    padding: 4px 12px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 218, 106, 0.3);
+}
+
+.template-card-body {
+    padding: 16px 20px;
 }
 
 .template-description {
-    font-size: 12px;
+    font-size: 14px;
     color: #666;
-    margin-bottom: 6px;
-    line-height: 1.3;
+    margin-bottom: 12px;
+    line-height: 1.4;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
 }
 
 .template-time {
-    font-size: 11px;
-    color: #999;
-    background: #f5f5f5;
-    padding: 1px 6px;
-    border-radius: 8px;
+    font-size: 12px;
+    color: #ff6b8b;
+    background: rgba(255, 107, 139, 0.1);
+    padding: 4px 12px;
+    border-radius: 16px;
     display: inline-block;
-    margin-bottom: 8px;
+    border: 1px solid rgba(255, 107, 139, 0.2);
 }
 
-.template-actions {
+.template-card-footer {
     display: flex;
-    gap: 8px;
-    margin-top: 8px;
+    gap: 10px;
+    padding: 0 20px 16px 20px;
     justify-content: flex-end;
 }
 
-.template-actions .el-button {
-    padding: 4px 12px;
-    font-size: 12px;
-    border-radius: 6px;
+.template-card-footer .btn {
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.template-card-footer .edit-btn {
+    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+    color: white;
+}
+
+.template-card-footer .delete-btn {
+    background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+    color: white;
+}
+
+.template-card-footer .edit-btn:hover,
+.template-card-footer .delete-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* 添加模板按钮 */
