@@ -32,6 +32,7 @@
         <div class="calendar-section card">
             <div class="calendar-header">
                 <h2>📅 日历视图</h2>
+                <div class="calendar-month">{{ currentMonth }}</div>
                 <div class="calendar-controls">
                     <button @click="prevWeek" class="calendar-btn">←</button>
                     <button @click="goToday" class="calendar-btn today">今天</button>
@@ -340,6 +341,14 @@ const currentDate = computed(() => {
     return `${year}年${month}月${day}日`
 })
 
+// 计算当前月份
+const currentMonth = computed(() => {
+    const date = new Date(currentWeekStart.value)
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    return `${year}年${month}月`
+})
+
 // 计算周日期
 const weekDays = computed(() => {
     const days = []
@@ -372,7 +381,8 @@ const selectedDatePlans = computed(() => {
             const selected = new Date(selectedDate.value)
             const start = new Date(plan.startDate)
             const end = new Date(plan.endDate)
-            return selected >= start && selected <= end
+            // 确保日期在范围内且计划的date属性与选中日期匹配
+            return selected >= start && selected <= end && plan.date === selectedDate.value
         }
         
         // 普通特定日期计划
@@ -868,6 +878,17 @@ function handleLogout() {
     margin-bottom: 15px;
     position: relative;
     z-index: 1;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.calendar-month {
+    color: #ff8fab;
+    font-size: 1.2rem;
+    font-weight: 600;
+    text-shadow: 1px 1px 2px rgba(255, 138, 171, 0.2);
+    flex: 1;
+    text-align: center;
 }
 
 .calendar-header h2 {

@@ -2,6 +2,9 @@
   <div class="calendar-section card">
     <div class="calendar-header">
       <h2>📅 日历视图</h2>
+      <div class="calendar-month">
+        {{ currentMonthYear }}
+      </div>
       <div class="calendar-controls">
         <button @click="prevWeek" class="calendar-btn">←</button>
         <button @click="goToday" class="calendar-btn today">今天</button>
@@ -31,6 +34,18 @@ const store = useUserStore()
 const currentDateStr = ref(new Date().toISOString().slice(0, 10))
 const selectedDate = ref(currentDateStr.value)
 const currentWeekStart = ref(new Date())
+
+// 计算当前月份和年份
+const currentMonthYear = computed(() => {
+  try {
+    const date = new Date()
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    return `${year}年${month}月`
+  } catch (error) {
+    return '2024年1月'
+  }
+})
 
 // 计算周日期
 const weekDays = computed(() => {
@@ -138,20 +153,48 @@ export { selectedDate, weekStart, currentDateStr }
     margin-bottom: 15px;
     position: relative;
     z-index: 1;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
+    overflow: visible !important;
 }
 
 .calendar-header h2 {
     color: #ff6b8b;
-    font-size: 1.4rem;
+    font-size: 1.2rem;
     font-weight: 700;
     margin: 0;
     text-shadow: 2px 2px 4px rgba(255, 107, 139, 0.1);
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
+/* 月份显示样式 */
+.calendar-month {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 10 !important;
+    flex: 1;
+    min-width: 120px;
+    white-space: nowrap;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #ff8fab;
+    background-color: rgba(255, 138, 171, 0.1);
+    padding: 6px 12px;
+    border-radius: 15px;
+    text-align: center;
+    overflow: visible !important;
+}
+
+/* 日历控制按钮区域 */
 .calendar-controls {
     display: flex;
     gap: 10px;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .calendar-btn {

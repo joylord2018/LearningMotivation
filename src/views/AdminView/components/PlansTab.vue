@@ -17,6 +17,31 @@
                     </button>
                 </div>
                 
+                <!-- 日历选择器 -->
+                <div class="calendar-section">
+                    <div class="calendar-header">
+                        <h3>📅 选择日期</h3>
+                        <div class="calendar-month">
+                            {{ currentMonthYear }}
+                        </div>
+                        <div class="calendar-controls">
+                            <button @click="prevWeek" class="calendar-btn">←</button>
+                            <button @click="goToday" class="calendar-btn today">今天</button>
+                            <button @click="nextWeek" class="calendar-btn">→</button>
+                        </div>
+                    </div>
+                    <div class="calendar-week">
+                        <div v-for="day in weekDays" :key="day.date" 
+                            class="calendar-day" 
+                            :class="{ 'today': day.isToday, 'selected': selectedDate.toISOString().slice(0, 10) === day.date }"
+                            @click="selectDate(day.date)">
+                            <div class="day-number">{{ day.dayOfMonth }}</div>
+                            <div class="day-name">{{ day.dayName }}</div>
+                            <div class="day-plans">{{ getDayPlanCount(day.date) }}个计划</div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- 筛选按钮 -->
                 <div class="filter-buttons">
                     <button 
@@ -108,6 +133,18 @@
                                     <div class="task-meta">
                                         <span class="task-date">{{ task.date }}</span>
                                         <span class="task-subject">{{ getPlanNameBySubject(String(task.subject)) }}</span>
+                                        <span v-if="task.dailyType === 'dateRange'" class="task-type">
+                                            特定范围: {{ formatDate(task.startDate) }} 至 {{ formatDate(task.endDate) }}
+                                        </span>
+                                        <span v-else-if="task.dailyType === 'everyday'" class="task-type">
+                                            每天
+                                        </span>
+                                        <span v-else-if="task.type === 'weekly'" class="task-type">
+                                            周计划
+                                        </span>
+                                        <span v-else class="task-type">
+                                            特定日期
+                                        </span>
                                     </div>
                                 </div>
                                 <div class="task-actions">
@@ -137,14 +174,154 @@ const store = useUserStore()
 
 const selectedFilters = ref<string[]>(['all'])
 const dateRange = ref<string[]>([])
+const selectedDate = ref(new Date())
 
 const emit = defineEmits(['show-task-modal', 'show-quick-setup', 'notification', 'confirm'])
 
 const filterStartDate = computed(() => dateRange.value[0] || '')
 const filterEndDate = computed(() => dateRange.value[1] || '')
 
+// 检查特定日期是否有计划
+function hasPlansOnDate(date: Date): boolean {
+    const dateStr = date.toISOString().split('T')[0]
+    return store.plans.some(plan => plan.date === dateStr)
+}
+
+// 处理日期选择
+function handleDatePick(date: Date) {
+    selectedDate.value = date
+    // 可以在这里添加逻辑，例如筛选该日期的计划
+}
+
+// 格式化日期
+function formatDate(dateStr: string): string {
+    if (!dateStr) return ''
+    const date = new Date(dateStr)
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+// 日历相关
+const currentWeekStart = ref(new Date())
+
+// 计算当前月份和年份
+const currentMonthYear = computed(() => {
+  try {
+    const date = new Date(currentWeekStart.value)
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    return `${year}年${month}月`
+  } catch (error) {
+    return '2024年1月'
+  }
+})
+
+// 计算周日期
+const weekDays = computed(() => {
+  const days = []
+  const start = new Date(currentWeekStart.value)
+  start.setDate(start.getDate() - start.getDay() + 1) // 从周一开始
+  
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(start)
+    date.setDate(start.getDate() + i)
+    const dateStr = date.toISOString().slice(0, 10)
+    const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    
+    days.push({
+      date: dateStr,
+      dayOfMonth: date.getDate(),
+      dayName: dayNames[date.getDay()],
+      isToday: dateStr === new Date().toISOString().slice(0, 10)
+    })
+  }
+  return days
+})
+
+// 日历操作
+function prevWeek() {
+  const start = new Date(currentWeekStart.value)
+  start.setDate(start.getDate() - 7)
+  currentWeekStart.value = start
+}
+
+function nextWeek() {
+  const start = new Date(currentWeekStart.value)
+  start.setDate(start.getDate() + 7)
+  currentWeekStart.value = start
+}
+
+function goToday() {
+  currentWeekStart.value = new Date()
+  selectedDate.value = new Date()
+}
+
+function selectDate(date: string) {
+  selectedDate.value = new Date(date)
+}
+
+function getDayPlanCount(date: string) {
+  const filteredPlans = store.plans.filter(plan => {
+    // 特定日期计划
+    if (plan.type === 'daily' && plan.dailyType === 'specific' && plan.date === date) {
+      return true
+    }
+    
+    // 日期范围计划 - 只计算一次，避免重复
+    if (plan.type === 'daily' && plan.dailyType === 'dateRange' && plan.startDate && plan.endDate) {
+      const selected = new Date(date)
+      const start = new Date(plan.startDate)
+      const end = new Date(plan.endDate)
+      // 只在计划的date属性与当前日期匹配时计算，避免重复
+      return selected >= start && selected <= end && plan.date === date
+    }
+    
+    // 每天计划
+    if (plan.type === 'daily' && plan.dailyType === 'everyday') {
+      return true
+    }
+    
+    // 周计划
+    if (plan.type === 'weekly') {
+      return true
+    }
+    
+    return false
+  })
+  
+  return filteredPlans.length
+}
+
 const filteredPlans = computed(() => {
     return store.plans.filter(plan => {
+        // 首先检查日期过滤
+        const selectedDateStr = selectedDate.value.toISOString().slice(0, 10)
+        
+        // 对于特定日期计划，检查是否匹配选中日期
+        if (plan.type === 'daily' && plan.dailyType === 'specific' && plan.date !== selectedDateStr) {
+            return false
+        }
+        
+        // 对于日期范围计划，检查是否在范围内且日期匹配
+        if (plan.type === 'daily' && plan.dailyType === 'dateRange' && plan.startDate && plan.endDate) {
+            const selected = new Date(selectedDateStr)
+            const start = new Date(plan.startDate)
+            const end = new Date(plan.endDate)
+            if (selected < start || selected > end || plan.date !== selectedDateStr) {
+                return false
+            }
+        }
+        
+        // 对于每天计划，默认显示
+        if (plan.type === 'daily' && plan.dailyType === 'everyday') {
+            // 每天计划默认显示
+        }
+        
+        // 对于每周计划，检查是否应该显示
+        if (plan.type === 'weekly') {
+            // 周计划默认显示
+        }
+        
+        // 检查其他筛选条件
         if (selectedFilters.value.includes('all')) {
             return true
         }
@@ -291,6 +468,145 @@ function openQuickSetupDrawer() {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+.calendar-section {
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    position: relative;
+    z-index: 1;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.calendar-header h3 {
+    color: #ff6b8b;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(255, 107, 139, 0.1);
+}
+
+.calendar-month {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #ff8fab;
+    background-color: rgba(255, 138, 171, 0.1);
+    padding: 6px 12px;
+    border-radius: 15px;
+    text-align: center;
+    min-width: 100px;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 10 !important;
+}
+
+.calendar-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.calendar-btn {
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8b 100%);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(255, 138, 171, 0.3);
+}
+
+.calendar-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(255, 107, 139, 0.4);
+    background: linear-gradient(135deg, #ff6b8b 0%, #ff4757 100%);
+}
+
+.calendar-btn.today {
+    background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+    box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
+}
+
+.calendar-btn.today:hover {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    box-shadow: 0 6px 15px rgba(34, 197, 94, 0.4);
+}
+
+.calendar-week {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+}
+
+.calendar-day {
+    background: linear-gradient(135deg, #ffffff 0%, #fff0f5 100%);
+    border: 2px solid #ffd6e0;
+    border-radius: 16px;
+    padding: 15px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.calendar-day:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(255, 107, 139, 0.2);
+    border-color: #ff8fab;
+}
+
+.calendar-day.today {
+    background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%);
+    border-color: #4ade80;
+    box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
+}
+
+.calendar-day.selected {
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    border-color: #0ea5e9;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.day-number {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ff6b8b;
+    margin-bottom: 5px;
+}
+
+.day-name {
+    font-size: 0.8rem;
+    color: #ff8fab;
+    margin-bottom: 8px;
+}
+
+.day-plans {
+    font-size: 0.75rem;
+    color: #ff6b8b;
+    font-weight: 500;
+    background-color: rgba(255, 107, 139, 0.1);
+    padding: 4px 8px;
+    border-radius: 12px;
+    display: inline-block;
+}
+
 .filter-buttons {
     display: flex;
     gap: 10px;
@@ -424,10 +740,19 @@ function openQuickSetupDrawer() {
 
 .task-meta {
     display: flex;
+    flex-wrap: wrap;
     gap: 12px;
     font-size: 12px;
     color: #999;
     margin-top: 8px;
+}
+
+.task-type {
+    background-color: #f0f0f0;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    color: #666;
 }
 
 .task-actions {

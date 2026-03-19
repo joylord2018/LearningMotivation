@@ -114,7 +114,8 @@
                         class="form-group">
                         <label class="form-label">日期范围</label>
                         <el-date-picker v-model="taskDateRange" type="daterange" range-separator="至"
-                            start-placeholder="开始日期" end-placeholder="结束日期" style="width: 100%" />
+                            start-placeholder="开始日期" end-placeholder="结束日期" style="width: 100%"
+                            value-format="YYYY-MM-DD" />
                     </div>
 
                     <!-- 特定日期选择 -->
@@ -967,6 +968,13 @@ const editTask = (task: any) => {
     // 直接设置timeRange
     timeRange.value = timeRangeValue;
     
+    // 恢复日期范围值
+    if (task.dailyType === 'dateRange' && task.startDate && task.endDate) {
+        taskDateRange.value = [task.startDate, task.endDate];
+    } else {
+        taskDateRange.value = [];
+    }
+    
     showTaskModal.value = true;
     disableScroll();
 };
@@ -977,31 +985,92 @@ const saveTask = () => {
         return;
     }
 
-    // 确保date属性不为undefined
-    const taskData = {
-        ...currentTask.value,
-        date: (currentTask.value.date || new Date().toISOString().split('T')[0]) as string,
-        subject: currentTask.value.subject as 'chinese' | 'math' | 'english' | 'general'
-    };
-
     // 处理时间范围
     if (timeRange.value instanceof Date) {
         // 将Date对象转换为HH:MM:SS格式的字符串
         const hours = String(timeRange.value.getHours()).padStart(2, '0');
         const minutes = String(timeRange.value.getMinutes()).padStart(2, '0');
         const seconds = String(timeRange.value.getSeconds()).padStart(2, '0');
-        taskData.timeRange = `${hours}:${minutes}:${seconds}`;
+        currentTask.value.timeRange = `${hours}:${minutes}:${seconds}`;
     } else {
-        taskData.timeRange = timeRange.value || '';
+        currentTask.value.timeRange = timeRange.value || '';
     }
 
-    console.log('保存计划数据:', taskData);
+    // 处理日期范围
+    if (currentTask.value.dailyType === 'dateRange' && taskDateRange.value.length === 2) {
+        currentTask.value.startDate = taskDateRange.value[0] || '';
+        currentTask.value.endDate = taskDateRange.value[1] || '';
+    }
+
+    console.log('保存计划数据:', currentTask.value);
+    
     if (isEditingTask.value) {
-        store.updatePlan(taskData);
+        store.updatePlan({
+            ...currentTask.value,
+            date: (currentTask.value.date || new Date().toISOString().split('T')[0]) as string,
+            subject: currentTask.value.subject as 'chinese' | 'math' | 'english' | 'general'
+        });
         showNotificationMessage('计划更新成功', 'success');
     } else {
-        store.addPlan(taskData);
-        showNotificationMessage('计划添加成功', 'success');
+        // 如果是日期范围类型，为范围内的每一天创建计划
+        if (currentTask.value.dailyType === 'dateRange' && taskDateRange.value.length === 2 && taskDateRange.value[0] && taskDateRange.value[1]) {
+            // 直接从日期范围选择器获取YYYY-MM-DD格式的日期字符串
+            const startDateStr = taskDateRange.value[0];
+            const endDateStr = taskDateRange.value[1];
+            
+            console.log('开始日期:', startDateStr);
+            console.log('结束日期:', endDateStr);
+            
+            // 解析为本地日期对象
+            const startDate = new Date(startDateStr);
+            const endDate = new Date(endDateStr);
+            
+            // 确保日期对象有效
+            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                showNotificationMessage('日期格式错误，请重新选择日期范围', 'error');
+                return;
+            }
+            
+            // 计算日期范围内的天数
+            const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            console.log('计算的天数差:', daysDiff);
+            
+            let count = 0;
+            
+            // 基于本地日期创建计划
+            for (let i = 0; i < daysDiff; i++) {
+                const current = new Date(startDate);
+                current.setDate(startDate.getDate() + i);
+                // 手动格式化为YYYY-MM-DD格式，避免时区问题
+                const currentDate = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`;
+                console.log('创建计划日期:', currentDate);
+                
+                // 确保date属性是string类型
+                const taskData: any = {
+                    ...currentTask.value,
+                    id: `${currentTask.value.subject}-${currentDate}-${Date.now()}-${count}`,
+                    date: currentDate,
+                    startDate: startDateStr,
+                    endDate: endDateStr,
+                    subject: currentTask.value.subject as 'chinese' | 'math' | 'english' | 'general'
+                };
+                // 确保date属性是string类型
+                taskData.date = currentDate;
+                store.addPlan(taskData);
+                count++;
+            }
+            console.log('日期范围计划创建完成，共创建:', count, '个计划');
+            showNotificationMessage(`成功添加 ${count} 个计划`, 'success');
+        } else {
+            // 普通计划
+            const taskData = {
+                ...currentTask.value,
+                date: (currentTask.value.date || new Date().toISOString().split('T')[0]) as string,
+                subject: currentTask.value.subject as 'chinese' | 'math' | 'english' | 'general'
+            };
+            store.addPlan(taskData);
+            showNotificationMessage('计划添加成功', 'success');
+        }
     }
     closeTaskModal();
 };
