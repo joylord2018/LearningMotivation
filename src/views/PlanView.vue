@@ -3,13 +3,13 @@
         <!-- 可爱的装饰元素 -->
         <div class="decorations">
             <!-- 静态星星装饰 -->
-            <div v-for="i in 25" :key="'star-' + i" class="decoration star" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%' }"></div>
+            <div v-for="(star, index) in decorations.stars" :key="'star-' + index" class="decoration star" :style="{ left: star.left, top: star.top }"></div>
             
             <!-- 静态爱心装饰 -->
-            <div v-for="i in 8" :key="'heart-' + i" class="decoration heart" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 100 + '%' }"></div>
+            <div v-for="(heart, index) in decorations.hearts" :key="'heart-' + index" class="decoration heart" :style="{ left: heart.left, top: heart.top }"></div>
             
             <!-- 静态云朵装饰 -->
-            <div v-for="i in 4" :key="'cloud-' + i" class="decoration cloud" :style="{ left: Math.random() * 100 + '%', top: Math.random() * 50 + '%' }"></div>
+            <div v-for="(cloud, index) in decorations.clouds" :key="'cloud-' + index" class="decoration cloud" :style="{ left: cloud.left, top: cloud.top }"></div>
         </div>
 
         <header class="plan-header">
@@ -261,6 +261,22 @@ const timerSeconds = ref(0)
 const isTimerPaused = ref(false)
 const isTimeout = ref(false)
 const timerInterval = ref<number | null>(null)
+
+// 装饰元素位置
+const decorations = ref({
+  stars: Array.from({ length: 25 }, () => ({
+    left: Math.random() * 100 + '%',
+    top: Math.random() * 100 + '%'
+  })),
+  hearts: Array.from({ length: 8 }, () => ({
+    left: Math.random() * 100 + '%',
+    top: Math.random() * 100 + '%'
+  })),
+  clouds: Array.from({ length: 4 }, () => ({
+    left: Math.random() * 100 + '%',
+    top: Math.random() * 50 + '%'
+  }))
+})
 
 // 弹窗状态
 const showPopup = ref(false)
