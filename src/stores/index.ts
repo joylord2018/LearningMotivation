@@ -117,6 +117,7 @@ export const useUserStore = defineStore(
     const totalTaskCompletions = ref(0)
     const enableReminders = ref(false)
     const enableLottery = ref(false)
+    const enableDailyReward = ref(true)
     const quickSetupTemplates = ref<Plan[]>([])
 
     // 计算属性
@@ -508,6 +509,7 @@ export const useUserStore = defineStore(
       totalTaskCompletions.value = 0
       enableReminders.value = false
       enableLottery.value = false
+      enableDailyReward.value = true
       quickSetupTemplates.value = []
 
       // 清除本地存储
@@ -591,6 +593,7 @@ export const useUserStore = defineStore(
       totalTaskCompletions,
       enableReminders,
       enableLottery,
+      enableDailyReward,
       quickSetupTemplates,
       resetAllData
     }

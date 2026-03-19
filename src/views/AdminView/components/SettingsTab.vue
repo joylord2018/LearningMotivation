@@ -28,6 +28,16 @@
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
+                    <div class="toggle-item">
+                        <div class="toggle-info">
+                            <h3 class="toggle-name">🎁 每日奖励</h3>
+                            <p class="toggle-description">启用完成所有计划后随机掉落积分功能</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" v-model="store.enableDailyReward">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>

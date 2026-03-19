@@ -192,7 +192,7 @@
             </div>
 
             <!-- 额外奖励提示 -->
-            <div class="reward-hint card">
+            <div v-if="store.enableDailyReward" class="reward-hint card">
                 <div class="reward-icon">🎁</div>
                 <div class="reward-text">
                     <strong>每日奖励：</strong>完成本日所有计划可能会随机掉落积分喔！
@@ -602,7 +602,7 @@ function checkAllPlansCompleted() {
     const todayPlans = store.plans.filter(plan => plan.date === currentDateStr.value && plan.type !== 'weekly')
     const allCompleted = todayPlans.length > 0 && todayPlans.every(plan => plan.completionLevel)
     
-    if (allCompleted) {
+    if (allCompleted && store.enableDailyReward) {
         // 延迟显示奖励弹窗，让用户先看到计划完成的弹窗
         setTimeout(() => {
             // 随机掉落积分，概率随着积分的多少分配大小
@@ -650,6 +650,28 @@ function getRandomPoints() {
 // 撤销完成
 function undoComplete(planId: string) {
     store.cancelPlanCompletion(planId)
+    
+    // 检查撤销后是否不再完成所有计划
+    const todayPlans = store.plans.filter(plan => plan.date === currentDateStr.value && plan.type !== 'weekly')
+    const allCompleted = todayPlans.length > 0 && todayPlans.every(plan => plan.completionLevel)
+    
+    if (!allCompleted) {
+        // 查找并扣除之前的随机掉落积分
+        const today = new Date().toISOString().split('T')[0]
+        const todayRecords = store.pointRecords.filter(record => {
+            const recordDate = new Date(record.date).toISOString().split('T')[0]
+            return recordDate === today && record.description === '完成所有计划随机掉落' && record.points > 0
+        })
+        
+        if (todayRecords.length > 0) {
+            // 扣除最新的随机掉落积分
+            const latestRecord = todayRecords[todayRecords.length - 1]
+            if (latestRecord) {
+                store.adjustPoints(-latestRecord.points, '撤销完成计划，扣除随机掉落积分')
+            }
+        }
+    }
+    
     // 强制更新弹窗状态
     showPopup.value = false
     // 延迟显示撤销弹窗，确保响应式更新完成

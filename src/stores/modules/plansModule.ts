@@ -282,18 +282,21 @@ export function createPlansModule(): PlansModule {
       // 移除之前的积分
       // 这里需要通过回调函数来更新积分
 
-      // 更新计划完成度和积分
+      // 更新计划完成度
       if (plan.type === 'weekly') {
         // 对于周计划，减少完成次数
         if (plan.completedCount > 0) {
           plan.completedCount--
           plan.completionLevel = plan.completedCount >= plan.targetCount
-          plan.points = plan.completionLevel ? 3 : 0
+          // 保持计划的原始积分值，只在未设置时使用默认值
+          if (plan.points === 0 && plan.completionLevel) {
+            plan.points = 3
+          }
         }
       } else {
         // 对于日计划，直接设置完成状态为 false
         plan.completionLevel = false
-        plan.points = 0
+        // 保持计划的原始积分值，不设置为 0
       }
 
       // 减少总计划完成数
