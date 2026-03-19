@@ -145,7 +145,17 @@ const plansBySubject = computed(() => {
     }
     grouped[subjectKey].push(plan)
   })
-  return grouped
+  
+  // 按固定顺序排序：语文、数学、英语、全科
+  const orderedGroups: { [key: string]: any[] } = {}
+  const subjectOrder = ['chinese', 'math', 'english', 'general']
+  subjectOrder.forEach(subject => {
+    if (grouped[subject]) {
+      orderedGroups[subject] = grouped[subject]
+    }
+  })
+  
+  return orderedGroups
 })
 
 // 计算剩余计划数

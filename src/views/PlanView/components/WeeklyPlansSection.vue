@@ -90,7 +90,7 @@ const selectedWeekPlans = computed(() => {
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1)
     const weekStartStr = startOfWeek.toISOString().slice(0, 10)
     
-    // 从 store.plans 中过滤出周计划
+    // 从 store.plans 中过滤出周计划并按固定顺序排序
     return store.plans
         .filter(plan => plan.type === 'weekly')
         .map(plan => {
@@ -111,6 +111,11 @@ const selectedWeekPlans = computed(() => {
                 completed: completed,
                 weekStart: weekStartStr
             }
+        })
+        .sort((a, b) => {
+            // 按固定顺序排序：语文、数学、英语、全科
+            const subjectOrder = ['chinese', 'math', 'english', 'general']
+            return subjectOrder.indexOf(a.subject) - subjectOrder.indexOf(b.subject)
         })
 })
 
